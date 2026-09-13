@@ -91,13 +91,13 @@ export const sendPasswordResetEmail = async (
   const { data, error } = await resend.emails.send({
     from: FROM_EMAIL,
     to,
-    subject: "Reset your CloudForge password",
+    subject: "Reset your HAVN password",
     html: `
       <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
         <h2>Reset your HAVN password</h2>
 
         <p>
-          We received a request to reset the password for your CloudForge account.
+          We received a request to reset the password for your HAVN account.
         </p>
 
         <p>

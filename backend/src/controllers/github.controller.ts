@@ -121,7 +121,19 @@ export const githubRepositories = async (
       });
     }
 
-    const repositories = await githubService.getGithubRepositories(userId);
+    const pageQuery = req.query.page;
+    const perPageQuery = req.query.per_page;
+    const maxPagesQuery = req.query.max_pages;
+
+    const page = typeof pageQuery === "string" ? parseInt(pageQuery, 10) : undefined;
+    const perPage = typeof perPageQuery === "string" ? parseInt(perPageQuery, 10) : undefined;
+    const maxPages = typeof maxPagesQuery === "string" ? parseInt(maxPagesQuery, 10) : undefined;
+
+    const repositories = await githubService.getGithubRepositories(userId, {
+      page: page && !isNaN(page) ? page : undefined,
+      perPage: perPage && !isNaN(perPage) ? perPage : undefined,
+      maxPages: maxPages && !isNaN(maxPages) ? maxPages : undefined,
+    });
 
     return res.status(200).json({
       success: true,

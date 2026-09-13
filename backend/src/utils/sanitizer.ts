@@ -20,6 +20,9 @@ export function sanitizeLogOutput(text: string, tokenToRedact?: string): string 
   sanitized = sanitized.replace(/ghr_[a-zA-Z0-9]{36}/g, "[REDACTED_TOKEN]");
   sanitized = sanitized.replace(/github_pat_[a-zA-Z0-9_]{82}/g, "[REDACTED_TOKEN]");
 
+  // Redact JWT tokens if printed by tooling
+  sanitized = sanitized.replace(/eyJ[a-zA-Z0-9_-]{10,}\.[a-zA-Z0-9_-]{10,}\.[a-zA-Z0-9_-]{10,}/g, "[REDACTED_TOKEN]");
+
   // Redact authorization headers if printed by tooling
   sanitized = sanitized.replace(/Authorization:\s*(Bearer|token)\s+[^\r\n]+/gi, "Authorization: [REDACTED]");
 

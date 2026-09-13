@@ -318,6 +318,7 @@ export const getDeploymentLogs = async (req: AuthRequest, res: Response) => {
     }
 
     const afterSequence = Math.max(0, parseInt(req.query.afterSequence as string, 10) || 0);
+    const limit = Math.min(1000, Math.max(1, parseInt(req.query.limit as string, 10) || 200));
 
     const logs = await prisma.buildLog.findMany({
       where: {
@@ -325,7 +326,7 @@ export const getDeploymentLogs = async (req: AuthRequest, res: Response) => {
         sequence: { gt: afterSequence },
       },
       orderBy: { sequence: "asc" },
-      take: 200,
+      take: limit,
     });
 
     const isTerminal = ["BUILT", "FAILED", "CANCELLED"].includes(deployment.status);
@@ -339,6 +340,55 @@ export const getDeploymentLogs = async (req: AuthRequest, res: Response) => {
   } catch (error) {
     console.error("Error fetching deployment logs:", error);
     return res.status(500).json({ success: false, message: "Failed to fetch deployment logs." });
+  }
+};
+
+/**
+ * GET /api/deployments/:deploymentId/logs/raw
+ * Fetches all build logs as formatted plain text for raw download/export.
+ */
+export const getDeploymentRawLogs = async (req: AuthRequest, res: Response) => {
+  try {
+    const userId = req.user?.id;
+    if (!userId) {
+      return res.status(401).json({ success: false, message: "Unauthorized" });
+    }
+
+    const deploymentId = Array.isArray(req.params.deploymentId)
+      ? req.params.deploymentId[0]
+      : req.params.deploymentId;
+
+    const deployment = await prisma.deployment.findFirst({
+      where: {
+        id: deploymentId,
+        project: { userId },
+      },
+      select: { id: true, repositoryName: true, branch: true, status: true },
+    });
+
+    if (!deployment) {
+      return res.status(404).json({ success: false, message: "Deployment not found or access denied." });
+    }
+
+    const logs = await prisma.buildLog.findMany({
+      where: { deploymentId },
+      orderBy: { sequence: "asc" },
+    });
+
+    const lines = logs.map(
+      (l) => `[${l.timestamp.toISOString()}] [${l.stream}] [${l.sequence}] ${l.line}`
+    );
+    const rawContent = lines.join("\n") + (lines.length > 0 ? "\n" : "");
+
+    res.setHeader("Content-Type", "text/plain; charset=utf-8");
+    res.setHeader(
+      "Content-Disposition",
+      `attachment; filename="deployment-${deploymentId.substring(0, 8)}.log"`
+    );
+    return res.status(200).send(rawContent);
+  } catch (error) {
+    console.error("Error fetching raw deployment logs:", error);
+    return res.status(500).json({ success: false, message: "Failed to fetch raw deployment logs." });
   }
 };
 

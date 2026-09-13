@@ -9,6 +9,7 @@ interface RegisterData {
 interface LoginData {
   email: string;
   password: string;
+  rememberMe?: boolean;
 }
 
 export const register = async (data: RegisterData) => {
@@ -22,7 +23,13 @@ export const login = async (data: LoginData) => {
   const { token } = response.data;
 
   if (token) {
-    localStorage.setItem("token", token);
+    if (data.rememberMe !== false) {
+      localStorage.setItem("token", token);
+      sessionStorage.removeItem("token");
+    } else {
+      sessionStorage.setItem("token", token);
+      localStorage.removeItem("token");
+    }
   }
 
   return response.data;
@@ -35,6 +42,7 @@ export const getCurrentUser = async () => {
 
 export const logout = () => {
   localStorage.removeItem("token");
+  sessionStorage.removeItem("token");
 };
 
 export const verifyEmail = async (token: string) => {
@@ -71,5 +79,15 @@ export const changePassword = async (data: {
   newPassword: string;
 }): Promise<{ success: boolean; message: string }> => {
   const response = await api.put("/auth/change-password", data);
+  return response.data;
+};
+
+export const getOAuthUrl = (provider: "google" | "github"): string => {
+  const base = api.defaults.baseURL || "http://localhost:5000/api";
+  return `${base}/auth/${provider}`;
+};
+
+export const exchangeOAuthCode = async (code: string) => {
+  const response = await api.post("/auth/oauth/exchange", { code });
   return response.data;
 };

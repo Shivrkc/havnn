@@ -66,16 +66,24 @@ export const handleCallback = async (code: string, state: string): Promise<void>
   // Verify expiry BEFORE consuming/deleting the state
   if (stateRecord.expiresAt < new Date()) {
     // Clean up expired state record
-    await prisma.githubOauthState.delete({
+    await prisma.githubOauthState.deleteMany({
       where: { id: stateRecord.id },
     });
     throw new Error("OAuth state has expired.");
   }
 
-  // Consume valid state exactly once
-  await prisma.githubOauthState.delete({
-    where: { id: stateRecord.id },
+  // Atomically consume valid state exactly once
+  const deleteResult = await prisma.githubOauthState.deleteMany({
+    where: {
+      id: stateRecord.id,
+      stateHash,
+      expiresAt: { gte: new Date() },
+    },
   });
+
+  if (deleteResult.count !== 1) {
+    throw new Error("Invalid or missing OAuth state.");
+  }
 
   const userId = stateRecord.userId;
 
@@ -175,7 +183,16 @@ export const getGithubStatus = async (userId: string) => {
   };
 };
 
-export const getGithubRepositories = async (userId: string) => {
+export interface GetGithubRepositoriesOptions {
+  page?: number;
+  perPage?: number;
+  maxPages?: number;
+}
+
+export const getGithubRepositories = async (
+  userId: string,
+  options?: GetGithubRepositoriesOptions
+) => {
   const githubAccount = await prisma.githubAccount.findUnique({
     where: { userId },
     select: {
@@ -188,22 +205,9 @@ export const getGithubRepositories = async (userId: string) => {
   }
 
   const accessToken = decryptToken(githubAccount.accessToken);
+  const perPage = options?.perPage ? Math.min(Math.max(1, options.perPage), 100) : 100;
 
-  const response = await axios.get("https://api.github.com/user/repos", {
-    headers: {
-      Authorization: `Bearer ${accessToken}`,
-      Accept: "application/vnd.github+json",
-      "User-Agent": "HAVN-App",
-    },
-    params: {
-      visibility: "all",
-      affiliation: "owner,collaborator,organization_member",
-      sort: "updated",
-      per_page: 100,
-    },
-  });
-
-  return response.data.map((repo: any) => ({
+  const mapRepo = (repo: any) => ({
     id: repo.id,
     name: repo.name,
     fullName: repo.full_name,
@@ -213,7 +217,68 @@ export const getGithubRepositories = async (userId: string) => {
     defaultBranch: repo.default_branch,
     private: repo.private,
     description: repo.description,
-  }));
+  });
+
+  // If a specific page is requested directly, fetch only that single page
+  if (options?.page) {
+    const response = await axios.get("https://api.github.com/user/repos", {
+      headers: {
+        Authorization: `Bearer ${accessToken}`,
+        Accept: "application/vnd.github+json",
+        "User-Agent": "HAVN-App",
+      },
+      params: {
+        visibility: "all",
+        affiliation: "owner,collaborator,organization_member",
+        sort: "updated",
+        per_page: perPage,
+        page: options.page,
+      },
+    });
+
+    return response.data.map(mapRepo);
+  }
+
+  // Multi-page fetch: follow pagination to retrieve repositories beyond the first 100
+  const maxPages = options?.maxPages || 10;
+  const allRepos: any[] = [];
+  let currentPage = 1;
+  let hasNext = true;
+
+  while (hasNext && currentPage <= maxPages) {
+    const response = await axios.get("https://api.github.com/user/repos", {
+      headers: {
+        Authorization: `Bearer ${accessToken}`,
+        Accept: "application/vnd.github+json",
+        "User-Agent": "HAVN-App",
+      },
+      params: {
+        visibility: "all",
+        affiliation: "owner,collaborator,organization_member",
+        sort: "updated",
+        per_page: perPage,
+        page: currentPage,
+      },
+    });
+
+    const repos = response.data;
+    if (!Array.isArray(repos) || repos.length === 0) {
+      break;
+    }
+
+    allRepos.push(...repos);
+
+    const linkHeader = response.headers?.link || response.headers?.Link;
+    if (typeof linkHeader === "string") {
+      hasNext = linkHeader.includes('rel="next"');
+    } else {
+      hasNext = repos.length === perPage;
+    }
+
+    currentPage++;
+  }
+
+  return allRepos.map(mapRepo);
 };
 
 export const getGithubBranches = async (

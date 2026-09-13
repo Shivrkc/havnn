@@ -6,10 +6,13 @@ interface JwtPayload {
   email: string;
 }
 
-export const generateToken = (payload: JwtPayload): string => {
+export const generateToken = (
+  payload: JwtPayload,
+  expiresIn: string = "7d"
+): string => {
   return jwt.sign(payload, process.env.JWT_SECRET as string, {
-    expiresIn: "7d",
-  });
+    expiresIn,
+  } as any);
 };
 
 export const verifyToken = (token: string): JwtPayload => {

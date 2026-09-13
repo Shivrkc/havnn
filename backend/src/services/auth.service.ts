@@ -8,7 +8,7 @@ import {
   generateVerificationToken,
   hashVerificationToken,
 } from "../utils/emailVerification";
-import { sendVerificationEmail, sendPasswordResetEmail } from "./email.service";
+import * as emailService from "./email.service";
 import { encryptToken } from "../utils/crypto";
 import axios from "axios";
 
@@ -21,14 +21,20 @@ interface RegisterData {
 interface LoginData {
   email: string;
   password: string;
+  rememberMe?: boolean;
 }
+
+export const normalizeEmail = (email: string): string => {
+  return email.trim().toLowerCase();
+};
 
 export const register = async (data: RegisterData) => {
   const { name, email, password } = data;
+  const normalizedEmail = normalizeEmail(email);
 
   const existingUser = await prisma.user.findUnique({
     where: {
-      email,
+      email: normalizedEmail,
     },
   });
 
@@ -41,7 +47,7 @@ export const register = async (data: RegisterData) => {
   const user = await prisma.user.create({
     data: {
       name,
-      email,
+      email: normalizedEmail,
       password: hashedPassword,
       emailVerified: false,
     },
@@ -58,7 +64,7 @@ export const register = async (data: RegisterData) => {
     },
   });
 
-  await sendVerificationEmail(user.email, verificationToken);
+  await emailService.sendVerificationEmail(user.email, verificationToken);
 
   return {
     success: true,
@@ -76,10 +82,11 @@ export const register = async (data: RegisterData) => {
 
 export const login = async (data: LoginData) => {
   const { email, password } = data;
+  const normalizedEmail = normalizeEmail(email);
 
   const user = await prisma.user.findUnique({
     where: {
-      email,
+      email: normalizedEmail,
     },
     include: {
       githubAccount: {
@@ -109,10 +116,13 @@ export const login = async (data: LoginData) => {
     throw new Error("Please verify your email before logging in.");
   }
 
-  const token = generateToken({
-    id: user.id,
-    email: user.email,
-  });
+  const token = generateToken(
+    {
+      id: user.id,
+      email: user.email,
+    },
+    data.rememberMe === true ? "7d" : "1d"
+  );
 
   return {
     success: true,
@@ -136,11 +146,24 @@ export const login = async (data: LoginData) => {
   };
 };
 
+export const getGoogleRedirectUri = (): string => {
+  return (
+    process.env.GOOGLE_CALLBACK_URL ||
+    "http://localhost:5000/api/auth/google/callback"
+  );
+};
+
+export const getGithubRedirectUri = (): string => {
+  return (
+    process.env.GITHUB_CALLBACK_URL ||
+    "http://localhost:5000/api/auth/github/callback"
+  );
+};
+
 export const loginWithGoogle = async (code: string) => {
   const clientId = process.env.GOOGLE_CLIENT_ID;
   const clientSecret = process.env.GOOGLE_CLIENT_SECRET;
-  const redirectUri =
-    "http://localhost:5000/api/auth/google/callback";
+  const redirectUri = getGoogleRedirectUri();
 
   if (!clientId || !clientSecret) {
     throw new Error("Google OAuth is not configured.");
@@ -160,6 +183,7 @@ export const loginWithGoogle = async (code: string) => {
       headers: {
         "Content-Type": "application/json",
       },
+      timeout: 10000,
     }
   );
 
@@ -176,6 +200,7 @@ export const loginWithGoogle = async (code: string) => {
       headers: {
         Authorization: `Bearer ${access_token}`,
       },
+      timeout: 10000,
     }
   );
 
@@ -191,7 +216,11 @@ export const loginWithGoogle = async (code: string) => {
     throw new Error("Failed to retrieve Google profile.");
   }
 
-  const normalizedEmail = email.toLowerCase().trim();
+  if (email_verified !== true) {
+    throw new Error("Google account email is not verified.");
+  }
+
+  const normalizedEmail = normalizeEmail(email);
 
   // 3. Find existing HAVN user
   let user = await prisma.user.findUnique({
@@ -209,7 +238,7 @@ export const loginWithGoogle = async (code: string) => {
         password: null,
         avatar: picture || null,
         provider: "google",
-        emailVerified: email_verified === true,
+        emailVerified: true,
       },
     });
   } else {
@@ -220,8 +249,7 @@ export const loginWithGoogle = async (code: string) => {
       },
       data: {
         avatar: picture || user.avatar,
-        emailVerified:
-          email_verified === true ? true : user.emailVerified,
+        emailVerified: true,
       },
     });
   }
@@ -248,9 +276,7 @@ export const loginWithGoogle = async (code: string) => {
 export const loginWithGithub = async (code: string) => {
   const clientId = process.env.GITHUB_CLIENT_ID;
   const clientSecret = process.env.GITHUB_CLIENT_SECRET;
-
-  const redirectUri =
-    "http://localhost:5000/api/auth/github/callback";
+  const redirectUri = getGithubRedirectUri();
 
   if (!clientId || !clientSecret) {
     throw new Error("GitHub OAuth is not configured.");
@@ -269,6 +295,7 @@ export const loginWithGithub = async (code: string) => {
       headers: {
         Accept: "application/json",
       },
+      timeout: 10000,
     }
   );
 
@@ -287,6 +314,7 @@ export const loginWithGithub = async (code: string) => {
         Accept: "application/vnd.github+json",
         "User-Agent": "HAVN-App",
       },
+      timeout: 10000,
     }
   );
 
@@ -339,6 +367,7 @@ export const loginWithGithub = async (code: string) => {
             Accept: "application/vnd.github+json",
             "User-Agent": "HAVN-App",
           },
+          timeout: 10000,
         }
       );
 
@@ -361,7 +390,7 @@ export const loginWithGithub = async (code: string) => {
       );
     }
 
-    const normalizedEmail = email.toLowerCase().trim();
+    const normalizedEmail = normalizeEmail(email);
 
     // Check if an existing HAVN user has this normalized email
     const existingUserByEmail = await prisma.user.findUnique({
@@ -536,7 +565,7 @@ export const verifyEmail = async (token: string) => {
 };
 
 export const forgotPassword = async (email: string) => {
-  const normalizedEmail = email.toLowerCase().trim();
+  const normalizedEmail = normalizeEmail(email);
 
   const user = await prisma.user.findUnique({
     where: {
@@ -580,10 +609,10 @@ export const forgotPassword = async (email: string) => {
     },
   });
 
-  await sendPasswordResetEmail(
-  normalizedEmail,
-  rawToken
-);
+  await emailService.sendPasswordResetEmail(
+    normalizedEmail,
+    rawToken
+  );
 
   return {
     success: true,
@@ -713,3 +742,238 @@ export const changePassword = async (
     message: "Password changed successfully.",
   };
 };
+
+/*
+|--------------------------------------------------------------------------
+| OAuth State CSRF Protection & Short-Lived Exchange Code Helpers
+|--------------------------------------------------------------------------
+*/
+
+interface OAuthStateRecord {
+  provider: "google" | "github";
+  expiresAt: number;
+}
+
+interface OAuthExchangeRecord {
+  token: string;
+  user: any;
+  expiresAt: number;
+}
+
+const oauthStateStore = new Map<string, OAuthStateRecord>();
+const oauthExchangeStore = new Map<string, OAuthExchangeRecord>();
+
+export const generateOAuthState = async (
+  provider: "google" | "github"
+): Promise<string> => {
+  const now = Date.now();
+  const rawState = crypto.randomBytes(32).toString("hex");
+  const stateHash = crypto
+    .createHash("sha256")
+    .update(rawState)
+    .digest("hex");
+  const expiresAt = new Date(now + 10 * 60 * 1000);
+
+  // In-memory fallback tracking
+  for (const [hash, entry] of oauthStateStore.entries()) {
+    if (entry.expiresAt <= now) {
+      oauthStateStore.delete(hash);
+    }
+  }
+  oauthStateStore.set(stateHash, {
+    provider,
+    expiresAt: expiresAt.getTime(),
+  });
+
+  try {
+    // Prune expired states in DB
+    await prisma.oAuthState.deleteMany({
+      where: {
+        expiresAt: { lte: new Date() },
+      },
+    });
+
+    await prisma.oAuthState.create({
+      data: {
+        stateHash,
+        provider,
+        expiresAt,
+      },
+    });
+  } catch (error) {
+    // Graceful fallback to in-memory store if DB is disconnected/mocked in unit tests
+  }
+
+  return rawState;
+};
+
+export const validateOAuthState = async (
+  rawState: unknown,
+  expectedProvider: "google" | "github"
+): Promise<boolean> => {
+  if (typeof rawState !== "string" || !rawState) {
+    return false;
+  }
+
+  const stateHash = crypto
+    .createHash("sha256")
+    .update(rawState)
+    .digest("hex");
+
+  try {
+    // Atomic single-use consumption in DB
+    const deleteResult = await prisma.oAuthState.deleteMany({
+      where: {
+        stateHash,
+        provider: expectedProvider,
+        expiresAt: { gt: new Date() },
+      },
+    });
+
+    if (deleteResult.count === 1) {
+      oauthStateStore.delete(stateHash);
+      return true;
+    }
+  } catch (error) {
+    // Fallback to in-memory store
+  }
+
+  const entry = oauthStateStore.get(stateHash);
+  if (!entry) {
+    return false;
+  }
+
+  // Single-use: delete immediately
+  oauthStateStore.delete(stateHash);
+
+  if (entry.expiresAt <= Date.now()) {
+    return false;
+  }
+
+  if (entry.provider !== expectedProvider) {
+    return false;
+  }
+
+  return true;
+};
+
+export const clearOAuthStateStore = async (): Promise<void> => {
+  oauthStateStore.clear();
+  try {
+    await prisma.oAuthState.deleteMany({});
+  } catch (e) {
+    // ignore
+  }
+};
+
+export const createOAuthExchangeCode = async (
+  token: string,
+  user: any
+): Promise<string> => {
+  const now = Date.now();
+  const exchangeCode = crypto.randomBytes(32).toString("hex");
+  const codeHash = crypto
+    .createHash("sha256")
+    .update(exchangeCode)
+    .digest("hex");
+  const expiresAt = new Date(now + 60 * 1000);
+
+  // In-memory fallback tracking
+  for (const [hash, entry] of oauthExchangeStore.entries()) {
+    if (entry.expiresAt <= now) {
+      oauthExchangeStore.delete(hash);
+    }
+  }
+  oauthExchangeStore.set(codeHash, {
+    token,
+    user,
+    expiresAt: expiresAt.getTime(),
+  });
+
+  try {
+    // Prune expired codes in DB
+    await prisma.oAuthExchange.deleteMany({
+      where: {
+        expiresAt: { lte: new Date() },
+      },
+    });
+
+    await prisma.oAuthExchange.create({
+      data: {
+        codeHash,
+        token,
+        user: user || {},
+        expiresAt,
+      },
+    });
+  } catch (error) {
+    // Graceful fallback to in-memory store if DB is disconnected/mocked in unit tests
+  }
+
+  return exchangeCode;
+};
+
+export const consumeOAuthExchangeCode = async (
+  rawCode: unknown
+): Promise<{ token: string; user: any } | null> => {
+  if (typeof rawCode !== "string" || !rawCode) {
+    return null;
+  }
+
+  const codeHash = crypto
+    .createHash("sha256")
+    .update(rawCode)
+    .digest("hex");
+
+  try {
+    // Atomic single-use consumption: delete returns the record if found, or throws P2025 if already deleted/consumed
+    const record = await prisma.oAuthExchange.delete({
+      where: { codeHash },
+    });
+
+    // Synchronize in-memory fallback store so memory can NEVER resurrect this code
+    oauthExchangeStore.delete(codeHash);
+
+    if (record.expiresAt.getTime() <= Date.now()) {
+      return null;
+    }
+
+    return {
+      token: record.token,
+      user: record.user,
+    };
+  } catch (error: any) {
+    // Prisma error code P2025: Record to delete does not exist (already consumed or never existed)
+    if (error?.code === "P2025") {
+      oauthExchangeStore.delete(codeHash);
+      return null;
+    }
+
+    // If DB is unavailable / connectivity error or unit-test without DB, fall back to in-memory store
+    const entry = oauthExchangeStore.get(codeHash);
+    if (!entry) {
+      return null;
+    }
+
+    // Single-use: delete immediately upon lookup
+    oauthExchangeStore.delete(codeHash);
+
+    if (entry.expiresAt <= Date.now()) {
+      return null;
+    }
+
+    return {
+      token: entry.token,
+      user: entry.user,
+    };
+  }
+};
+
+export const clearOAuthExchangeStore = async (): Promise<void> => {
+  oauthExchangeStore.clear();
+  try {
+    await prisma.oAuthExchange.deleteMany({});
+  } catch (e) {
+    // ignore
+  }
+};

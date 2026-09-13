@@ -7,6 +7,8 @@ import { BuildContext, assertWorkspaceBoundary, cleanupWorkspace } from "./git.s
 import {
   DOCKER_BUILD_TIMEOUT_MS,
   DOCKER_DAEMON_CHECK_TIMEOUT_MS,
+  DOCKER_INSPECT_TIMEOUT_MS,
+  DOCKER_RMI_TIMEOUT_MS,
   MAX_IMAGE_SIZE_BYTES,
   SCRATCH_ROOT_DIR,
 } from "../constants/build.constants";
@@ -86,23 +88,37 @@ export class BuildLogBatcher {
     });
   }
 
+  private isFlushing = false;
+
   /**
    * Flushes accumulated logs to PostgreSQL in batches of 50.
+   * Concurrency-guarded: avoids interleaving concurrent flush calls.
+   * Failure-safe: if createMany fails, the batch is unshifted back onto the front of the queue
+   * preserving exact sequence numbers, ordering, and preventing data loss.
    */
   public async flush(): Promise<void> {
-    if (this.queue.length === 0) return;
+    if (this.isFlushing || this.queue.length === 0) return;
 
+    this.isFlushing = true;
     const batch = this.queue.splice(0, 50);
 
-    await prisma.buildLog.createMany({
-      data: batch.map((item) => ({
-        deploymentId: this.deploymentId,
-        line: item.line,
-        stream: item.stream,
-        sequence: item.sequence,
-        timestamp: item.timestamp,
-      })),
-    });
+    try {
+      await prisma.buildLog.createMany({
+        data: batch.map((item) => ({
+          deploymentId: this.deploymentId,
+          line: item.line,
+          stream: item.stream,
+          sequence: item.sequence,
+          timestamp: item.timestamp,
+        })),
+      });
+    } catch (err) {
+      // Put the unpersisted batch back at the front of the queue
+      this.queue.unshift(...batch);
+      throw err;
+    } finally {
+      this.isFlushing = false;
+    }
   }
 
   /**
@@ -129,6 +145,7 @@ export async function verifyDockerDaemon(timeoutMs = DOCKER_DAEMON_CHECK_TIMEOUT
     const child = spawn("docker", ["version", "--format", "{{.Server.Os}}"], {
       shell: false,
       windowsHide: true,
+      detached: process.platform !== "win32",
     });
 
     const timer = setTimeout(() => {
@@ -194,15 +211,29 @@ function terminateProcessTree(pid: number): void {
 /**
  * Inspects the uncompressed image size in bytes using `docker inspect`.
  */
-export async function inspectDockerImageSize(imageTag: string): Promise<number> {
+export async function inspectDockerImageSize(
+  imageTag: string,
+  timeoutMs: number = DOCKER_INSPECT_TIMEOUT_MS
+): Promise<number> {
   return new Promise((resolve, reject) => {
     let stdout = "";
     let stderr = "";
+    let isSettled = false;
 
     const child = spawn("docker", ["inspect", imageTag, "--format", "{{.Size}}"], {
       shell: false,
       windowsHide: true,
     });
+
+    const timer = setTimeout(() => {
+      if (!isSettled) {
+        isSettled = true;
+        if (child.pid) {
+          terminateProcessTree(child.pid);
+        }
+        reject(new Error(`docker inspect for ${imageTag} timed out after ${Math.round(timeoutMs / 1000)}s.`));
+      }
+    }, timeoutMs);
 
     child.stdout.on("data", (chunk: Buffer) => {
       stdout += chunk.toString("utf8");
@@ -211,16 +242,28 @@ export async function inspectDockerImageSize(imageTag: string): Promise<number> 
       stderr += chunk.toString("utf8");
     });
 
+    child.on("error", (err) => {
+      if (!isSettled) {
+        isSettled = true;
+        clearTimeout(timer);
+        reject(new Error(`Failed to spawn docker inspect for ${imageTag}: ${err.message}`));
+      }
+    });
+
     child.on("close", (code) => {
-      if (code === 0) {
-        const parsed = parseInt(stdout.trim(), 10);
-        if (isNaN(parsed)) {
-          reject(new Error(`Unable to parse image size from docker inspect: "${stdout.trim()}"`));
+      if (!isSettled) {
+        isSettled = true;
+        clearTimeout(timer);
+        if (code === 0) {
+          const parsed = parseInt(stdout.trim(), 10);
+          if (isNaN(parsed)) {
+            reject(new Error(`Unable to parse image size from docker inspect: "${stdout.trim()}"`));
+          } else {
+            resolve(parsed);
+          }
         } else {
-          resolve(parsed);
+          reject(new Error(`Failed to inspect image size for ${imageTag}: ${stderr.trim()}`));
         }
-      } else {
-        reject(new Error(`Failed to inspect image size for ${imageTag}: ${stderr.trim()}`));
       }
     });
   });
@@ -229,13 +272,45 @@ export async function inspectDockerImageSize(imageTag: string): Promise<number> 
 /**
  * Deletes a Docker image from the local daemon.
  */
-export async function deleteDockerImage(imageTag: string): Promise<void> {
+export async function deleteDockerImage(
+  imageTag: string,
+  timeoutMs: number = DOCKER_RMI_TIMEOUT_MS
+): Promise<void> {
   return new Promise((resolve) => {
+    let isSettled = false;
+
     const child = spawn("docker", ["rmi", "--force", imageTag], {
       shell: false,
       windowsHide: true,
     });
-    child.on("close", () => resolve());
+
+    const timer = setTimeout(() => {
+      if (!isSettled) {
+        isSettled = true;
+        if (child.pid) {
+          terminateProcessTree(child.pid);
+        }
+        console.warn(`[SYSTEM] docker rmi for ${imageTag} timed out after ${Math.round(timeoutMs / 1000)}s.`);
+        resolve();
+      }
+    }, timeoutMs);
+
+    child.on("error", (err) => {
+      if (!isSettled) {
+        isSettled = true;
+        clearTimeout(timer);
+        console.warn(`[SYSTEM] Failed to spawn docker rmi for ${imageTag}: ${err.message}`);
+        resolve();
+      }
+    });
+
+    child.on("close", () => {
+      if (!isSettled) {
+        isSettled = true;
+        clearTimeout(timer);
+        resolve();
+      }
+    });
   });
 }
 
@@ -404,6 +479,7 @@ export async function executeDockerBuild(
         env: cleanEnv,
         shell: false,
         windowsHide: true,
+        detached: process.platform !== "win32",
       });
 
       childPid = child.pid;
@@ -683,6 +759,11 @@ export async function executeDockerBuild(
     };
   } finally {
     clearInterval(flushInterval);
+    try {
+      await logBatcher.flushAll();
+    } catch (flushErr) {
+      console.error("Error in final logBatcher.flushAll:", flushErr);
+    }
     buildLock.release();
 
     // Always clean up the workspace directory on completion/failure

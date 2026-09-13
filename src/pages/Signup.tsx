@@ -2,7 +2,7 @@ import { useState, FormEvent, useEffect, useRef } from 'react';
 import { Mail, Lock, Eye, EyeOff, Github, Chrome, User, Rocket, Bot, BarChart3, ShieldCheck } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { ROUTES } from '../constants/routes';
-import { register } from "../services/auth.service";
+import { register, getOAuthUrl } from "../services/auth.service";
 
 export default function Signup() {
   const navigate = useNavigate();
@@ -28,11 +28,17 @@ export default function Signup() {
     let animationFrameId: number;
     let width = (canvas.width = window.innerWidth);
     let height = (canvas.height = window.innerHeight);
+    const reduceMotion = typeof window !== 'undefined' && window.matchMedia 
+      ? window.matchMedia('(prefers-reduced-motion: reduce)').matches 
+      : false;
 
     const handleResize = () => {
       if (!canvas) return;
       width = canvas.width = window.innerWidth;
       height = canvas.height = window.innerHeight;
+      if (reduceMotion) {
+        render();
+      }
     };
     window.addEventListener('resize', handleResize);
 
@@ -120,16 +126,20 @@ export default function Signup() {
         ctx.fill();
       });
 
-      animationFrameId = requestAnimationFrame(render);
+      if (!reduceMotion) {
+        animationFrameId = requestAnimationFrame(render);
+      }
     };
 
     render();
 
     return () => {
-      cancelAnimationFrame(animationFrameId);
+      if (animationFrameId) {
+        cancelAnimationFrame(animationFrameId);
+      }
       window.removeEventListener('resize', handleResize);
     };
-  }, []);
+  }, [registrationComplete]);
 
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
@@ -180,13 +190,8 @@ export default function Signup() {
     }
   };
   const handleOAuthSignup = (provider: "google" | "github") => {
-  if (provider === "github") {
-    window.location.href = "http://localhost:5000/api/auth/github";
-    return;
-  }
-
-  window.location.href = "http://localhost:5000/api/auth/google";
-};
+    window.location.href = getOAuthUrl(provider);
+  };
 
   if (registrationComplete) {
     return (
@@ -197,12 +202,13 @@ export default function Signup() {
         {/* Background Animated Sky Canvas */}
         <canvas
           ref={canvasRef}
+          aria-hidden="true"
           className="fixed inset-0 w-full h-full pointer-events-none z-0"
         />
 
         {/* Success Message Card */}
         <div className="flex-1 flex items-center justify-center pt-24 sm:pt-28 pb-10 px-4 sm:px-6 lg:px-8 relative z-20">
-          <div className="max-w-md w-full backdrop-blur-2xl bg-white/60 hover:bg-white/65 border border-white/90 rounded-3xl p-6 sm:p-10 shadow-2xl shadow-sky-950/20 text-center relative transition-all duration-300 motion-safe:animate-fade-in-up space-y-6">
+          <div className="max-w-md w-full backdrop-blur-2xl bg-white/60 hover:bg-white/65 border border-white/90 rounded-3xl p-6 sm:p-10 shadow-2xl shadow-sky-950/20 text-center relative transition-all duration-300 animate-fade-in-up space-y-6">
             <div className="w-12 h-12 rounded-2xl bg-blue-100/90 border border-blue-200 flex items-center justify-center mx-auto text-blue-600 shadow-2xs">
               <Mail className="w-6 h-6" />
             </div>
@@ -244,12 +250,13 @@ export default function Signup() {
       {/* Background Animated Sky Canvas */}
       <canvas
         ref={canvasRef}
+        aria-hidden="true"
         className="fixed inset-0 w-full h-full pointer-events-none z-0"
       />
 
       {/* Main Floating Translucent Glass Signup Interface */}
       <div className="flex-1 flex items-center justify-center pt-24 sm:pt-28 pb-10 px-4 sm:px-6 lg:px-8 relative z-20">
-        <div className="max-w-4xl w-full grid grid-cols-1 md:grid-cols-2 gap-8 items-center backdrop-blur-2xl bg-white/60 hover:bg-white/65 border border-white/90 rounded-3xl p-6 sm:p-10 shadow-2xl shadow-sky-950/20 relative transition-all duration-300 motion-safe:animate-fade-in-up">
+        <div className="max-w-4xl w-full grid grid-cols-1 md:grid-cols-2 gap-8 items-center backdrop-blur-2xl bg-white/60 hover:bg-white/65 border border-white/90 rounded-3xl p-6 sm:p-10 shadow-2xl shadow-sky-950/20 relative transition-all duration-300 animate-fade-in-up">
 
           {/* Left Side Content - Form Panel */}
           <div className="space-y-6 w-full">
@@ -272,24 +279,26 @@ export default function Signup() {
 
             <form onSubmit={handleSubmit} className="space-y-3.5">
               <div className="space-y-1.5">
-                <label className="text-[11px] font-bold text-slate-800 uppercase tracking-wider block">Full Name</label>
+                <label htmlFor="signup-name" className="text-[11px] font-bold text-slate-800 uppercase tracking-wider block">Full Name</label>
                 <div className="relative">
                   <User className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
                   <input
+                    id="signup-name"
                     type="text"
                     value={name}
                     onChange={(e) => setName(e.target.value)}
-                    placeholder="Mai shiv hoon"
+                    placeholder="Jane Doe"
                     className="w-full pl-10 pr-4 py-2.5 bg-white/75 focus:bg-white border border-white/90 focus:border-blue-500 rounded-xl text-xs text-slate-900 placeholder:text-slate-400 outline-none transition-all duration-200 shadow-2xs focus:ring-2 focus:ring-blue-500/20 font-semibold"
                   />
                 </div>
               </div>
 
               <div className="space-y-1.5">
-                <label className="text-[11px] font-bold text-slate-800 uppercase tracking-wider block">Email</label>
+                <label htmlFor="signup-email" className="text-[11px] font-bold text-slate-800 uppercase tracking-wider block">Email</label>
                 <div className="relative">
                   <Mail className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
                   <input
+                    id="signup-email"
                     type="email"
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
@@ -301,10 +310,11 @@ export default function Signup() {
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
                 <div className="space-y-1.5">
-                  <label className="text-[11px] font-bold text-slate-800 uppercase tracking-wider block">Password</label>
+                  <label htmlFor="signup-password" className="text-[11px] font-bold text-slate-800 uppercase tracking-wider block">Password</label>
                   <div className="relative">
                     <Lock className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
                     <input
+                      id="signup-password"
                       type={showPassword ? 'text' : 'password'}
                       value={password}
                       onChange={(e) => setPassword(e.target.value)}
@@ -322,10 +332,11 @@ export default function Signup() {
                 </div>
 
                 <div className="space-y-1.5">
-                  <label className="text-[11px] font-bold text-slate-800 uppercase tracking-wider block">Confirm Password</label>
+                  <label htmlFor="signup-confirm-password" className="text-[11px] font-bold text-slate-800 uppercase tracking-wider block">Confirm Password</label>
                   <div className="relative">
                     <Lock className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
                     <input
+                      id="signup-confirm-password"
                       type={showPassword ? 'text' : 'password'}
                       value={confirmPassword}
                       onChange={(e) => setConfirmPassword(e.target.value)}

@@ -2,136 +2,72 @@
 
 > **Source of truth for AI coding agents working on HAVN.**
 >
-> Product branding is currently **HAVN**. The repository/project directory and several internal/package/README references still use **CloudForge**. Do not perform a global rename unless explicitly requested.
+> Product branding is **HAVN** ("From Code to Cloud."). The repository/project directory and several internal package/code references still use **CloudForge**. Do not perform a global rename unless explicitly requested.
 
 ---
 
 ## 1. Project Identity
 
-**Current product name:** HAVN
+- **Current product name:** HAVN
+- **Codebase / repository directory:** `cloudforge`
+- **Tagline:** `From Code to Cloud.`
+- **Product category:** Developer deployment platform / DevOps SaaS platform
+- **Product inspiration:** Vercel, Railway, Render, Coolify
+- **Core vision:** Allow developers to connect a Git repository, build container images, run asynchronous deployments, stream real-time build logs, and leverage an AI assistant to diagnose and resolve deployment failures.
 
-**Repository / codebase name:** CloudForge
-
-**Original tagline:** `From Code to Cloud.`
-
-**Product category:** Developer deployment platform / DevOps platform
-
-**Product inspiration:** Vercel, Railway, Render, Coolify
-
-**Core vision:** Let a developer connect a Git repository, build it, deploy it, inspect deployment logs, and use an AI assistant to understand deployment/build problems.
-
-HAVN is intended to be a portfolio-grade, production-style project rather than a simple CRUD college project.
-
-## Current Development Status
-
-As of the latest verified milestone:
-
-```text
-Authentication (email/password + email verification)   DONE
-Project CRUD + PostgreSQL persistence                  DONE
-GitHub repository OAuth integration                   DONE
-Real repository fetching                              DONE
-Real branch fetching                                  DONE
-Dashboard project integration                         DONE
-Professor-demo polish                                 CURRENT
-GitHub Login                                           PENDING
-Google Login                                           PENDING
-Developer profile                                     PENDING
-Project delete UI                                     PENDING
-Mock Dashboard cleanup                                PENDING
-Docker build engine                                   PLANNED
-Deployment engine                                     PLANNED
-Deployment logs                                       PLANNED
-AI deployment-log assistant                           PLANNED
-```
-
-The current Dashboard deployment/build animation is a simulation. It is not a real Docker deployment.
-
+HAVN is built as a portfolio-grade, production-style platform adhering to modern software engineering standards: strict resource isolation, database-backed atomic operations, complete authentication security, and clean separation of concerns.
 
 ---
 
-## 2. September 15 MVP Scope
-
-The hard MVP scope for September 15 is:
-
-1. Authentication
-2. Dashboard
-3. Git Integration
-4. Docker Build
-5. Deployment
-6. Deployment Logs
-7. AI Assistant Logs (USP)
-
-### Current development strategy
-
-Complete modules sequentially up to Git Integration first.
-
-Do **not** start Docker, deployment, deployment logs, or AI Assistant implementation until the Dashboard + Git Integration milestone is complete and polished.
-
-Target flow:
+## 2. Current Development Status
 
 ```text
-User
-  ↓
-Authentication
-  ↓
-Dashboard
-  ↓
-Create Project
-  ↓
-Connect GitHub
-  ↓
-Fetch Repositories
-  ↓
-Select Repository
-  ↓
-Select Branch
-  ↓
-Link Repository to HAVN Project
+Authentication (email/password + verification + rate limiting)   DONE
+Account Security (email normalization, token hashing, TTLs)      DONE
+Google OAuth Login (email_verified check + exchange code)        DONE
+GitHub OAuth Login & Account Connection (isolated token storage) DONE
+OAuth Security Hardening (DB-backed hashed state + 60s exchange) DONE
+Project CRUD + PostgreSQL persistence                            DONE
+GitHub Repository Listing & Branch Selection (paginated >100)    DONE
+Project Deletion & Workspace / Artifact Cleanup                  DONE
+Docker Build Engine (Buildx, progress=plain, image inspection)   DONE
+Git Isolation (GIT_ASKPASS token injection, path traversal check)DONE
+Deployment Pipeline (DB-backed queue, FOR UPDATE SKIP LOCKED)    DONE
+Deployment Worker (heartbeats, lease recovery, cancellation)     DONE
+Dashboard Real-Time Deployment & Log Streaming Modal             DONE
+Developer Profile & Password Management                          DONE
+Accessibility & UX Polish (form alerts, reduced motion, labels)  DONE
+AI Deployment-Log Assistant (Beginner & Expert Modes)           UP NEXT (Phase 2)
+Cloud Production Infrastructure (AWS EC2 / ECS / Kubernetes)     PLANNED
+Prometheus & Grafana Telemetry Metrics                          PLANNED
+Rollback to Previous Deployment                                  PLANNED
+Custom Domains & Reverse Proxy (Traefik/Caddy)                   PLANNED
 ```
-
-After this milestone, polish authentication, dashboard, Git integration, error states, loading states, security, and code quality before starting the Docker/deployment pipeline.
 
 ---
 
 ## 3. Technology Stack
 
 ### Frontend
-
-- React 19
-- TypeScript
-- Vite
-- Tailwind CSS v4
-- React Router v7
-- Lucide React
-- Motion
-- GSAP
-- Axios
-- `@google/genai` is installed for future AI functionality
+- **Framework:** React 19 with TypeScript
+- **Bundler / Dev Server:** Vite
+- **Styling:** Tailwind CSS v4
+- **Routing:** React Router v7
+- **Icons:** Lucide React (`lucide-react`)
+- **Animation & Motion:** GSAP, Motion (`motion`)
+- **HTTP Client:** Axios (`src/services/api.ts` with dynamic Bearer token interceptor supporting `localStorage` & `sessionStorage`)
+- **AI SDK:** `@google/genai` installed for Phase 2 AI Assistant
 
 ### Backend
-
-- Node.js
-- Express 5
-- TypeScript
-- Prisma 6.16.2
-- PostgreSQL
-- bcrypt
-- jsonwebtoken
-- Axios
-- Resend
-- Zod
-- CORS
-- dotenv
-
-### Planned DevOps stack
-
-- Docker
-- AWS
-- Kubernetes
-- GitHub Actions
-- Deployment logs
-- AI deployment-log assistant
+- **Runtime:** Node.js (CommonJS, TypeScript via `ts-node-dev` and `tsc`)
+- **Web Framework:** Express 5 (`express@^5.2.1`)
+- **Database & ORM:** PostgreSQL with Prisma ORM 6.16.2 (`@prisma/client`, `prisma`)
+- **Password Hashing:** `bcrypt` (10 rounds)
+- **Token Management:** `jsonwebtoken` (dynamic expiry: 1d for session, 7d for persistent login)
+- **Validation:** Zod 4 (`zod@^4.4.3`)
+- **Email Delivery:** Resend (`resend@^6.20.0`)
+- **Containerization:** Docker Engine & Buildx (`docker buildx build --load`)
+- **Security & Utilities:** Node `crypto` (SHA-256 token hashing, AES token encryption), custom rate-limiting middleware, regex-based command/path sanitizers
 
 ---
 
@@ -142,1146 +78,225 @@ cloudforge/
 ├── backend/
 │   ├── prisma/
 │   │   ├── migrations/
-│   │   └── schema.prisma
+│   │   └── schema.prisma           # 10 Prisma models & enums (Deployment, BuildLog, OAuth, etc.)
+│   ├── scratch/
+│   │   └── builds/                 # Root for isolated workspace checkouts (SCRATCH_ROOT_DIR)
 │   ├── src/
-│   │   ├── constants/
-│   │   ├── controllers/
+│   │   ├── constants/              # Build constants, timeouts, regex validations
+│   │   ├── controllers/            # auth, project, github, deployment, health
 │   │   ├── lib/
-│   │   ├── middleware/
-│   │   ├── routes/
-│   │   ├── services/
-│   │   ├── utils/
-│   │   ├── app.ts
-│   │   └── server.ts
+│   │   │   └── prisma.ts           # PrismaClient singleton
+│   │   ├── middleware/             # auth, validation, rateLimit middleware
+│   │   ├── routes/                 # Express route definitions
+│   │   ├── services/               # auth, git, docker, deployment, worker, github, email
+│   │   │   └── __tests__/          # Integration test suites for auth, git, docker, deployment
+│   │   ├── utils/                  # jwt, sanitizer, crypto
+│   │   ├── app.ts                  # Express application setup & middleware
+│   │   └── server.ts               # HTTP listener + deployment worker bootstrap
 │   ├── package.json
 │   └── tsconfig.json
 │
 ├── src/
 │   ├── components/
-│   │   ├── auth/
-│   │   ├── landing/
-│   │   ├── layout/
-│   │   └── ui/
-│   ├── constants/
-│   ├── data/
-│   ├── pages/
-│   ├── services/
-│   ├── types/
-│   ├── App.tsx
-│   └── main.tsx
+│   │   ├── auth/                   # ProtectedRoute, etc.
+│   │   ├── dashboard/              # BuildLogModal, ProjectCard, etc.
+│   │   ├── landing/                # Hero, Features, Pricing, Faq
+│   │   ├── layout/                 # Navbar, Footer
+│   │   └── ui/                     # Shared UI components
+│   ├── constants/                  # Routes, styling constants
+│   ├── data/                       # Static copy & fallback types
+│   ├── pages/                      # Login, Signup, Dashboard, Profile, OAuthCallback, etc.
+│   ├── services/                   # api.ts, auth.service, project.service, deployment.service, github.service
+│   ├── types/                      # TypeScript definitions (Project, Deployment, Logs, etc.)
+│   ├── App.tsx                     # Route registration & layout shell
+│   └── main.tsx                    # Application entry point
 │
-├── public/
 ├── package.json
 ├── vite.config.ts
 ├── tsconfig.json
-└── README.md
+└── brain.md                        # Central project memory & source of truth
 ```
 
 ---
 
-## 5. Runtime Architecture
+## 5. Runtime Architecture & Ports
 
-### Frontend
-
-Development server:
-
-```text
-http://localhost:3000
-```
-
-Frontend API client:
-
-```text
-http://localhost:5000/api
-```
-
-`src/services/api.ts` uses Axios and automatically attaches:
-
-```text
-Authorization: Bearer <JWT>
-```
-
-when a token exists in `localStorage`.
-
-### Backend
-
-Development server:
-
-```text
-http://localhost:5000
-```
-
-Main Express app:
-
-```text
-backend/src/app.ts
-```
-
-Server entry:
-
-```text
-backend/src/server.ts
-```
-
-Routes:
-
-```text
-/api/health
-/api/auth
-```
+- **Frontend Development Server:** `http://localhost:3000` (Vite)
+- **Backend Development Server:** `http://localhost:5000` (Express)
+- **API Base URL:** `http://localhost:5000/api`
+- **Database:** PostgreSQL (configured via `DATABASE_URL`)
+- **Docker Daemon:** Local Docker engine socket / daemon required for build execution
 
 ---
 
-## 6. Backend Architecture Rules
+## 6. Database Architecture (`backend/prisma/schema.prisma`)
 
-Use the existing architecture:
+The database uses PostgreSQL with 10 models and 2 enums:
 
-```text
-Route
-  ↓
-Controller
-  ↓
-Service
-  ↓
-Prisma
-```
+### Enums
+1. **`DeploymentStatus`**: `QUEUED`, `INITIALIZING`, `BUILDING`, `BUILT`, `FAILED`, `CANCELLED`
+2. **`LogStream`**: `STDOUT`, `STDERR`, `SYSTEM`
 
-Do not introduce a second authentication architecture.
-
-### Important existing utilities
-
-Prisma singleton:
-
-```ts
-import prisma from "../lib/prisma";
-```
-
-JWT utility:
-
-```ts
-import { generateToken, verifyToken } from "../utils/jwt";
-```
-
-Do not create `new PrismaClient()` in controllers/services when the existing singleton can be used.
-
-Do not create another JWT implementation.
+### Models
+1. **`User`**: Account records. Supports `provider` ("credentials", "google", "github"), `email` (strictly unique, normalized), `emailVerified`, and cascade relations to tokens, projects, and connected accounts.
+2. **`EmailVerificationToken`**: SHA-256 hashed verification tokens with 30-minute TTL.
+3. **`PasswordResetToken`**: SHA-256 hashed password reset tokens with 15-minute TTL.
+4. **`GithubAccount`**: Linked GitHub profile. Stores `githubUserId` (unique across users to prevent account takeover), `githubUsername`, `accessToken` (encrypted or scoped), and `scope`.
+5. **`GithubOauthState`**: Temporary SHA-256 hashed state tokens for GitHub repository connect flows (10-minute TTL).
+6. **`OAuthState`**: Generic provider state storage (`provider`, `stateHash`, `expiresAt`) for Google and GitHub login flows.
+7. **`OAuthExchange`**: Short-lived (60s TTL) one-time exchange code storage for secure token handoff. Maps a cryptographically random code hash to an application JWT and user payload, preventing JWT exposure in browser query parameters.
+8. **`Project`**: Core application project. Belongs to a `User`. Stores `name`, `repositoryName`, `repositoryUrl`, `branch`, and current `status` (`idle`, `queued`, `building`, `ready`, `failed`, `cancelled`).
+9. **`Deployment`**: Execution record for a project build. Stores `workerId`, `heartbeatAt`, repository metadata, git commit details (`commitSha`, `commitMsg`, `commitAuthor`), Docker metadata (`imageTag`, `dockerfilePath`), execution timestamps (`startedAt`, `completedAt`, `durationMs`), `exitCode`, and sanitized `errorMessage`.
+10. **`BuildLog`**: Granular log lines attached to a `Deployment`. Enforces ordering via sequential integer `sequence`, categorized by `stream` (`STDOUT`, `STDERR`, `SYSTEM`), with composite unique constraint `@@unique([deploymentId, sequence])`.
 
 ---
 
-## 7. Database
+## 7. Completed System Modules & Verification
 
-Current database:
+### Milestone 1: Authentication & Account Security
+- **Email Normalization:** All auth endpoints (`register`, `login`, `forgotPassword`, Google OAuth, GitHub OAuth) strictly normalize emails via `trim().toLowerCase()`.
+- **Password Security:** Salted hashing with `bcrypt` (10 rounds). Secure validation via Zod (minimum 8 characters, uppercase, lowercase, numbers).
+- **Session Tokens:** JWT generation supports "Keep me signed in":
+  - Unchecked: Token valid for 1 day (`1d`), stored in `sessionStorage`.
+  - Checked: Token valid for 7 days (`7d`), stored in `localStorage`.
+  - Axios interceptor checks both storages automatically.
+- **Verification & Password Reset:** Tokens are cryptographically random 32-byte hex strings hashed using SHA-256 before database storage. Raw tokens are sent via Resend emails.
+- **Rate Limiting (`backend/src/middleware/rateLimit.middleware.ts`):**
+  - `/api/auth/forgot-password`: 5 req / 15m per IP; 3 req / 15m per email account (returns 200 generic message to prevent email enumeration).
+  - `/api/auth/reset-password`: 10 req / 15m per IP.
+  - `/api/auth/change-password`: 5 req / 15m per authenticated user / IP.
+  - `/api/auth/test-email`: 3 req / 15m per IP; automatically returns `403 Forbidden` when `NODE_ENV === "production"`.
 
-**PostgreSQL**
+### Milestone 2: Hardened OAuth Implementation
+- **Provider Login:** Google OAuth (with `email_verified: true` enforcement) and GitHub OAuth login.
+- **State Validation:** Cryptographic state generated via `crypto.randomBytes(32).toString("hex")`, hashed with SHA-256, and stored in PostgreSQL `OAuthState` (10m TTL).
+- **Atomic Single-Use State Consumption:** States are deleted in a single query (`deleteMany` where `count === 1`), eliminating replay and race conditions.
+- **Secure Code Exchange (`OAuthExchange`):** Backend generates a short-lived random code (60s TTL), redirects the browser with `?code=<exchangeCode>`, and the frontend swaps it via `POST /api/auth/oauth/exchange`. Session JWTs never touch URL query strings or browser history.
+- **Socket Timeouts:** Outbound provider HTTP requests enforce a 10s socket timeout (`timeout: 10000`).
 
-Current Prisma version:
+### Milestone 3: Project Management & Git Integration
+- **Project CRUD:** Scoped to the authenticated user (`POST /api/projects`, `GET /api/projects`, `GET /api/projects/:id`, `PATCH /api/projects/:id`, `DELETE /api/projects/:id`).
+- **Validation:** Project names cannot be empty or solely whitespace.
+- **GitHub Connection:** Separate flow for linking GitHub accounts to existing user profiles (`/api/github/connect`). Guarantees 1-to-1 mapping via unique `githubUserId`.
+- **Repository & Branch Pagination:** Supports users with over 100 repositories via multi-page fetching (`per_page=100`, loops until exhaustive or ceiling reached).
 
-**6.16.2**
+### Milestone 4: Production-Grade Deployment Engine (Phases 1.1 - 1.6)
+- **Phase 1.1 (Schema & Models):** `Deployment` and `BuildLog` models with complete status lifecycles.
+- **Phase 1.2 (Git Security & Isolation):**
+  - Isolated clone workspaces in `backend/scratch/builds/<deploymentId>`.
+  - Repository URL validation using strict HTTPS regex (`GITHUB_REPO_URL_REGEX`).
+  - Branch name dangerous character filtering (`BRANCH_DANGEROUS_CHARS_REGEX`).
+  - Credential isolation using `GIT_ASKPASS` script + process-level child environment, preventing OAuth tokens from leaking to command lines or process tables.
+  - Dockerfile path traversal verification ensuring build files stay within the cloned workspace.
+  - Hard timeouts (120s for clone, 15s for git commands).
+- **Phase 1.3 (Docker Build Engine):**
+  - Built with `docker buildx build --load --progress=plain`.
+  - Deployment-specific image tags (`cloudforge-dep-${deploymentId}:latest`).
+  - Real-time stdout and stderr stream parsing.
+  - Post-build image inspection (`docker image inspect`) verifying size does not exceed 2 GB limit.
+  - Hard timeout (600s).
+- **Phase 1.4 (Asynchronous Deployment Worker):**
+  - Database-backed FIFO queue runner (`DeploymentWorker` in `backend/src/services/deployment.worker.ts`).
+  - Atomic run claiming using PostgreSQL `SELECT ... FOR UPDATE SKIP LOCKED`.
+  - Worker heartbeats (`heartbeatAt`) renewed every 30 seconds.
+  - Stale worker lease recovery for orphaned or crashed processes (>120s threshold).
+  - Graceful stop handler (`stop()`) for clean test shutdown and SIGTERM signals.
+  - Active build cancellation support via abort controllers and process tree termination.
+- **Phase 1.5 (Deployment Orchestration & Project Sync):**
+  - Queue limit policy: Maximum 1 active build and 1 queued build permitted per project under row-level lock. Submitting a third deployment while one is active and one is queued returns HTTP 409 Conflict.
+  - Invariant Status Sync: An older deployment run can never overwrite a newer deployment run's project status.
+  - Cascading cleanup: Deleting a project removes its workspace directory, deployment records, and Docker images.
+  - Authorization: Strict scoping preventing users from viewing, deploying, or cancelling projects owned by others.
+- **Phase 1.6 (Dashboard Integration):**
+  - Connected to live backend deployment APIs.
+  - Real-time build log streaming modal with polling (`/api/deployments/:id/logs?afterSequence=N`).
+  - Accurate chronological sorting by real timestamps (`createdAt`).
+  - Zero simulated/mock builds; genuine Docker engine orchestration.
 
-Current models:
+### Milestone 5: Accessibility & UX Polish
+- Accordion panels on FAQ properly manage accessibility tree visibility (`visible` / `invisible`).
+- `prefers-reduced-motion` detection in canvas components disables requestAnimationFrame loops.
+- Form controls include explicit labels, `autoComplete`, `required` attributes, and `role="alert"` live regions.
+---
 
-### User
+## 8. Verified Test Suites
 
-```text
-User
-├── id
-├── name
-├── email
-├── password?
-├── avatar?
-├── provider
-├── emailVerified
-├── verificationTokens
-├── createdAt
-└── updatedAt
-```
-
-Important fields:
-
-```text
-email        unique
-password     nullable
-provider     defaults to "credentials"
-emailVerified defaults to false
-```
-
-### EmailVerificationToken
-
-```text
-EmailVerificationToken
-├── id
-├── tokenHash
-├── userId
-├── expiresAt
-└── createdAt
-```
-
-`tokenHash` is unique.
-
-The token has a relation to `User` with cascade delete.
+The backend integration test suites are executed via `ts-node` under `backend/src/services/__tests__/`:
+1. **`project.deployment.test.ts`**: 13/13 Phase 1.5 orchestration tests passed (project-scoped runs, isolation, cancellation, status sync, cascade delete).
+2. **`deployment.pipeline.test.ts`**: Complete async build and worker drain loop tests passed.
+3. **`docker.service.test.ts`**: Docker Buildx execution, stream parsing, and 2GB limit validation tests passed.
+4. **`git.service.test.ts`**: Workspace isolation, credential masking via `GIT_ASKPASS`, and path traversal prevention tests passed.
+5. **`oauth.state.test.ts`**: Cryptographic state generation, SHA-256 hashing, and single-use atomic consumption tests passed.
+6. **`oauth.redirect.test.ts`**: OAuth URL construction and short-lived exchange code handling tests passed.
+7. **`google.auth.test.ts`**: Google token verification and account linkage tests passed.
+8. **`auth.normalization.test.ts`**: Unified email normalization (`trim().toLowerCase()`) tests passed across all flows.
+9. **`github.pagination.test.ts`**: Multi-page repository fetching (>100 repos) tests passed.
+10. **`testEmail.protection.test.ts`**: Production guard and rate limiting tests passed.
+11. **`project.update.test.ts`**: Whitespace/empty project name validation tests passed.
+12. **`worker.concurrency.test.ts`**: Single-active-run policy, concurrent `processNext()` lock blocking during `claimNextDeployment()`, and error recovery tests passed.
 
 ---
 
-## 8. Authentication Status
+## 9. Next Milestone: Phase 2 AI Deployment Log Assistant (USP)
 
-### Core email/password authentication
+The flagship differentiator for HAVN is automated, context-aware deployment log diagnostics powered by Google Gemini (`@google/genai`).
 
-**DONE**
-
-Implemented:
-
-- Registration
-- Duplicate email protection
-- bcrypt password hashing
-- Login
-- Invalid email/password handling
-- JWT generation
-- JWT verification
-- Protected `/auth/me`
-- Protected Dashboard
-- Logout
-- Registration input validation
-- Email verification
-- Expiring verification tokens
-- Hashed verification tokens
-- Single-use verification tokens
-- Blocking login for unverified users
-
-### Email verification flow
-
-```text
-Signup
-  ↓
-Create User
-  ↓
-emailVerified = false
-  ↓
-Generate random verification token
-  ↓
-Hash token
-  ↓
-Store hash + 30 minute expiry
-  ↓
-Send email through Resend
-  ↓
-Frontend /verify-email?token=...
-  ↓
-Backend hashes received token
-  ↓
-Find token record
-  ↓
-Check expiry
-  ↓
-Set emailVerified = true
-  ↓
-Delete token
-```
-
-The frontend uses a `useRef` guard in `VerifyEmail.tsx` to prevent duplicate verification requests caused by React StrictMode.
-
-### Current authentication routes
-
-```text
-POST /api/auth/register
-POST /api/auth/login
-GET  /api/auth/me
-GET  /api/auth/verify-email
-POST /api/auth/test-email
-```
-
-### Protected route
-
-`src/components/auth/ProtectedRoute.tsx`
-
-The route calls `/auth/me`.
-
-If the token is invalid/expired or the request fails:
-
-```text
-localStorage.removeItem("token")
-→ redirect to /login
-```
+### Architecture & Capabilities
+1. **Log Stream Ingestion:** Directly ingest structured logs from `BuildLog` records for failed or stalled runs.
+2. **Dual Perspective Analysis:**
+   - **Beginner Mode:** Plain-English, conversational explanation addressing three core questions:
+     - *What happened?*
+     - *Why did it happen?*
+     - *How do I fix it?*
+   - **Expert Mode:** Precise root cause breakdown, exact log line citations, container runtime diagnostics, and copy-paste remediation commands.
+3. **One-Click Remediation:** Intelligent recommendations to adjust `Dockerfile`, modify environment variables, or update build commands.
 
 ---
 
-## 9. JWT
-
-Current payload shape:
-
-```ts
-{
-  id: user.id,
-  email: user.email
-}
-```
-
-Current JWT generation is handled by:
-
-```text
-backend/src/utils/jwt.ts
-```
-
-Current configured expiry:
-
-```text
-7d
-```
-
-Do not replace the existing JWT implementation without a clear reason.
-
-### Security note
-
-The current local development JWT secret is not production-grade.
-
-Before production deployment:
-
-- generate a strong random JWT secret
-- keep it backend-only
-- never commit `.env`
-- never expose secrets to frontend code
-
----
-
-## 10. Validation
-
-Registration currently uses Zod.
-
-Current registration validation:
-
-```text
-name:
-  trimmed
-  minimum 2 characters
-  maximum 50 characters
-
-email:
-  trimmed
-  valid email
-  lowercased
-
-password:
-  minimum 8 characters
-  maximum 128 characters
-
-unknown fields:
-  rejected
-```
-
-Validation middleware:
-
-```text
-backend/src/middleware/validation.middleware.ts
-```
-
-Do not remove validation when adding new routes.
-
----
-
-## 11. OAuth Status
-
-OAuth is currently a separate, incomplete feature.
-
-### Frontend initiation
-
-`src/pages/Login.tsx` contains:
-
-```text
-GitHub → http://localhost:5000/api/auth/github
-Google → http://localhost:5000/api/auth/google
-```
-
-### Backend initiation routes
-
-Currently present:
-
-```text
-GET /api/auth/github
-GET /api/auth/google
-```
-
-The routes redirect to the provider authorization pages.
-
-### GitHub
-
-Current state:
-
-```text
-GitHub authorization page: WORKING
-GitHub callback/login flow: NOT COMPLETE
-```
-
-Callback planned:
-
-```text
-http://localhost:5000/api/auth/github/callback
-```
-
-### Google
-
-Current development-session state:
-
-```text
-Google authorization page: WORKING
-Google account authentication: WORKING
-Google callback/user login flow: IN PROGRESS
-```
-
-Planned callback:
-
-```text
-http://localhost:5000/api/auth/google/callback
-```
-
-Planned frontend callback:
-
-```text
-http://localhost:3000/oauth/callback
-```
-
-### Important OAuth rule
-
-Do not confuse:
-
-```text
-OAuth provider authorization
-```
-
-with:
-
-```text
-HAVN application authentication
-```
-
-The provider callback must eventually:
-
-```text
-Google/GitHub
-  ↓
-authorization code
-  ↓
-exchange for provider access token
-  ↓
-fetch provider profile
-  ↓
-find/create HAVN user
-  ↓
-generate existing HAVN JWT
-  ↓
-return to frontend
-  ↓
-store JWT
-  ↓
-Dashboard
-```
-
-OAuth is optional for the current core-auth milestone and must not break email/password authentication.
-
----
-
-## 12\. Dashboard Status
-
-Dashboard UI exists and the project/repository portion is now connected to real backend data.
-
-### Implemented
-
-- Dashboard protected by existing authentication
-- Real project list from `GET /api/projects`
-- Real project creation through `POST /api/projects`
-- Real GitHub connection status
-- Real GitHub repository listing
-- Real GitHub branch listing
-- Real repository + branch selection
-- Selected repository linked to a PostgreSQL Project
-- Project data persists after Dashboard refresh
-
-### Remaining mock/demo behavior
-
-`src/data/mockData.ts` still contains mock:
-
-```text
-MOCK_PROJECTS
-MOCK_DEPLOYMENTS
-MOCK_REPOSITORIES
-SIMULATED_BUILD_STEPS
-```
-
-The GitHub repository flow no longer uses `MOCK_REPOSITORIES`.
-
-The Dashboard still contains mock/demo concepts for deployment history, deployment metrics, build progress, databases, environment variables, and AI assistant.
-
-### Immediate Dashboard polish tasks
-
-- Remove leftover mock projects/repositories such as `dev-master`
-- Remove fake deployment metrics and activity
-- Remove fake Live URLs
-- Replace mock/demo copy with real user/project data
-- Add Delete Project UI using `DELETE /api/projects/:id`
-- Add project update/rename UI where appropriate
-- Add proper empty states
-- Add loading/error states
-- Add real developer profile information
-- Keep planned/unimplemented features clearly separated from real functionality
-
-## 13. Git Integration: Immediate Next Module
-
-This is the current development priority.
-
-### MVP definition
-
-Git Integration is complete when:
-
-1. User can connect GitHub.
-2. HAVN can authenticate with GitHub.
-3. HAVN can fetch the user's repositories.
-4. User can see repositories in the dashboard.
-5. User can select a repository.
-6. User can select a branch.
-7. Repository is linked to a HAVN project.
-8. Repository/project relationship is stored in PostgreSQL.
-9. User can reconnect/disconnect GitHub safely.
-10. Users cannot access another user's repositories/projects through HAVN APIs.
-
-### Scope
-
-**GitHub only.**
-
-Do not add GitLab or Bitbucket for the September 15 MVP.
-
----
-
-## 14\. Project Management Direction
-
-A real `Project` Prisma model and CRUD API now exist.
-
-Implemented routes:
-
-```text
-POST   /api/projects
-GET    /api/projects
-GET    /api/projects/:id
-PATCH  /api/projects/:id
-DELETE /api/projects/:id
-```
-
-Every project query is scoped to the authenticated `userId`.
-
-The Dashboard can create and fetch real projects, and project data persists in PostgreSQL.
-
-### Remaining project-management work
-
-- Add Delete Project UI
-- Add confirmation before deletion
-- Add Rename/Edit Project UI where useful
-- Add project empty state
-- Remove remaining mock project data
-- Keep deployment fields honest until a real Deployment model exists
-
-## 15. Planned DevOps Pipeline
-
-Do not implement these until Git Integration is complete and polished.
-
-### Docker Build
-
-Target:
-
-```text
-GitHub repository
-  ↓
-clone repository
-  ↓
-detect project
-  ↓
-build Docker image
-  ↓
-return build status/logs
-```
-
-For MVP, prioritize Node.js projects first rather than trying to support every language immediately.
-
-### Deployment
-
-Target:
-
-```text
-Docker image
-  ↓
-container
-  ↓
-running application
-```
-
-AWS/EC2 can become the first real cloud deployment target.
-
-### Deployment Logs
-
-Target:
-
-```text
-[time] Cloning repository...
-[time] Installing dependencies...
-[time] Running build...
-[time] Docker image created
-[time] Starting container...
-[time] Deployment successful
-```
-
-Deployment logs should eventually be associated with deployments in the database.
-
-### AI Assistant Logs
-
-This is the primary USP.
-
-The AI should operate on real deployment/build logs.
-
-Beginner mode:
-
-```text
-What happened?
-Why did it happen?
-How do I fix it?
-```
-
-Expert mode:
-
-```text
-Root cause
-Relevant log lines
-Technical diagnosis
-Recommended fix
-```
-
-The AI should explain actual failures rather than act as a generic chatbot.
-
----
-
-## 16. Current Frontend Routing
-
-Current routes include:
-
-```text
-/
- /login
- /signup
- /verify-email
- /dashboard
-```
-
-`/dashboard` is protected.
-
-A future OAuth callback route is planned:
-
-```text
-/oauth/callback
-```
-
----
-
-## 17. Current Frontend Authentication Services
-
-`src/services/auth.service.ts` provides:
-
-```text
-register()
-login()
-getCurrentUser()
-logout()
-verifyEmail()
-```
-
-Login stores the returned JWT:
-
-```text
-localStorage["token"]
-```
-
-The Axios API client automatically attaches that token as a Bearer token.
-
----
-
-## 18. Mock Data
-
-`src/data/mockData.ts` contains mock:
-
-- repositories
-- projects
-- deployments
-- build steps
-- product/marketing data
-
-Do not accidentally use mock data in new backend functionality.
-
-When a real module is implemented, replace the corresponding mock behavior intentionally.
-
----
-
-## 19. Development Commands
-
-### Frontend
-
-Install:
-
-```bash
-npm install
-```
-
-Run:
-
-```bash
-npm run dev
-```
-
-Build:
-
-```bash
-npm run build
-```
-
-Type-check:
-
-```bash
-npm run lint
-```
-
-### Backend
-
-Install:
-
-```bash
-cd backend
-npm install
-```
-
-Run development server:
-
-```bash
-npm run dev
-```
-
-Build:
-
-```bash
-npm run build
-```
-
-Start compiled server:
-
-```bash
-npm start
-```
-
-Prisma:
-
-```bash
-npm run prisma:generate
-npm run prisma:migrate
-npm run prisma:studio
-```
-
----
-
-## 20. Environment Variables
-
-Never place real secrets in this file.
-
-Backend development environment conceptually contains:
+## 10. Environment Variable Reference
 
 ```env
-DATABASE_URL=
+# Server Configuration
 PORT=5000
-
-JWT_SECRET=
-JWT_EXPIRES_IN=7d
-
-RESEND_API_KEY=
-FRONTEND_URL=http://localhost:3000
-
-GOOGLE_CLIENT_ID=
-GOOGLE_CLIENT_SECRET=
-
-GITHUB_CLIENT_ID=
-GITHUB_CLIENT_SECRET=
-
 NODE_ENV=development
+FRONTEND_URL=http://localhost:3000
+BACKEND_URL=http://localhost:5000
+
+# PostgreSQL Database
+DATABASE_URL="postgresql://user:password@localhost:5432/cloudforge?schema=public"
+
+# Authentication & Security
+JWT_SECRET="your-secure-jwt-secret"
+JWT_EXPIRES_IN="7d"
+
+# Email Delivery (Resend)
+RESEND_API_KEY="re_123456789"
+EMAIL_FROM="HAVN <notifications@yourdomain.com>"
+
+# Google OAuth
+GOOGLE_CLIENT_ID="google-client-id"
+GOOGLE_CLIENT_SECRET="google-client-secret"
+GOOGLE_CALLBACK_URL="http://localhost:5000/api/auth/google/callback"
+
+# GitHub OAuth
+GITHUB_CLIENT_ID="github-client-id"
+GITHUB_CLIENT_SECRET="github-client-secret"
+GITHUB_CALLBACK_URL="http://localhost:5000/api/auth/github/callback"
+
+# Token Encryption (AES-256-GCM: 64-char hex string representing 32 bytes, or raw 32-character UTF-8 string)
+ENCRYPTION_KEY="0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef"
 ```
 
-### Critical secret rule
-
-The uploaded project archive contains a backend `.env`.
-
-Do not commit or share real `.env` values.
-
-Use:
-
-```text
-backend/.env.example
-```
-
-as the template.
-
-Never expose:
-
-- database passwords
-- Resend API keys
-- Google client secrets
-- GitHub client secrets
-- JWT secrets
-- Gemini API keys
-
-to the frontend or Git repository.
+> **Security Rule:** Never commit `.env` files or hardcode real API keys/credentials into the repository. Use `backend/.env.example` as the canonical template.
 
 ---
 
-## 21. Security Hardening
+## 11. Engineering Guidelines for AI Agents
 
-Security hardening is a later polish step after the current Git Integration milestone.
+1. **Document Real Code Reality:** Never document simulated capabilities as real, and never describe real production engines as simulations. Docker build and deployment pipelines are fully implemented and verified.
+2. **Maintain Architectural Hierarchy:** Respect the clean layering: `Route -> Controller -> Service -> Prisma`. Do not bypass services or create ad-hoc database connections.
+3. **Strict Resource Isolation:** Always clean up temporary directories (`backend/scratch/builds/<deploymentId>`) and prune build container artifacts after build execution.
+4. **Preserve User Ownership:** Enforce user authorization on all project, deployment, and repository interactions.
+5. **Run Verification Before Completion:** Execute the relevant integration test suites before marking tasks complete.
 
-Planned items:
 
-- Helmet
-- restricted CORS
-- request body size limits
-- auth rate limiting
-- login rate limiting
-- registration rate limiting
-- verification rate limiting
-- JWT configuration validation
-- safe authentication error responses
-- stronger production JWT secret
-- secret management
-- input validation review
-
-Do not rewrite the existing authentication architecture just to add security hardening.
-
----
-
-## 22. Important Coding Rules for AI Agents
-
-### Rule 1: Read this file first
-
-Before modifying HAVN, read `brain.md`.
-
-### Rule 2: Preserve working authentication
-
-Do not rewrite email/password authentication unless the requested task specifically requires it.
-
-### Rule 3: Reuse existing infrastructure
-
-Use:
-
-```text
-existing Prisma singleton
-existing JWT utility
-existing Axios API client
-existing authentication middleware
-existing validation middleware
-```
-
-Do not create duplicates.
-
-### Rule 4: No unnecessary architecture changes
-
-Do not introduce:
-
-- a second ORM
-- a second JWT system
-- a second API client
-- a second authentication system
-- unnecessary new database models
-- unnecessary state-management libraries
-
-### Rule 5: Keep changes scoped
-
-If the task is Git Integration, do not rewrite the Dashboard styling, authentication, landing page, or deployment engine.
-
-### Rule 6: Build after meaningful changes
-
-Frontend:
-
-```bash
-npm run build
-```
-
-Backend:
-
-```bash
-npm run build
-```
-
-### Rule 7: Do not fake functionality
-
-Do not use:
-
-- fake OAuth success
-- fake repository data when implementing real Git integration
-- hardcoded dashboard success states
-- setTimeout-based fake deployment logic
-
-Mock data can remain for UI sections that are not implemented yet, but real modules must use real backend data.
-
-### Rule 8: User ownership matters
-
-Any project/repository/deployment API must verify that the authenticated user owns the relevant resource.
-
----
-
-## 23. Product Branding Notes
-
-The current product branding is **HAVN**.
-
-However, the codebase still contains older CloudForge references, including:
-
-- repository name
-- package names
-- README
-- some email copy
-- some mock data
-- URLs
-- comments
-
-Do not perform a mass rename automatically.
-
-Brand cleanup should be handled deliberately during polishing.
-
----
-
-## 24\. Current Known Gaps
-
-### Backend
-
-- GitHub Login OAuth callback is not complete
-- Google Login OAuth callback is not complete
-- GitHub repository disconnect endpoint is not implemented
-- No Docker build engine
-- No deployment engine
-- No Deployment database model yet
-- No real deployment log persistence
-- No AI deployment-log assistant
-- Security hardening is not complete
-
-### Frontend
-
-- Dashboard still contains mock/demo sections that need cleanup
-- Delete Project UI is not yet implemented
-- Developer profile UI is not yet implemented
-- GitHub Login and Google Login are not complete
-- Build progress is still simulated
-- Deployment UI is not connected to a real deployment engine
-- Deployment metrics/history are still mock data
-- Database and environment-variable sections are not backed by real APIs
-- AI assistant UI/concept exists but real deployment-log analysis is not yet implemented
-
-## 25\. Immediate Task
-
-### Current priority
-
-**Professor Demo Polish**
-
-Dashboard + Project Management + GitHub Repository Integration are implemented and tested. Do not start Docker until this polish pass is complete.
-
-Do this in order:
-
-```text
-1. Remove leftover mock Dashboard data
-2. Remove fake deployment metrics/activity/URLs
-3. Add Delete Project UI using DELETE /api/projects/:id
-4. Add project rename/edit UI where useful
-5. Add real developer profile display
-6. Polish email/password authentication
-7. Implement GitHub Login separately from repository integration
-8. Implement Google Login
-9. Add GitHub disconnect flow
-10. Polish loading/error/empty states
-11. Verify authentication and project ownership
-12. Build and perform a clean end-to-end professor-demo test
-```
-
-### After the professor-demo polish
-
-Start the real DevOps pipeline:
-
-```text
-Docker Build
-↓
-Deployment
-↓
-Deployment Logs
-↓
-AI Assistant Logs
-```
-
-Do not implement fake deployment success states as substitutes for the real deployment engine.
-
-## 26. September 15 Delivery Definition
-
-A convincing MVP should demonstrate:
-
-```text
-HAVN
-  ↓
-Login / Signup
-  ↓
-Dashboard
-  ↓
-Create Project
-  ↓
-Connect GitHub
-  ↓
-Select Repository
-  ↓
-Select Branch
-  ↓
-Repository linked to Project
-```
-
-After this is stable:
-
-```text
-Docker Build
-  ↓
-Deployment
-  ↓
-Deployment Logs
-  ↓
-AI Assistant
-```
-
-The most important product story is:
-
-> **GitHub repository → build → deployment → logs → AI explanation**
-
-That is the core HAVN experience.
-
----
-
-## 27. Do Not Assume
-
-AI agents must distinguish between:
-
-```text
-Implemented
-In progress
-Planned
-Mock UI
-```
-
-For example:
-
-```text
-Dashboard UI exists
-≠
-Dashboard backend is complete
-
-GitHub button exists
-≠
-GitHub integration is complete
-
-Build logs are displayed
-≠
-Docker build engine exists
-
-AI feature is described in the UI
-≠
-AI deployment analysis is implemented
-```
-
-Always inspect the actual code before claiming a feature is implemented.
-
----
-
-## 28. Working Philosophy
-
-Build vertically.
-
-Prefer:
-
-```text
-Database
-  ↓
-Backend API
-  ↓
-Frontend integration
-  ↓
-Real end-to-end test
-  ↓
-Polish
-```
-
-over building large disconnected pieces.
-
-Do not optimize for the number of files or features.
-
-Optimize for a working end-to-end developer experience.
-
----
-
-## 29. Final Priority Order
-
-```text
-Authentication
-    ↓
-Dashboard
-    ↓
-GitHub Repository Integration       ← DONE
-    ↓
-Professor Demo Polish               ← CURRENT
-    ↓
-GitHub Login + Google Login
-    ↓
-Docker Build
-    ↓
-Deployment
-    ↓
-Deployment Logs
-    ↓
-AI Assistant Logs                   ← USP
-```
-
-### Current rule
-
-GitHub Repository Integration is done.
-
-Before Docker, finish the professor-demo polish:
-
-- clean remaining mock Dashboard data
-- add project deletion
-- add developer profile
-- polish authentication
-- implement GitHub Login
-- implement Google Login
-- finish GitHub disconnect
-- verify loading/error/empty states
-- build and test the complete flow
-
-The next major engineering milestone after polish is the real Docker → Deployment pipeline.
-
-### Current verified vertical slice
-
-```text
-User
-  ↓
-Email/password authentication + email verification
-  ↓
-Protected Dashboard
-  ↓
-Connect GitHub
-  ↓
-GitHub OAuth repository integration
-  ↓
-Fetch real repositories
-  ↓
-Select repository
-  ↓
-Fetch real branches
-  ↓
-Select branch
-  ↓
-Create HAVN Project
-  ↓
-Persist Project in PostgreSQL
-  ↓
-Refresh Dashboard
-  ↓
-Project remains available
-```
-
-The deployment shown in the current Dashboard is still a simulated build/deployment experience. It must not be described as a real deployment until Docker and the deployment engine are implemented.

@@ -43,3 +43,13 @@ export const DOCKER_DAEMON_CHECK_TIMEOUT_MS = 5_000;
  * Maximum permitted Docker image size (2 GB).
  */
 export const MAX_IMAGE_SIZE_BYTES = 2 * 1024 * 1024 * 1024;
+
+/**
+ * Hard timeout for docker inspect image size checks (15 seconds).
+ */
+export const DOCKER_INSPECT_TIMEOUT_MS = 15_000;
+
+/**
+ * Hard timeout for docker rmi removal operations (15 seconds).
+ */
+export const DOCKER_RMI_TIMEOUT_MS = 15_000;

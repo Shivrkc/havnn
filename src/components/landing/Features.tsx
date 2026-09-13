@@ -107,7 +107,7 @@ function GlassFeatureCard({
           : 'transform 0.4s ease-out, background-color 0.3s ease, border-color 0.3s ease, box-shadow 0.3s ease',
         animationDelay: `${index * 80}ms`
       }}
-      className="group relative backdrop-blur-xl bg-white/40 hover:bg-white/60 border border-white/60 hover:border-white/90 rounded-3xl p-6 sm:p-7 shadow-lg shadow-sky-900/5 hover:shadow-xl hover:shadow-blue-600/10 transition-all duration-300 flex flex-col justify-between overflow-hidden cursor-pointer motion-safe:animate-fade-in-up"
+      className="group relative backdrop-blur-xl bg-white/40 hover:bg-white/60 border border-white/60 hover:border-white/90 rounded-3xl p-6 sm:p-7 shadow-lg shadow-sky-900/5 hover:shadow-xl hover:shadow-blue-600/10 transition-all duration-300 flex flex-col justify-between overflow-hidden cursor-pointer animate-fade-in-up"
     >
       {/* Light Reflection Glow Overlay */}
       <div className="absolute -top-20 -left-20 w-40 h-40 bg-white/40 blur-xl rounded-full pointer-events-none group-hover:translate-x-10 group-hover:translate-y-10 transition-transform duration-700 ease-out" />
@@ -154,11 +154,17 @@ export default function Features() {
     let animationFrameId: number;
     let width = (canvas.width = window.innerWidth);
     let height = (canvas.height = canvas.parentElement?.offsetHeight || 800);
+    const reduceMotion = typeof window !== 'undefined' && window.matchMedia 
+      ? window.matchMedia('(prefers-reduced-motion: reduce)').matches 
+      : false;
 
     const handleResize = () => {
       if (!canvas || !canvas.parentElement) return;
       width = canvas.width = window.innerWidth;
       height = canvas.height = canvas.parentElement.offsetHeight;
+      if (reduceMotion) {
+        render();
+      }
     };
     window.addEventListener('resize', handleResize);
 
@@ -225,13 +231,17 @@ export default function Features() {
         ctx.fill();
       });
 
-      animationFrameId = requestAnimationFrame(render);
+      if (!reduceMotion) {
+        animationFrameId = requestAnimationFrame(render);
+      }
     };
 
     render();
 
     return () => {
-      cancelAnimationFrame(animationFrameId);
+      if (animationFrameId) {
+        cancelAnimationFrame(animationFrameId);
+      }
       window.removeEventListener('resize', handleResize);
     };
   }, []);
@@ -242,6 +252,7 @@ export default function Features() {
       {/* Dynamic Canvas Continuing the Sky & Cloud Ocean Environment */}
       <canvas
         ref={canvasRef}
+        aria-hidden="true"
         className="absolute inset-0 w-full h-full pointer-events-none z-0"
       />
 

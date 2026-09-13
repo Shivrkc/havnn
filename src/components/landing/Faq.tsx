@@ -43,7 +43,21 @@ export default function Faq() {
       opacity: 0.35 + Math.random() * 0.35,
     }));
 
-    const speed = 0.0004;
+    const mediaQuery = window.matchMedia('(prefers-reduced-motion: reduce)');
+    let prefersReducedMotion = mediaQuery.matches;
+
+    const handleMotionChange = (e: MediaQueryListEvent) => {
+      prefersReducedMotion = e.matches;
+      if (!prefersReducedMotion && !animationFrameId) {
+        animationFrameId = requestAnimationFrame(render);
+      }
+    };
+
+    if (mediaQuery.addEventListener) {
+      mediaQuery.addEventListener('change', handleMotionChange);
+    }
+
+    const speed = 0.0005;
 
     const render = () => {
       ctx.clearRect(0, 0, width, height);
@@ -91,13 +105,20 @@ export default function Faq() {
         ctx.fill();
       });
 
-      animationFrameId = requestAnimationFrame(render);
+      if (!prefersReducedMotion) {
+        animationFrameId = requestAnimationFrame(render);
+      }
     };
 
     render();
 
     return () => {
-      cancelAnimationFrame(animationFrameId);
+      if (animationFrameId) {
+        cancelAnimationFrame(animationFrameId);
+      }
+      if (mediaQuery.removeEventListener) {
+        mediaQuery.removeEventListener('change', handleMotionChange);
+      }
       window.removeEventListener('resize', handleResize);
     };
   }, []);
@@ -176,7 +197,9 @@ export default function Faq() {
                   role="region"
                   aria-labelledby={headerId}
                   className={`grid transition-all duration-300 ease-in-out ${
-                    isOpen ? 'grid-rows-[1fr] opacity-100' : 'grid-rows-[0fr] opacity-0'
+                    isOpen
+                      ? 'grid-rows-[1fr] opacity-100 visible'
+                      : 'grid-rows-[0fr] opacity-0 invisible'
                   }`}
                 >
                   <div className="overflow-hidden">

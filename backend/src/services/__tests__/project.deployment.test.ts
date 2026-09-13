@@ -3,7 +3,7 @@ import path from "path";
 import fs from "fs";
 import prisma from "../../lib/prisma";
 import { LogStream } from "@prisma/client";
-import { DeploymentWorker } from "../deployment.worker";
+import { DeploymentWorker, PrepareWorkspaceFn } from "../deployment.worker";
 import { SCRATCH_ROOT_DIR } from "../../constants/build.constants";
 import { deleteDockerImage } from "../docker.service";
 import { encryptToken } from "../../utils/crypto";
@@ -26,6 +26,13 @@ async function runPhase15Tests() {
   let userB: any;
   let projectA: any;
   let projectB: any;
+
+  const activeWorkers: DeploymentWorker[] = [];
+  const createWorker = (customWorkerId?: string, prepareWorkspaceOverride?: PrepareWorkspaceFn) => {
+    const w = new DeploymentWorker(customWorkerId, prepareWorkspaceOverride);
+    activeWorkers.push(w);
+    return w;
+  };
 
   try {
     // ----------------------------------------------------------------
@@ -118,7 +125,7 @@ async function runPhase15Tests() {
           status: "QUEUED",
           repositoryName: projectA.repositoryName!,
           repositoryUrl: projectA.repositoryUrl!,
-          branch: projectA.branch || "main",
+          branch: "main",
           dockerfilePath: "Dockerfile",
           logs: {
             create: {
@@ -148,12 +155,12 @@ async function runPhase15Tests() {
     }
 
     // ----------------------------------------------------------------
-    // TEST 4: End-to-End Execution to BUILT & Artifact Retention
+    // TEST 4: End-to-End Execution to BUILT & Docker Image Artifact Retention
     // ----------------------------------------------------------------
     console.log("[TEST 4/13] E2E Execution to BUILT & Docker Image Artifact Retention");
     let imageTag1: string = "";
     {
-      const worker = new DeploymentWorker("worker-p15-e2e", async (depId) => {
+      const worker = createWorker("worker-p15-e2e", async (depId) => {
         const wsDir = path.resolve(SCRATCH_ROOT_DIR, depId);
         const rDir = path.join(wsDir, "repo");
         await fs.promises.mkdir(rDir, { recursive: true });
@@ -178,28 +185,32 @@ async function runPhase15Tests() {
         };
       });
 
-      await worker.processNext();
+      try {
+        await worker.processNext();
 
-      // Poll until dep1 reaches terminal BUILT
-      let terminalDep1 = null;
-      for (let i = 0; i < 100; i++) {
-        await new Promise((r) => setTimeout(r, 100));
-        terminalDep1 = await prisma.deployment.findUnique({ where: { id: dep1.id } });
-        if (terminalDep1?.status === "BUILT" || terminalDep1?.status === "FAILED") break;
+        // Poll until dep1 reaches terminal BUILT
+        let terminalDep1 = null;
+        for (let i = 0; i < 100; i++) {
+          await new Promise((r) => setTimeout(r, 100));
+          terminalDep1 = await prisma.deployment.findUnique({ where: { id: dep1.id } });
+          if (terminalDep1?.status === "BUILT" || terminalDep1?.status === "FAILED") break;
+        }
+
+        assert.strictEqual(terminalDep1?.status, "BUILT");
+        assert.strictEqual(terminalDep1?.exitCode, 0);
+
+        // Verify Project status synchronized to ready
+        const projAfter = await prisma.project.findUnique({ where: { id: projectA.id } });
+        assert.strictEqual(projAfter?.status, "ready");
+
+        // Verify scratch workspace was cleaned
+        const wsExists = fs.existsSync(path.resolve(SCRATCH_ROOT_DIR, dep1.id));
+        assert.strictEqual(wsExists, false, "Scratch workspace must be purged on build completion");
+
+        console.log("   ✓ Deployment built successfully, Project.status='ready', workspace purged\n");
+      } finally {
+        worker.stop();
       }
-
-      assert.strictEqual(terminalDep1?.status, "BUILT");
-      assert.strictEqual(terminalDep1?.exitCode, 0);
-
-      // Verify Project status synchronized to ready
-      const projAfter = await prisma.project.findUnique({ where: { id: projectA.id } });
-      assert.strictEqual(projAfter?.status, "ready");
-
-      // Verify scratch workspace was cleaned
-      const wsExists = fs.existsSync(path.resolve(SCRATCH_ROOT_DIR, dep1.id));
-      assert.strictEqual(wsExists, false, "Scratch workspace must be purged on build completion");
-
-      console.log("   ✓ Deployment built successfully, Project.status='ready', workspace purged\n");
     }
 
     // ----------------------------------------------------------------
@@ -240,27 +251,31 @@ async function runPhase15Tests() {
     // ----------------------------------------------------------------
     console.log("[TEST 6/13] Build Failure on dep2 & Clean Failure State");
     {
-      const failWorker = new DeploymentWorker("worker-p15-fail", async (depId) => {
+      const failWorker = createWorker("worker-p15-fail", async (depId) => {
         throw new Error("Simulated compilation failure in test suite.");
       });
 
-      await failWorker.processNext();
+      try {
+        await failWorker.processNext();
 
-      let terminalDep2 = null;
-      for (let i = 0; i < 100; i++) {
-        await new Promise((r) => setTimeout(r, 100));
-        terminalDep2 = await prisma.deployment.findUnique({ where: { id: dep2.id } });
-        if (terminalDep2?.status === "FAILED" || terminalDep2?.status === "BUILT") break;
+        let terminalDep2 = null;
+        for (let i = 0; i < 100; i++) {
+          await new Promise((r) => setTimeout(r, 100));
+          terminalDep2 = await prisma.deployment.findUnique({ where: { id: dep2.id } });
+          if (terminalDep2?.status === "FAILED" || terminalDep2?.status === "BUILT") break;
+        }
+
+        assert.strictEqual(terminalDep2?.status, "FAILED");
+        assert.ok(terminalDep2?.errorMessage?.includes("Simulated compilation failure"));
+
+        // Project status should now be failed (Newest-Only Invariant)
+        const projAfterFail = await prisma.project.findUnique({ where: { id: projectA.id } });
+        assert.strictEqual(projAfterFail?.status, "failed");
+
+        console.log("   ✓ Build failure marked FAILED, Project.status='failed', error sanitized\n");
+      } finally {
+        failWorker.stop();
       }
-
-      assert.strictEqual(terminalDep2?.status, "FAILED");
-      assert.ok(terminalDep2?.errorMessage?.includes("Simulated compilation failure"));
-
-      // Project status should now be failed (Newest-Only Invariant)
-      const projAfterFail = await prisma.project.findUnique({ where: { id: projectA.id } });
-      assert.strictEqual(projAfterFail?.status, "failed");
-
-      console.log("   ✓ Build failure marked FAILED, Project.status='failed', error sanitized\n");
     }
 
     // ----------------------------------------------------------------
@@ -302,21 +317,25 @@ async function runPhase15Tests() {
     // ----------------------------------------------------------------
     console.log("[TEST 8/13] Cancellation of Deployment (QUEUED -> CANCELLED)");
     {
-      const cancelWorker = new DeploymentWorker("worker-p15-cancel");
-      const cancelResult = await cancelWorker.cancelDeployment(dep3.id, userA.id);
+      const cancelWorker = createWorker("worker-p15-cancel");
+      try {
+        const cancelResult = await cancelWorker.cancelDeployment(dep3.id, userA.id);
 
-      assert.strictEqual(cancelResult.notFound, false);
-      assert.strictEqual(cancelResult.isTerminal, false);
-      assert.strictEqual(cancelResult.deployment?.status, "CANCELLED");
+        assert.strictEqual(cancelResult.notFound, false);
+        assert.strictEqual(cancelResult.isTerminal, false);
+        assert.strictEqual(cancelResult.deployment?.status, "CANCELLED");
 
-      const dep3Check = await prisma.deployment.findUnique({ where: { id: dep3.id } });
-      assert.strictEqual(dep3Check?.status, "CANCELLED");
+        const dep3Check = await prisma.deployment.findUnique({ where: { id: dep3.id } });
+        assert.strictEqual(dep3Check?.status, "CANCELLED");
 
-      // Verify Project status updated to 'cancelled'
-      const projAfterCancel = await prisma.project.findUnique({ where: { id: projectA.id } });
-      assert.strictEqual(projAfterCancel?.status, "cancelled");
+        // Verify Project status updated to 'cancelled'
+        const projAfterCancel = await prisma.project.findUnique({ where: { id: projectA.id } });
+        assert.strictEqual(projAfterCancel?.status, "cancelled");
 
-      console.log("   ✓ Deployment successfully cancelled, Project.status='cancelled'\n");
+        console.log("   ✓ Deployment successfully cancelled, Project.status='cancelled'\n");
+      } finally {
+        cancelWorker.stop();
+      }
     }
 
     // ----------------------------------------------------------------
@@ -417,11 +436,15 @@ async function runPhase15Tests() {
       assert.strictEqual(depCrossCheck, null, "User B must not be able to find User A's deployment");
 
       // User B attempts to cancel User A's deployment
-      const worker = new DeploymentWorker("worker-auth-test");
-      const crossCancel = await worker.cancelDeployment(dep1.id, userB.id);
-      assert.strictEqual(crossCancel.notFound, true);
+      const worker = createWorker("worker-auth-test");
+      try {
+        const crossCancel = await worker.cancelDeployment(dep1.id, userB.id);
+        assert.strictEqual(crossCancel.notFound, true);
 
-      console.log("   ✓ Cross-user reading and cancellation strictly rejected with notFound\n");
+        console.log("   ✓ Cross-user reading and cancellation strictly rejected with notFound\n");
+      } finally {
+        worker.stop();
+      }
     }
 
     // ----------------------------------------------------------------
@@ -451,6 +474,9 @@ async function runPhase15Tests() {
     console.log("  ALL 13 PHASE 1.5 ORCHESTRATION TESTS PASSED SUCCESSFULLY!       ");
     console.log("==================================================================\n");
   } finally {
+    for (const w of activeWorkers) {
+      w.stop();
+    }
     // Teardown test projects & users
     try {
       await prisma.project.deleteMany({

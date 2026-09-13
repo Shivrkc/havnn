@@ -161,6 +161,7 @@ async function runTests() {
       // Verify oversized image was deleted from daemon
       await assert.rejects(
         async () => inspectDockerImageSize(sizeTag),
+        /Failed to inspect image size/,
         "Oversized image must be purged from local daemon"
       );
 
@@ -411,6 +412,7 @@ async function runTests() {
         // Verify successTag is gone
         await assert.rejects(
           async () => inspectDockerImageSize(successTag),
+          /Failed to inspect image size/,
           "Specific tag must be deleted"
         );
 
@@ -424,13 +426,142 @@ async function runTests() {
         console.log("   ✓ Specific tag deleted cleanly without affecting base images or global daemon\n");
       }
     }
+
+    // ----------------------------------------------------------------
+    // TEST 8: BUILD LOG FLUSH FAILURE RECOVERY & SEQUENCE PRESERVATION
+    // ----------------------------------------------------------------
+    console.log("[TEST 8/8] Build Log Flush Failure Recovery & Sequence Preservation");
+    {
+      const failDeployment = await prisma.deployment.create({
+        data: {
+          projectId: testProject.id,
+          repositoryName: "test/repo-fail-flush",
+          repositoryUrl: "https://github.com/test/repo-fail-flush",
+          branch: "main",
+          status: "INITIALIZING",
+        },
+      });
+
+      const batcher = new BuildLogBatcher(failDeployment.id);
+
+      // Push initial lines
+      batcher.pushLine("Line 1", LogStream.STDOUT);
+      batcher.pushLine("Line 2", LogStream.STDOUT);
+      batcher.pushLine("Line 3", LogStream.STDERR);
+
+      // Mock prisma.buildLog.createMany to simulate temporary DB failure
+      const originalCreateMany = prisma.buildLog.createMany;
+      let failOnce = true;
+      (prisma.buildLog as any).createMany = async (...args: any[]) => {
+        if (failOnce) {
+          failOnce = false;
+          throw new Error("Simulated database connection failure");
+        }
+        return (originalCreateMany as any).apply(prisma.buildLog, args);
+      };
+
+      try {
+        // Attempt flush which fails
+        await assert.rejects(
+          async () => batcher.flush(),
+          /Simulated database connection failure/
+        );
+
+        // Verify that in the database, 0 lines were persisted
+        const logsAfterFail = await prisma.buildLog.findMany({
+          where: { deploymentId: failDeployment.id },
+        });
+        assert.strictEqual(logsAfterFail.length, 0, "No logs should be persisted on failure");
+
+        // Push another line after failure
+        batcher.pushLine("Line 4 after recovery", LogStream.SYSTEM);
+
+        // Now retry/flushAll - this should succeed and persist ALL lines in exact original sequence order
+        await batcher.flushAll();
+
+        const logsAfterSuccess = await prisma.buildLog.findMany({
+          where: { deploymentId: failDeployment.id },
+          orderBy: { sequence: "asc" },
+        });
+
+        assert.strictEqual(logsAfterSuccess.length, 4, "All 4 lines must be persisted without data loss");
+        assert.strictEqual(logsAfterSuccess[0].line, "Line 1");
+        assert.strictEqual(logsAfterSuccess[0].sequence, 1);
+        assert.strictEqual(logsAfterSuccess[1].line, "Line 2");
+        assert.strictEqual(logsAfterSuccess[1].sequence, 2);
+        assert.strictEqual(logsAfterSuccess[2].line, "Line 3");
+        assert.strictEqual(logsAfterSuccess[2].sequence, 3);
+        assert.strictEqual(logsAfterSuccess[3].line, "Line 4 after recovery");
+        assert.strictEqual(logsAfterSuccess[3].sequence, 4);
+
+        console.log("   ✓ Failed batch preserved, sequence numbers gap-free, and re-flushed successfully\n");
+      } finally {
+        prisma.buildLog.createMany = originalCreateMany;
+      }
+    }
+
+    // ----------------------------------------------------------------
+    // TEST 9: DOCKER INSPECT / DELETE SPAWN ERROR EVENT HANDLING
+    // ----------------------------------------------------------------
+    console.log("[TEST 9/9] Docker Inspect / Delete Spawn Error Event Handling");
+    {
+      // eslint-disable-next-line @typescript-eslint/no-var-requires
+      const cp = require("child_process");
+      const originalSpawn = cp.spawn;
+
+      try {
+        const { EventEmitter } = await import("events");
+
+        cp.spawn = () => {
+          const fakeChild: any = new EventEmitter();
+          fakeChild.stdout = new EventEmitter();
+          fakeChild.stderr = new EventEmitter();
+          setImmediate(() => {
+            fakeChild.emit("error", new Error("spawn ENOENT: docker not found"));
+          });
+          return fakeChild;
+        };
+
+        // 1. Verify inspectDockerImageSize rejects cleanly on spawn error without crashing process
+        await assert.rejects(
+          async () => inspectDockerImageSize("test-tag:missing"),
+          /Failed to spawn docker inspect for test-tag:missing: spawn ENOENT/
+        );
+
+        // 2. Verify deleteDockerImage catches spawn error and resolves without throwing unhandled error
+        await deleteDockerImage("test-tag:missing");
+
+        console.log("   ✓ Child process spawn errors handled gracefully without unhandled exceptions");
+
+        // 3. Verify inspectDockerImageSize rejects cleanly on timeout without hanging
+        cp.spawn = () => {
+          const fakeChild: any = new EventEmitter();
+          fakeChild.stdout = new EventEmitter();
+          fakeChild.stderr = new EventEmitter();
+          // Simulates unresponsive/hung child process that never emits error or close
+          return fakeChild;
+        };
+
+        await assert.rejects(
+          async () => inspectDockerImageSize("test-tag:hung", 100),
+          /docker inspect for test-tag:hung timed out/
+        );
+
+        // 4. Verify deleteDockerImage resolves gracefully on timeout without hanging
+        await deleteDockerImage("test-tag:hung", 100);
+
+        console.log("   ✓ Process timeouts for inspect and delete handled deterministically without process hang\n");
+      } finally {
+        cp.spawn = originalSpawn;
+      }
+    }
   } finally {
     // Clean up test database records
     await prisma.user.delete({ where: { id: testUser.id } });
   }
 
   console.log("==================================================================");
-  console.log("  ALL 7 PHASE 1.3 VERIFICATION TEST SUITES PASSED SUCCESSFULLY!   ");
+  console.log("  ALL 9 PHASE 1.3 VERIFICATION TEST SUITES PASSED SUCCESSFULLY!   ");
   console.log("==================================================================");
 }
 

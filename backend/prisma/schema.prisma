@@ -156,3 +156,24 @@ model BuildLog {
   @@unique([deploymentId, sequence])
   @@index([deploymentId, sequence])
 }
+
+model OAuthState {
+  id        String   @id @default(cuid())
+  stateHash String   @unique
+  provider  String
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+
+  @@index([stateHash])
+}
+
+model OAuthExchange {
+  id        String   @id @default(cuid())
+  codeHash  String   @unique
+  token     String
+  user      Json
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+
+  @@index([codeHash])
+}

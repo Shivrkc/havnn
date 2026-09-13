@@ -2,7 +2,7 @@ import { useState, FormEvent, useEffect, useRef } from 'react';
 import { Mail, Lock, Eye, EyeOff, Github, Chrome, Rocket, Bot, BarChart3, ShieldCheck } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { ROUTES } from '../constants/routes';
-import { login } from "../services/auth.service";
+import { login, getOAuthUrl } from "../services/auth.service";
 
 export default function Login() {
   const navigate = useNavigate();
@@ -25,11 +25,15 @@ export default function Login() {
     let animationFrameId: number;
     let width = (canvas.width = window.innerWidth);
     let height = (canvas.height = window.innerHeight);
+    const reduceMotion = typeof window !== 'undefined' && window.matchMedia ? window.matchMedia('(prefers-reduced-motion: reduce)').matches : false;
 
     const handleResize = () => {
       if (!canvas) return;
       width = canvas.width = window.innerWidth;
       height = canvas.height = window.innerHeight;
+      if (reduceMotion) {
+        render();
+      }
     };
     window.addEventListener('resize', handleResize);
 
@@ -117,13 +121,17 @@ export default function Login() {
         ctx.fill();
       });
 
-      animationFrameId = requestAnimationFrame(render);
+      if (!reduceMotion) {
+        animationFrameId = requestAnimationFrame(render);
+      }
     };
 
     render();
 
     return () => {
-      cancelAnimationFrame(animationFrameId);
+      if (animationFrameId) {
+        cancelAnimationFrame(animationFrameId);
+      }
       window.removeEventListener('resize', handleResize);
     };
   }, []);
@@ -148,6 +156,7 @@ export default function Login() {
       await login({
         email,
         password,
+        rememberMe,
       });
 
       navigate(ROUTES.DASHBOARD);
@@ -162,12 +171,7 @@ export default function Login() {
   };
 
   const handleOAuthLogin = (provider: "google" | "github") => {
-    if (provider === "github") {
-      window.location.href = "http://localhost:5000/api/auth/github";
-      return;
-    }
-
-    window.location.href = "http://localhost:5000/api/auth/google";
+    window.location.href = getOAuthUrl(provider);
   };
 
   return (
@@ -176,6 +180,7 @@ export default function Login() {
       {/* Background Animated Sky Canvas */}
       <canvas
         ref={canvasRef}
+        aria-hidden="true"
         className="fixed inset-0 w-full h-full pointer-events-none z-0"
       />
 
@@ -197,17 +202,21 @@ export default function Login() {
             </div>
 
             {error && (
-              <div className="p-3 bg-red-500/10 border border-red-300/80 rounded-xl text-xs text-red-800 font-semibold flex items-center gap-2 backdrop-blur-sm animate-shake">
+              <div role="alert" className="p-3 bg-red-500/10 border border-red-300/80 rounded-xl text-xs text-red-800 font-semibold flex items-center gap-2 backdrop-blur-sm animate-shake">
                 ⚠️ {error}
               </div>
             )}
 
             <form onSubmit={handleSubmit} className="space-y-4">
               <div className="space-y-1.5">
-                <label className="text-[11px] font-bold text-slate-800 uppercase tracking-wider block">Email</label>
+                <label htmlFor="login-email" className="text-[11px] font-bold text-slate-800 uppercase tracking-wider block">Email</label>
                 <div className="relative">
                   <Mail className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
                   <input
+                    id="login-email"
+                    name="email"
+                    autoComplete="email"
+                    required
                     type="email"
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
@@ -219,7 +228,7 @@ export default function Login() {
 
               <div className="space-y-1.5">
                 <div className="flex items-center justify-between">
-                  <label className="text-[11px] font-bold text-slate-800 uppercase tracking-wider block">Password</label>
+                  <label htmlFor="login-password" className="text-[11px] font-bold text-slate-800 uppercase tracking-wider block">Password</label>
                   <button
   type="button"
   onClick={() => navigate("/forgot-password")}
@@ -231,6 +240,10 @@ export default function Login() {
                 <div className="relative">
                   <Lock className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
                   <input
+                    id="login-password"
+                    name="password"
+                    autoComplete="current-password"
+                    required
                     type={showPassword ? 'text' : 'password'}
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}

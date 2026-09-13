@@ -59,6 +59,7 @@ export interface Deployment {
   commitHash: string;
   commitAuthor?: string;
   deployedAt: string;
+  createdAt?: string;
   url: string;
   environment: 'production' | 'preview';
   durationMs?: number | null;

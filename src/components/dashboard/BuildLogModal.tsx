@@ -1,10 +1,18 @@
-import React, { useState, useEffect, useRef, useCallback } from 'react';
+import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import { 
   X, RefreshCw, CheckCircle2, AlertTriangle, 
-  Terminal, ShieldAlert, GitBranch, Hash, Clock
+  Terminal, ShieldAlert, GitBranch, Hash, Clock,
+  Copy, Check, Download, Search, ArrowDown
 } from 'lucide-react';
 import { DeploymentStatus, DeploymentLog, BackendDeployment } from '../../types';
-import { getDeploymentLogs, getDeploymentById, cancelDeployment } from '../../services/deployment.service';
+import { 
+  getDeploymentLogs, 
+  getDeploymentById, 
+  getDeploymentRawLogs,
+  cancelDeployment 
+} from '../../services/deployment.service';
+
+const MAX_RENDER_LINES = 2500;
 
 interface BuildLogModalProps {
   isOpen: boolean;
@@ -29,15 +37,23 @@ export const BuildLogModal: React.FC<BuildLogModalProps> = ({
   const [cancelError, setCancelError] = useState<string | null>(null);
   const [pollError, setPollError] = useState<string | null>(null);
 
+  // Search, filter, copy, download, and scroll indicator
+  const [searchQuery, setSearchQuery] = useState<string>('');
+  const [filterStream, setFilterStream] = useState<'ALL' | 'SYSTEM' | 'STDOUT' | 'STDERR'>('ALL');
+  const [copied, setCopied] = useState<boolean>(false);
+  const [isDownloading, setIsDownloading] = useState<boolean>(false);
+  const [isAtBottom, setIsAtBottom] = useState<boolean>(true);
+
   const logContainerRef = useRef<HTMLDivElement | null>(null);
   const lastSequenceRef = useRef<number>(0);
   const isAutoScrollRef = useRef<boolean>(true);
   const pollTimerRef = useRef<NodeJS.Timeout | null>(null);
 
   // Auto-scroll logic: scroll to bottom if user hasn't manually scrolled up
-  const scrollToBottom = useCallback(() => {
-    if (isAutoScrollRef.current && logContainerRef.current) {
+  const scrollToBottom = useCallback((force = false) => {
+    if ((force || isAutoScrollRef.current) && logContainerRef.current) {
       logContainerRef.current.scrollTop = logContainerRef.current.scrollHeight;
+      setIsAtBottom(true);
     }
   }, []);
 
@@ -45,7 +61,14 @@ export const BuildLogModal: React.FC<BuildLogModalProps> = ({
     if (!logContainerRef.current) return;
     const { scrollTop, scrollHeight, clientHeight } = logContainerRef.current;
     // User is within 40px of bottom
-    isAutoScrollRef.current = scrollHeight - (scrollTop + clientHeight) < 40;
+    const atBottom = scrollHeight - (scrollTop + clientHeight) < 40;
+    isAutoScrollRef.current = atBottom;
+    setIsAtBottom(atBottom);
+  };
+
+  const handleJumpToBottom = () => {
+    isAutoScrollRef.current = true;
+    scrollToBottom(true);
   };
 
   // Poll logs and metadata
@@ -58,6 +81,11 @@ export const BuildLogModal: React.FC<BuildLogModalProps> = ({
       setIsCancelling(false);
       setCancelError(null);
       setPollError(null);
+      setSearchQuery('');
+      setFilterStream('ALL');
+      setCopied(false);
+      setIsDownloading(false);
+      setIsAtBottom(true);
       lastSequenceRef.current = 0;
       if (pollTimerRef.current) {
         clearInterval(pollTimerRef.current);
@@ -165,11 +193,82 @@ export const BuildLogModal: React.FC<BuildLogModalProps> = ({
     }
   };
 
+  // Filter and search logs
+  const filteredLogs = useMemo(() => {
+    return logs.filter((log) => {
+      if (filterStream !== 'ALL' && log.stream !== filterStream) {
+        return false;
+      }
+      if (searchQuery.trim().length > 0) {
+        const query = searchQuery.toLowerCase();
+        return log.line.toLowerCase().includes(query) || String(log.sequence).includes(query);
+      }
+      return true;
+    });
+  }, [logs, filterStream, searchQuery]);
+
+  // Safe large-log slicing for DOM rendering performance
+  const isCapped = filteredLogs.length > MAX_RENDER_LINES;
+  const displayedLogs = useMemo(() => {
+    if (!isCapped) return filteredLogs;
+    return filteredLogs.slice(-MAX_RENDER_LINES);
+  }, [filteredLogs, isCapped]);
+
+  // Copy logs to clipboard
+  const handleCopyLogs = async () => {
+    if (filteredLogs.length === 0) return;
+    const text = filteredLogs
+      .map((l) => `[${l.sequence}] [${l.stream}] ${l.line}`)
+      .join('\n');
+    try {
+      await navigator.clipboard.writeText(text);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    } catch (err) {
+      console.error("Failed to copy logs:", err);
+    }
+  };
+
+  // Download raw log export
+  const handleDownloadLogs = async () => {
+    if (!deploymentId) return;
+    setIsDownloading(true);
+    try {
+      const rawText = await getDeploymentRawLogs(deploymentId);
+      const blob = new Blob([rawText], { type: 'text/plain;charset=utf-8' });
+      const url = URL.createObjectURL(blob);
+      const anchor = document.createElement('a');
+      anchor.href = url;
+      anchor.download = `deployment-${deploymentId.slice(0, 8)}.log`;
+      document.body.appendChild(anchor);
+      anchor.click();
+      document.body.removeChild(anchor);
+      URL.revokeObjectURL(url);
+    } catch (err) {
+      console.error("Failed to download raw logs:", err);
+      // Fallback: generate download directly from loaded logs
+      const fallbackText = logs
+        .map((l) => `[${new Date(l.timestamp).toISOString()}] [${l.stream}] [${l.sequence}] ${l.line}`)
+        .join('\n');
+      const blob = new Blob([fallbackText], { type: 'text/plain;charset=utf-8' });
+      const url = URL.createObjectURL(blob);
+      const anchor = document.createElement('a');
+      anchor.href = url;
+      anchor.download = `deployment-${deploymentId.slice(0, 8)}.log`;
+      document.body.appendChild(anchor);
+      anchor.click();
+      document.body.removeChild(anchor);
+      URL.revokeObjectURL(url);
+    } finally {
+      setIsDownloading(false);
+    }
+  };
+
   if (!isOpen) return null;
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-md animate-fade-in">
-      <div className="bg-slate-900 border border-slate-700/80 rounded-3xl w-full max-w-3xl overflow-hidden shadow-2xl shadow-sky-950/30 flex flex-col max-h-[85vh] motion-safe:animate-fade-in-up">
+      <div className="bg-slate-900 border border-slate-700/80 rounded-3xl w-full max-w-4xl overflow-hidden shadow-2xl shadow-sky-950/30 flex flex-col max-h-[90vh] motion-safe:animate-fade-in-up">
         {/* Header */}
         <div className="p-5 sm:px-6 border-b border-slate-800 flex items-center justify-between bg-slate-950/50">
           <div className="space-y-1">
@@ -236,7 +335,7 @@ export const BuildLogModal: React.FC<BuildLogModalProps> = ({
 
         {/* Metadata Banner */}
         {deployment && (
-          <div className="px-6 py-2.5 bg-slate-950/80 border-b border-slate-800/80 flex flex-wrap items-center justify-between gap-2 text-[11px] font-mono text-slate-400">
+          <div className="px-6 py-2 bg-slate-950/80 border-b border-slate-800/80 flex flex-wrap items-center justify-between gap-2 text-[11px] font-mono text-slate-400">
             <div className="flex items-center gap-4">
               {deployment.commitMsg && (
                 <span className="truncate max-w-sm text-slate-300 italic">
@@ -257,9 +356,77 @@ export const BuildLogModal: React.FC<BuildLogModalProps> = ({
           </div>
         )}
 
+        {/* Console Controls: Search, Stream Filters, Copy, Download */}
+        <div className="px-6 py-2.5 bg-slate-900/90 border-b border-slate-800 flex flex-wrap items-center justify-between gap-3 text-xs">
+          {/* Stream Filter Buttons */}
+          <div className="flex items-center gap-1.5 bg-slate-950/80 p-1 rounded-xl border border-slate-800">
+            {(['ALL', 'SYSTEM', 'STDOUT', 'STDERR'] as const).map((s) => (
+              <button
+                key={s}
+                type="button"
+                onClick={() => setFilterStream(s)}
+                className={`px-2.5 py-1 rounded-lg font-bold text-[11px] transition-all cursor-pointer ${
+                  filterStream === s
+                    ? 'bg-blue-600 text-white shadow-xs'
+                    : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800/60'
+                }`}
+              >
+                {s === 'ALL' ? 'All Logs' : s === 'SYSTEM' ? 'System' : s === 'STDOUT' ? 'Stdout' : 'Stderr'}
+              </button>
+            ))}
+          </div>
+
+          {/* Search Box & Actions */}
+          <div className="flex items-center gap-2 flex-1 sm:flex-initial justify-end">
+            <div className="relative flex-1 sm:w-48">
+              <Search className="w-3.5 h-3.5 text-slate-500 absolute left-2.5 top-1/2 -translate-y-1/2" />
+              <input
+                type="text"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                placeholder="Search console..."
+                className="w-full bg-slate-950/80 border border-slate-800 focus:border-blue-500 rounded-xl pl-8 pr-7 py-1 text-xs text-slate-200 placeholder:text-slate-500 outline-none focus:ring-1 focus:ring-blue-500 font-mono"
+              />
+              {searchQuery && (
+                <button
+                  type="button"
+                  onClick={() => setSearchQuery('')}
+                  className="absolute right-2 top-1/2 -translate-y-1/2 text-slate-500 hover:text-slate-300"
+                >
+                  <X className="w-3 h-3" />
+                </button>
+              )}
+            </div>
+
+            {/* Copy Button */}
+            <button
+              type="button"
+              onClick={handleCopyLogs}
+              disabled={filteredLogs.length === 0}
+              className="px-2.5 py-1 bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white rounded-xl border border-slate-700 font-semibold flex items-center gap-1.5 transition-all cursor-pointer disabled:opacity-40"
+              title="Copy visible logs to clipboard"
+            >
+              {copied ? <Check className="w-3.5 h-3.5 text-emerald-400" /> : <Copy className="w-3.5 h-3.5" />}
+              <span>{copied ? 'Copied' : 'Copy'}</span>
+            </button>
+
+            {/* Download Button */}
+            <button
+              type="button"
+              onClick={handleDownloadLogs}
+              disabled={isDownloading || logs.length === 0}
+              className="px-2.5 py-1 bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white rounded-xl border border-slate-700 font-semibold flex items-center gap-1.5 transition-all cursor-pointer disabled:opacity-40"
+              title="Download full raw log file"
+            >
+              {isDownloading ? <RefreshCw className="w-3.5 h-3.5 animate-spin" /> : <Download className="w-3.5 h-3.5" />}
+              <span>Download</span>
+            </button>
+          </div>
+        </div>
+
         {/* Cancel Error Alert */}
         {cancelError && (
-          <div className="mx-6 mt-4 p-3 bg-red-950/50 border border-red-800 rounded-xl text-xs text-red-300 font-semibold flex items-center justify-between">
+          <div className="mx-6 mt-3 p-3 bg-red-950/50 border border-red-800 rounded-xl text-xs text-red-300 font-semibold flex items-center justify-between">
             <span>{cancelError}</span>
             <button type="button" onClick={() => setCancelError(null)} className="text-red-400 hover:text-white">
               <X className="w-3.5 h-3.5" />
@@ -269,60 +436,111 @@ export const BuildLogModal: React.FC<BuildLogModalProps> = ({
 
         {/* Poll Error Alert */}
         {pollError && (
-          <div className="mx-6 mt-4 p-2.5 bg-amber-950/40 border border-amber-800 rounded-xl text-xs text-amber-300 font-medium">
+          <div className="mx-6 mt-3 p-2.5 bg-amber-950/40 border border-amber-800 rounded-xl text-xs text-amber-300 font-medium">
             Connection notice: {pollError}. Retrying...
           </div>
         )}
 
         {/* Terminal Logs View */}
-        <div
-          ref={logContainerRef}
-          onScroll={handleScroll}
-          className="p-5 bg-slate-950 font-mono text-xs text-slate-300 overflow-y-auto flex-1 min-h-[300px] max-h-[500px] space-y-1 selection:bg-blue-600 selection:text-white"
-        >
-          {logs.length === 0 ? (
-            <div className="h-full flex flex-col items-center justify-center py-16 text-slate-500 space-y-2">
-              <RefreshCw className="w-5 h-5 animate-spin text-blue-500" />
-              <p className="text-xs font-semibold">Waiting for initial build output...</p>
+        <div className="relative flex-1 flex flex-col min-h-0">
+          {/* Large Log Banner */}
+          {isCapped && (
+            <div className="bg-blue-950/70 border-b border-blue-800/80 px-4 py-1.5 text-[11px] font-mono text-blue-300 flex items-center justify-between">
+              <span>
+                Displaying latest {MAX_RENDER_LINES.toLocaleString()} of {filteredLogs.length.toLocaleString()} lines. Full history preserved.
+              </span>
+              <button
+                type="button"
+                onClick={handleDownloadLogs}
+                className="underline hover:text-white font-semibold cursor-pointer"
+              >
+                Download full log (.log)
+              </button>
             </div>
-          ) : (
-            logs.map((log) => {
-              const isSystem = log.stream === 'SYSTEM';
-              const isStderr = log.stream === 'STDERR';
-              const isSuccess = log.line.includes('SUCCESS') || log.line.includes('built and verified');
-              const isError = isStderr || log.line.includes('ERROR') || log.line.includes('Failed');
+          )}
 
-              return (
-                <div
-                  key={log.id}
-                  className={`leading-relaxed whitespace-pre-wrap break-all ${
-                    isSystem
-                      ? 'text-blue-300 font-semibold'
-                      : isSuccess
-                      ? 'text-emerald-400 font-semibold'
-                      : isError
-                      ? 'text-rose-400 font-semibold'
-                      : 'text-slate-300'
-                  }`}
+          <div
+            ref={logContainerRef}
+            onScroll={handleScroll}
+            className="p-5 bg-slate-950 font-mono text-xs text-slate-300 overflow-y-auto flex-1 min-h-[320px] max-h-[520px] space-y-1 selection:bg-blue-600 selection:text-white"
+          >
+            {logs.length === 0 ? (
+              <div className="h-full flex flex-col items-center justify-center py-16 text-slate-500 space-y-2">
+                <RefreshCw className="w-5 h-5 animate-spin text-blue-500" />
+                <p className="text-xs font-semibold">Waiting for initial build output...</p>
+              </div>
+            ) : displayedLogs.length === 0 ? (
+              <div className="h-full flex flex-col items-center justify-center py-16 text-slate-500 space-y-1">
+                <p className="text-xs font-semibold">No logs match your filter criteria.</p>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setFilterStream('ALL');
+                    setSearchQuery('');
+                  }}
+                  className="text-xs text-blue-400 underline hover:text-blue-300 cursor-pointer"
                 >
-                  <span className="text-slate-600 select-none mr-2">[{log.sequence}]</span>
-                  {log.line}
-                </div>
-              );
-            })
+                  Reset filters
+                </button>
+              </div>
+            ) : (
+              displayedLogs.map((log) => {
+                const isSystem = log.stream === 'SYSTEM';
+                const isStderr = log.stream === 'STDERR';
+                const isSuccess = log.line.includes('SUCCESS') || log.line.includes('built and verified') || log.line.includes('completed successfully');
+                const isError = isStderr || log.line.includes('ERROR') || log.line.includes('Failed') || log.line.includes('exited with failure');
+
+                return (
+                  <div
+                    key={log.id}
+                    className={`leading-relaxed whitespace-pre-wrap break-all ${
+                      isSystem
+                        ? 'text-blue-300 font-semibold'
+                        : isSuccess
+                        ? 'text-emerald-400 font-semibold'
+                        : isError
+                        ? 'text-rose-400 font-semibold'
+                        : 'text-slate-300'
+                    }`}
+                  >
+                    <span className="text-slate-600 select-none mr-2">[{log.sequence}]</span>
+                    {log.line}
+                  </div>
+                );
+              })
+            )}
+          </div>
+
+          {/* Floating "Scroll to latest" button */}
+          {!isAtBottom && logs.length > 0 && (
+            <button
+              type="button"
+              onClick={handleJumpToBottom}
+              className="absolute bottom-4 right-6 px-3 py-1.5 bg-blue-600 hover:bg-blue-500 text-white rounded-full shadow-lg shadow-black/40 text-xs font-bold flex items-center gap-1.5 transition-all animate-bounce cursor-pointer border border-blue-400/30"
+            >
+              <ArrowDown className="w-3.5 h-3.5" />
+              <span>Scroll to latest</span>
+            </button>
           )}
         </div>
 
         {/* Footer */}
         <div className="p-4 px-6 border-t border-slate-800 bg-slate-950/50 flex items-center justify-between text-xs text-slate-400">
-          <span className="flex items-center gap-1.5">
-            <span
-              className={`w-2 h-2 rounded-full ${
-                !isTerminal ? 'bg-blue-400 animate-ping' : status === 'BUILT' ? 'bg-emerald-400' : 'bg-red-400'
-              }`}
-            ></span>
-            {!isTerminal ? 'Live stream active' : `Build finished with status: ${status}`}
-          </span>
+          <div className="flex items-center gap-3">
+            <span className="flex items-center gap-1.5">
+              <span
+                className={`w-2 h-2 rounded-full ${
+                  !isTerminal ? 'bg-blue-400 animate-ping' : status === 'BUILT' ? 'bg-emerald-400' : 'bg-red-400'
+                }`}
+              ></span>
+              {!isTerminal ? 'Live stream active' : `Build finished with status: ${status}`}
+            </span>
+            <span className="text-slate-600 hidden sm:inline">|</span>
+            <span className="text-slate-500 hidden sm:inline">
+              {logs.length} total line{logs.length === 1 ? '' : 's'}
+              {filteredLogs.length !== logs.length ? ` (${filteredLogs.length} matching)` : ''}
+            </span>
+          </div>
           <button
             type="button"
             onClick={onClose}

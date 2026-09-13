@@ -70,17 +70,25 @@ export const verifyEmail = async (req: Request, res: Response) => {
 };
 
 export const testEmail = async (req: Request, res: Response) => {
+  // Prevent arbitrary outbound email relay in production
+  if (process.env.NODE_ENV === "production") {
+    return res.status(403).json({
+      success: false,
+      message: "Test email endpoint is disabled in production.",
+    });
+  }
+
   try {
     const { email } = req.body;
 
-    if (!email) {
+    if (typeof email !== "string" || !email.trim()) {
       return res.status(400).json({
         success: false,
         message: "Email is required",
       });
     }
 
-    const result = await sendTestEmail(email);
+    const result = await sendTestEmail(email.trim());
 
     return res.status(200).json({
       success: true,
@@ -99,31 +107,36 @@ export const googleCallback = async (
   req: Request,
   res: Response
 ) => {
+  const frontendUrl =
+    process.env.FRONTEND_URL || "http://localhost:3000";
+
   try {
-    const { code } = req.query;
+    const { code, state } = req.query;
 
     if (typeof code !== "string" || !code) {
-      return res.status(400).json({
-        success: false,
-        message: "Google authorization code is missing.",
-      });
+      return res.redirect(`${frontendUrl}/login?error=google_auth_failed`);
+    }
+
+    if (
+      typeof state !== "string" ||
+      !(await authService.validateOAuthState(state, "google"))
+    ) {
+      return res.redirect(`${frontendUrl}/login?error=invalid_oauth_state`);
     }
 
     const result = await authService.loginWithGoogle(code);
-
-    const frontendUrl =
-      process.env.FRONTEND_URL || "http://localhost:3000";
+    const exchangeCode = await authService.createOAuthExchangeCode(
+      result.token,
+      result.user
+    );
 
     return res.redirect(
-      `${frontendUrl}/oauth/callback?token=${encodeURIComponent(
-        result.token
+      `${frontendUrl}/oauth/callback?code=${encodeURIComponent(
+        exchangeCode
       )}`
     );
   } catch (error) {
     console.error("Google OAuth callback failed:", error);
-
-    const frontendUrl =
-      process.env.FRONTEND_URL || "http://localhost:3000";
 
     return res.redirect(
       `${frontendUrl}/login?error=google_auth_failed`
@@ -135,35 +148,85 @@ export const githubLoginCallback = async (
   req: Request,
   res: Response
 ) => {
+  const frontendUrl =
+    process.env.FRONTEND_URL || "http://localhost:3000";
+
   try {
-    const { code } = req.query;
+    const { code, state } = req.query;
 
     if (typeof code !== "string" || !code) {
-      return res.status(400).json({
-        success: false,
-        message: "GitHub authorization code is missing.",
-      });
+      return res.redirect(`${frontendUrl}/login?error=github_auth_failed`);
+    }
+
+    if (
+      typeof state !== "string" ||
+      !(await authService.validateOAuthState(state, "github"))
+    ) {
+      return res.redirect(`${frontendUrl}/login?error=invalid_oauth_state`);
     }
 
     const result = await authService.loginWithGithub(code);
-
-    const frontendUrl =
-      process.env.FRONTEND_URL || "http://localhost:3000";
+    const exchangeCode = await authService.createOAuthExchangeCode(
+      result.token,
+      result.user
+    );
 
     return res.redirect(
-      `${frontendUrl}/oauth/callback?token=${encodeURIComponent(
-        result.token
+      `${frontendUrl}/oauth/callback?code=${encodeURIComponent(
+        exchangeCode
       )}`
     );
   } catch (error) {
     console.error("GitHub OAuth callback failed:", error);
 
-    const frontendUrl =
-      process.env.FRONTEND_URL || "http://localhost:3000";
-
     return res.redirect(
       `${frontendUrl}/login?error=github_auth_failed`
     );
+  }
+};
+
+export const exchangeOAuthCode = async (
+  req: Request,
+  res: Response
+) => {
+  try {
+    const { code } = req.body;
+
+    if (typeof code !== "string" || !code.trim()) {
+      return res.status(400).json({
+        success: false,
+        message: "Exchange code is required.",
+      });
+    }
+
+    const session = await authService.consumeOAuthExchangeCode(code.trim());
+
+    if (!session) {
+      return res.status(400).json({
+        success: false,
+        message: "Invalid or expired exchange code.",
+      });
+    }
+
+    res.cookie("token", session.token, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === "production",
+      sameSite: "lax",
+      maxAge: 7 * 24 * 60 * 60 * 1000,
+    });
+
+    return res.status(200).json({
+      success: true,
+      token: session.token,
+      user: session.user,
+    });
+  } catch (error: any) {
+    console.error("OAuth exchange failed:", error);
+
+    return res.status(500).json({
+      success: false,
+      message: "OAuth exchange failed.",
+    });
   }
 };
 

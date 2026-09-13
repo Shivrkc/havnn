@@ -3,7 +3,6 @@ import { useNavigate } from "react-router-dom";
 import { Mail, KeyRound, CheckCircle2, AlertCircle, ArrowLeft } from "lucide-react";
 import { ROUTES } from "../constants/routes";
 import { forgotPassword } from "../services/auth.service";
-import Navbar from "../components/layout/Navbar";
 
 export default function ForgotPassword() {
   const navigate = useNavigate();
@@ -165,9 +164,6 @@ export default function ForgotPassword() {
         className="fixed inset-0 w-full h-full pointer-events-none z-0"
       />
 
-      {/* Shared HAVN Navbar */}
-      <Navbar />
-
       {/* Main Floating Translucent Glass Interface */}
       <div className="flex-1 flex items-center justify-center py-10 px-4 sm:px-6 lg:px-8 relative z-20">
         <div className="max-w-md w-full backdrop-blur-2xl bg-white/60 hover:bg-white/65 border border-white/90 rounded-3xl p-6 sm:p-8 shadow-2xl shadow-sky-950/20 relative transition-all duration-300 animate-fade-in-up">
@@ -185,14 +181,14 @@ export default function ForgotPassword() {
             </div>
 
             {error && (
-              <div className="p-3 bg-red-500/10 border border-red-300/80 rounded-xl text-xs text-red-800 font-semibold flex items-center gap-2 backdrop-blur-sm animate-shake">
+              <div role="alert" className="p-3 bg-red-500/10 border border-red-300/80 rounded-xl text-xs text-red-800 font-semibold flex items-center gap-2 backdrop-blur-sm animate-shake">
                 <AlertCircle className="w-4 h-4 shrink-0 text-red-600" />
                 <span>{error}</span>
               </div>
             )}
 
             {message && (
-              <div className="p-3 bg-emerald-500/10 border border-emerald-300/80 rounded-xl text-xs text-emerald-900 font-semibold flex items-center gap-2 backdrop-blur-sm">
+              <div role="status" aria-live="polite" className="p-3 bg-emerald-500/10 border border-emerald-300/80 rounded-xl text-xs text-emerald-900 font-semibold flex items-center gap-2 backdrop-blur-sm">
                 <CheckCircle2 className="w-4 h-4 shrink-0 text-emerald-600" />
                 <span>{message}</span>
               </div>

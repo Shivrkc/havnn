@@ -98,6 +98,20 @@ export const getDeploymentLogs = async (
 };
 
 /**
+ * Downloads raw plaintext build logs.
+ * GET /api/deployments/:deploymentId/logs/raw
+ */
+export const getDeploymentRawLogs = async (
+  deploymentId: string
+): Promise<string> => {
+  const response = await api.get<string>(
+    `/deployments/${deploymentId}/logs/raw`,
+    { responseType: "text" }
+  );
+  return response.data;
+};
+
+/**
  * Cancels a queued or active deployment.
  * POST /api/deployments/:deploymentId/cancel
  */

@@ -126,11 +126,17 @@ export default function Profile() {
     let animationFrameId: number;
     let width = (canvas.width = window.innerWidth);
     let height = (canvas.height = window.innerHeight);
+    const reduceMotion = typeof window !== 'undefined' && window.matchMedia 
+      ? window.matchMedia('(prefers-reduced-motion: reduce)').matches 
+      : false;
 
     const handleResize = () => {
       if (!canvas) return;
       width = canvas.width = window.innerWidth;
       height = canvas.height = window.innerHeight;
+      if (reduceMotion) {
+        render();
+      }
     };
     window.addEventListener('resize', handleResize);
 
@@ -213,13 +219,17 @@ export default function Profile() {
         ctx.fill();
       });
 
-      animationFrameId = requestAnimationFrame(render);
+      if (!reduceMotion) {
+        animationFrameId = requestAnimationFrame(render);
+      }
     };
 
     render();
 
     return () => {
-      cancelAnimationFrame(animationFrameId);
+      if (animationFrameId) {
+        cancelAnimationFrame(animationFrameId);
+      }
       window.removeEventListener('resize', handleResize);
     };
   }, []);
@@ -650,9 +660,12 @@ export default function Profile() {
 
                   <form onSubmit={handleChangePassword} className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                     <div>
-                      <label className="text-[11px] font-bold text-slate-700 block mb-1">Current Password</label>
+                      <label htmlFor="current-password" className="text-[11px] font-bold text-slate-700 block mb-1">Current Password</label>
                       <div className="relative">
                         <input
+                          id="current-password"
+                          name="currentPassword"
+                          autoComplete="current-password"
                           type={showCurrentPassword ? 'text' : 'password'}
                           value={currentPassword}
                           onChange={(e) => setCurrentPassword(e.target.value)}
@@ -671,9 +684,12 @@ export default function Profile() {
                     </div>
 
                     <div>
-                      <label className="text-[11px] font-bold text-slate-700 block mb-1">New Password (8+ chars)</label>
+                      <label htmlFor="new-password" className="text-[11px] font-bold text-slate-700 block mb-1">New Password (8+ chars)</label>
                       <div className="relative">
                         <input
+                          id="new-password"
+                          name="newPassword"
+                          autoComplete="new-password"
                           type={showNewPassword ? 'text' : 'password'}
                           value={newPassword}
                           onChange={(e) => setNewPassword(e.target.value)}
@@ -693,9 +709,12 @@ export default function Profile() {
                     </div>
 
                     <div>
-                      <label className="text-[11px] font-bold text-slate-700 block mb-1">Confirm New Password</label>
+                      <label htmlFor="confirm-password" className="text-[11px] font-bold text-slate-700 block mb-1">Confirm New Password</label>
                       <div className="flex items-center gap-2">
                         <input
+                          id="confirm-password"
+                          name="confirmPassword"
+                          autoComplete="new-password"
                           type="password"
                           value={confirmPassword}
                           onChange={(e) => setConfirmPassword(e.target.value)}

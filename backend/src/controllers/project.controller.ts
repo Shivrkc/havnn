@@ -87,6 +87,10 @@ export const updateProject = async (req: AuthRequest, res: Response) => {
 
     const { name, description, repositoryName, repositoryUrl, branch, status } = req.body;
 
+    if (name !== undefined && (typeof name !== "string" || !name.trim())) {
+      return res.status(400).json({ success: false, message: "Project name is required" });
+    }
+
     const project = await projectService.updateUserProject(id, userId, {
       name: typeof name === "string" ? name.trim() : undefined,
       description,

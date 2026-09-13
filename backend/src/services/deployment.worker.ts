@@ -52,6 +52,7 @@ export type PrepareWorkspaceFn = (
 export class DeploymentWorker {
   public readonly workerId: string;
   private isProcessing = false;
+  private isStopped = false;
   private safetyPollTimer: NodeJS.Timeout | null = null;
   private recoveryTimer: NodeJS.Timeout | null = null;
   private activeAborts = new Map<string, AbortController>();
@@ -65,14 +66,24 @@ export class DeploymentWorker {
     this.prepareWorkspaceFn = prepareWorkspaceOverride || prepareDeploymentWorkspace;
   }
 
+  public get stopped(): boolean {
+    return this.isStopped;
+  }
+
+  public get isRunning(): boolean {
+    return !this.isStopped;
+  }
+
   /**
    * Starts the background worker, safety poller, and crash recovery reaper.
    */
   public async start(): Promise<void> {
+    this.isStopped = false;
     await this.recoverStaleDeployments();
 
     if (!this.safetyPollTimer) {
       this.safetyPollTimer = setInterval(() => {
+        if (this.isStopped) return;
         this.processNext().catch((err) => {
           console.error(`[DeploymentWorker ${this.workerId}] Safety poll error:`, err);
         });
@@ -81,6 +92,7 @@ export class DeploymentWorker {
 
     if (!this.recoveryTimer) {
       this.recoveryTimer = setInterval(() => {
+        if (this.isStopped) return;
         this.recoverStaleDeployments().catch((err) => {
           console.error(`[DeploymentWorker ${this.workerId}] Recovery timer error:`, err);
         });
@@ -92,9 +104,10 @@ export class DeploymentWorker {
   }
 
   /**
-   * Stops the worker, clearing intervals and heartbeats.
+   * Stops the worker, clearing intervals, heartbeats, active aborts, and preventing further job claims.
    */
   public stop(): void {
+    this.isStopped = true;
     if (this.safetyPollTimer) {
       clearInterval(this.safetyPollTimer);
       this.safetyPollTimer = null;
@@ -108,14 +121,25 @@ export class DeploymentWorker {
       clearInterval(timer);
       this.heartbeatTimers.delete(depId);
     }
+
+    for (const [depId, controller] of this.activeAborts.entries()) {
+      controller.abort();
+      this.activeAborts.delete(depId);
+    }
   }
 
   /**
    * Wakes up the worker immediately when a new deployment is queued.
    */
   public notify(): void {
+    if (this.isStopped) {
+      return;
+    }
     if (!this.isProcessing) {
       setImmediate(() => {
+        if (this.isStopped) {
+          return;
+        }
         this.processNext().catch((err) => {
           console.error(`[DeploymentWorker ${this.workerId}] Error in notify processNext:`, err);
         });
@@ -127,7 +151,15 @@ export class DeploymentWorker {
    * Atomically claims the oldest QUEUED deployment using PostgreSQL row-locking.
    */
   public async claimNextDeployment(): Promise<Deployment | null> {
+    if (this.isStopped) {
+      return null;
+    }
+
     return await prisma.$transaction(async (tx) => {
+      if (this.isStopped) {
+        return null;
+      }
+
       const candidates = await tx.$queryRaw<Array<{ id: string }>>`
         SELECT "id"
         FROM "Deployment"
@@ -164,23 +196,29 @@ export class DeploymentWorker {
    * Main worker execution loop. Processes 1 deployment at a time.
    */
   public async processNext(): Promise<void> {
-    if (this.isProcessing) {
-      return;
-    }
-
-    let claimedDeployment: Deployment | null = null;
-    try {
-      claimedDeployment = await this.claimNextDeployment();
-    } catch (claimErr) {
-      console.error(`[DeploymentWorker ${this.workerId}] Error claiming deployment:`, claimErr);
-      return;
-    }
-
-    if (!claimedDeployment) {
+    if (this.isProcessing || this.isStopped) {
       return;
     }
 
     this.isProcessing = true;
+
+    let claimedDeployment: Deployment | null = null;
+    try {
+      if (this.isStopped) {
+        this.isProcessing = false;
+        return;
+      }
+      claimedDeployment = await this.claimNextDeployment();
+    } catch (claimErr) {
+      console.error(`[DeploymentWorker ${this.workerId}] Error claiming deployment:`, claimErr);
+      this.isProcessing = false;
+      return;
+    }
+
+    if (!claimedDeployment || this.isStopped) {
+      this.isProcessing = false;
+      return;
+    }
 
     try {
       await this.executePipeline(claimedDeployment);
@@ -191,12 +229,16 @@ export class DeploymentWorker {
       );
     } finally {
       this.isProcessing = false;
-      // Drain remaining queued jobs
-      setImmediate(() => {
-        this.processNext().catch((err) => {
-          console.error(`[DeploymentWorker ${this.workerId}] Next iteration error:`, err);
+      // Drain remaining queued jobs only if worker is not stopped
+      if (!this.isStopped) {
+        setImmediate(() => {
+          if (!this.isStopped) {
+            this.processNext().catch((err) => {
+              console.error(`[DeploymentWorker ${this.workerId}] Next iteration error:`, err);
+            });
+          }
         });
-      });
+      }
     }
   }
 

@@ -8,6 +8,7 @@ import {
   testEmail,
   googleCallback,
   githubLoginCallback,
+  exchangeOAuthCode,
   forgotPassword,
   resetPassword,
   changePassword,
@@ -15,6 +16,19 @@ import {
 
 import { authenticate } from "../middleware/auth.middleware";
 import { validateRegister } from "../middleware/validation.middleware";
+import {
+  forgotPasswordIpLimiter,
+  forgotPasswordAccountLimiter,
+  resetPasswordLimiter,
+  changePasswordLimiter,
+  testEmailLimiter,
+} from "../middleware/rateLimit.middleware";
+
+import {
+  getGoogleRedirectUri,
+  getGithubRedirectUri,
+  generateOAuthState,
+} from "../services/auth.service";
 
 const router = Router();
 
@@ -25,7 +39,7 @@ const router = Router();
 */
 
 // GitHub OAuth
-router.get("/github", (req: Request, res: Response) => {
+router.get("/github", async (req: Request, res: Response) => {
   const clientId = process.env.GITHUB_CLIENT_ID;
 
   if (!clientId) {
@@ -35,11 +49,13 @@ router.get("/github", (req: Request, res: Response) => {
     });
   }
 
+  const state = await generateOAuthState("github");
+
   const params = new URLSearchParams({
     client_id: clientId,
-    redirect_uri:
-      "http://localhost:5000/api/auth/github/callback",
+    redirect_uri: getGithubRedirectUri(),
     scope: "user:email",
+    state,
   });
 
   const githubAuthUrl =
@@ -50,7 +66,7 @@ router.get("/github", (req: Request, res: Response) => {
 router.get("/github/callback", githubLoginCallback);
 
 // Google OAuth
-router.get("/google", (req: Request, res: Response) => {
+router.get("/google", async (req: Request, res: Response) => {
   const clientId = process.env.GOOGLE_CLIENT_ID;
 
   if (!clientId) {
@@ -60,12 +76,14 @@ router.get("/google", (req: Request, res: Response) => {
     });
   }
 
+  const state = await generateOAuthState("google");
+
   const params = new URLSearchParams({
     client_id: clientId,
-    redirect_uri:
-      "http://localhost:5000/api/auth/google/callback",
+    redirect_uri: getGoogleRedirectUri(),
     response_type: "code",
     scope: "openid profile email",
+    state,
   });
 
   const googleAuthUrl =
@@ -74,13 +92,16 @@ router.get("/google", (req: Request, res: Response) => {
   return res.redirect(googleAuthUrl);
 });
 router.get("/google/callback", googleCallback);
+
+// OAuth One-time Code Exchange
+router.post("/oauth/exchange", exchangeOAuthCode);
 /*
 Existing Authentication Routes
 */
 
 router.get("/verify-email", verifyEmail);
 
-router.post("/test-email", testEmail);
+router.post("/test-email", testEmailLimiter, testEmail);
 
 router.post(
   "/register",
@@ -89,9 +110,23 @@ router.post(
 );
 
 router.post("/login", loginUser);
-router.post("/forgot-password", forgotPassword);
-router.post("/reset-password", resetPassword);
-router.put("/change-password", authenticate, changePassword);
+router.post(
+  "/forgot-password",
+  forgotPasswordIpLimiter,
+  forgotPasswordAccountLimiter,
+  forgotPassword
+);
+router.post(
+  "/reset-password",
+  resetPasswordLimiter,
+  resetPassword
+);
+router.put(
+  "/change-password",
+  authenticate,
+  changePasswordLimiter,
+  changePassword
+);
 
 router.get(
   "/me",

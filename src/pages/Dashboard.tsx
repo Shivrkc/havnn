@@ -59,7 +59,19 @@ const mapBackendProjectToProject = (bp: BackendProject): Project => {
   };
 };
 
-const mapBackendDeploymentToFrontend = (bd: BackendDeployment): Deployment => {
+export const sortDeploymentsNewestFirst = (a: Deployment, b: Deployment): number => {
+  const getTimestamp = (d: Deployment) => {
+    if (d.createdAt) {
+      const t = new Date(d.createdAt).getTime();
+      if (!isNaN(t)) return t;
+    }
+    const t = new Date(d.deployedAt).getTime();
+    return !isNaN(t) ? t : 0;
+  };
+  return getTimestamp(b) - getTimestamp(a);
+};
+
+export const mapBackendDeploymentToFrontend = (bd: BackendDeployment): Deployment => {
   return {
     id: bd.id,
     projectId: bd.projectId,
@@ -70,6 +82,7 @@ const mapBackendDeploymentToFrontend = (bd: BackendDeployment): Deployment => {
     commitHash: bd.commitSha ? bd.commitSha.substring(0, 7) : 'pending',
     commitAuthor: bd.commitAuthor || undefined,
     deployedAt: formatRelativeTime(bd.createdAt),
+    createdAt: bd.createdAt,
     url: bd.repositoryUrl || '',
     environment: 'production',
     durationMs: bd.durationMs,
@@ -79,6 +92,8 @@ const mapBackendDeploymentToFrontend = (bd: BackendDeployment): Deployment => {
 
 export default function Dashboard() {
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
+  const reloadRequestIdRef = useRef<number>(0);
+  const handledTerminalDeploymentsRef = useRef<Set<string>>(new Set());
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
 
@@ -201,28 +216,40 @@ export default function Dashboard() {
   };
 
   const reloadProjects = useCallback(async () => {
+    const currentRequestId = ++reloadRequestIdRef.current;
     try {
       const data = await getProjects();
+      if (currentRequestId !== reloadRequestIdRef.current) {
+        return [];
+      }
       const mapped = data.map(mapBackendProjectToProject);
       setProjects(mapped);
 
-      const allDeps: Deployment[] = [];
-      for (const p of data) {
-        if (p.deploymentsCount > 0) {
+      const projectsWithDeployments = data.filter((p) => (p.deploymentsCount ?? 0) > 0);
+      const deploymentBatches = await Promise.all(
+        projectsWithDeployments.map(async (p) => {
           try {
             const depListRes = await getProjectDeployments(p.id, 1, 10);
-            for (const bd of depListRes.deployments) {
-              allDeps.push(mapBackendDeploymentToFrontend(bd));
-            }
+            return depListRes.deployments.map(mapBackendDeploymentToFrontend);
           } catch {
+            return [];
           }
-        }
+        })
+      );
+
+      if (currentRequestId !== reloadRequestIdRef.current) {
+        return mapped;
       }
-      allDeps.sort((a, b) => new Date(b.deployedAt).getTime() - new Date(a.deployedAt).getTime());
+
+      const allDeps = deploymentBatches.flat();
+      allDeps.sort(sortDeploymentsNewestFirst);
       setDeployments(allDeps);
 
       return mapped;
     } catch (err: any) {
+      if (currentRequestId !== reloadRequestIdRef.current) {
+        return [];
+      }
       const msg = err.response?.data?.message || err.message || 'Failed to fetch projects from server';
       setProjectError(msg);
       return [];
@@ -400,8 +427,54 @@ export default function Dashboard() {
     }
   };
 
-  const handleDeploymentTerminal = useCallback(async () => {
-    await reloadProjects();
+  const handleDeploymentTerminal = useCallback(async (finalDep?: BackendDeployment) => {
+    if (!finalDep) {
+      await reloadProjects();
+      return;
+    }
+
+    if (handledTerminalDeploymentsRef.current.has(finalDep.id)) {
+      return;
+    }
+    handledTerminalDeploymentsRef.current.add(finalDep.id);
+
+    try {
+      const depListRes = await getProjectDeployments(finalDep.projectId, 1, 10);
+      const newProjDeps = depListRes.deployments.map(mapBackendDeploymentToFrontend);
+
+      setDeployments((prev) => {
+        const otherDeps = prev.filter((d) => d.projectId !== finalDep.projectId);
+        const merged = [...otherDeps, ...newProjDeps];
+        merged.sort(sortDeploymentsNewestFirst);
+        return merged;
+      });
+
+      setProjects((prev) =>
+        prev.map((p) => {
+          if (p.id !== finalDep.projectId) return p;
+          let newStatus: 'ready' | 'building' | 'failed' | 'queued' | 'cancelled' | 'idle' = p.status;
+          if (finalDep.status === 'BUILT') newStatus = 'ready';
+          else if (finalDep.status === 'FAILED') newStatus = 'failed';
+          else if (finalDep.status === 'CANCELLED') newStatus = 'cancelled';
+          return {
+            ...p,
+            status: newStatus,
+            latestDeployment: {
+              id: finalDep.id,
+              status: finalDep.status,
+              branch: finalDep.branch,
+              commitSha: finalDep.commitSha,
+              commitMsg: finalDep.commitMsg,
+              imageTag: finalDep.imageTag,
+              createdAt: finalDep.createdAt,
+              completedAt: finalDep.completedAt,
+            },
+          };
+        })
+      );
+    } catch {
+      await reloadProjects();
+    }
   }, [reloadProjects]);
 
   const handleOpenDeploymentLogs = (depId: string, projName: string) => {

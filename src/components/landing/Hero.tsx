@@ -1,4 +1,5 @@
 import React, { useEffect, useRef } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { 
   Cloud, 
   Terminal, 
@@ -10,8 +11,10 @@ import {
   GitBranch,
   Cpu
 } from 'lucide-react';
+import { ROUTES } from '../../constants/routes';
 
 export default function Hero() {
+  const navigate = useNavigate();
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
 
   // Realistic forward-travelling cloud ocean animation via Canvas
@@ -23,12 +26,18 @@ export default function Hero() {
 
     let animationFrameId: number;
     let width = (canvas.width = window.innerWidth);
-    let height = (canvas.height = window.innerHeight);
+    let height = (canvas.height = canvas.parentElement?.offsetHeight || window.innerHeight);
+    const reduceMotion = typeof window !== 'undefined' && window.matchMedia 
+      ? window.matchMedia('(prefers-reduced-motion: reduce)').matches 
+      : false;
 
     const handleResize = () => {
       if (!canvas) return;
       width = canvas.width = window.innerWidth;
-      height = canvas.height = window.innerHeight;
+      height = canvas.height = canvas.parentElement?.offsetHeight || window.innerHeight;
+      if (reduceMotion) {
+        render();
+      }
     };
     window.addEventListener('resize', handleResize);
 
@@ -126,13 +135,17 @@ export default function Hero() {
       ctx.fillStyle = hazeGrad;
       ctx.fillRect(0, horizonY - 40, width, 100);
 
-      animationFrameId = requestAnimationFrame(render);
+      if (!reduceMotion) {
+        animationFrameId = requestAnimationFrame(render);
+      }
     };
 
     render();
 
     return () => {
-      cancelAnimationFrame(animationFrameId);
+      if (animationFrameId) {
+        cancelAnimationFrame(animationFrameId);
+      }
       window.removeEventListener('resize', handleResize);
     };
   }, []);
@@ -142,6 +155,7 @@ export default function Hero() {
       {/* Dynamic Aerial Sky & Cloud Ocean Canvas */}
       <canvas
         ref={canvasRef}
+        aria-hidden="true"
         className="absolute inset-0 w-full h-full pointer-events-none z-0"
       />
 
@@ -222,11 +236,24 @@ export default function Hero() {
 
             {/* CTA Buttons */}
             <div className="flex flex-col sm:flex-row items-center gap-4 w-full justify-center">
-              <button className="w-full sm:w-auto px-7 py-3.5 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-medium shadow-md shadow-blue-600/20 hover:shadow-lg transition-all flex items-center justify-center gap-2 group">
+              <button 
+                onClick={() => navigate(ROUTES.SIGNUP)}
+                className="w-full sm:w-auto px-7 py-3.5 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-medium shadow-md shadow-blue-600/20 hover:shadow-lg transition-all flex items-center justify-center gap-2 group cursor-pointer"
+              >
                 Start Deploying Free
                 <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
               </button>
-              <button className="w-full sm:w-auto px-7 py-3.5 rounded-xl backdrop-blur-md bg-white/40 hover:bg-white/60 text-slate-900 font-medium border border-white/60 shadow-sm transition-all">
+              <button 
+                onClick={() => {
+                  const pricingSection = document.getElementById('pricing');
+                  if (pricingSection) {
+                    pricingSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                  } else {
+                    navigate(ROUTES.HOME);
+                  }
+                }}
+                className="w-full sm:w-auto px-7 py-3.5 rounded-xl backdrop-blur-md bg-white/40 hover:bg-white/60 text-slate-900 font-medium border border-white/60 shadow-sm transition-all cursor-pointer"
+              >
                 Book Infrastructure Demo
               </button>
             </div>

@@ -7,6 +7,7 @@ import {
   assertWorkspaceBoundary,
   assertDockerfilePath,
   cleanupWorkspace,
+  getSafeGitChildEnv,
 } from "../git.service";
 import { sanitizeLogOutput, sanitizeErrorMessage } from "../../utils/sanitizer";
 import { SCRATCH_ROOT_DIR } from "../../constants/build.constants";
@@ -96,6 +97,47 @@ async function runTests() {
   const errorMsg = sanitizeErrorMessage("fatal: Remote branch feature-x not found in upstream origin");
   assert.strictEqual(errorMsg, "The requested branch was not found in the remote repository.");
   console.log("   ✓ Error & log sanitization passed");
+
+  // 6. Git child-process environment isolation (CodeRabbit Finding #1)
+  console.log("6. Testing Git child-process environment isolation...");
+  // Inject mock backend secrets into parent process.env
+  const originalEnv = { ...process.env };
+  try {
+    process.env.DATABASE_URL = "postgresql://user:secretpass@localhost:5432/cloudforge";
+    process.env.JWT_SECRET = "super-secret-jwt-key-never-leak";
+    process.env.ENCRYPTION_KEY = "0123456789abcdef0123456789abcdef";
+    process.env.GOOGLE_CLIENT_SECRET = "google-secret-xyz";
+    process.env.GITHUB_CLIENT_SECRET = "github-secret-abc";
+
+    const childEnv = getSafeGitChildEnv({
+      GIT_TERMINAL_PROMPT: "0",
+      GIT_ASKPASS: "C:\\mock\\askpass.bat",
+      CLOUDFORGE_GIT_TOKEN: "mock-gh-token",
+    });
+
+    // Verify backend secrets are NOT inherited
+    assert.strictEqual(childEnv.DATABASE_URL, undefined, "DATABASE_URL must not be present in Git child env");
+    assert.strictEqual(childEnv.JWT_SECRET, undefined, "JWT_SECRET must not be present in Git child env");
+    assert.strictEqual(childEnv.ENCRYPTION_KEY, undefined, "ENCRYPTION_KEY must not be present in Git child env");
+    assert.strictEqual(childEnv.GOOGLE_CLIENT_SECRET, undefined, "GOOGLE_CLIENT_SECRET must not be present in Git child env");
+    assert.strictEqual(childEnv.GITHUB_CLIENT_SECRET, undefined, "GITHUB_CLIENT_SECRET must not be present in Git child env");
+
+    // Verify required Git and askpass variables ARE present
+    assert.strictEqual(childEnv.GIT_TERMINAL_PROMPT, "0");
+    assert.strictEqual(childEnv.GIT_ASKPASS, "C:\\mock\\askpass.bat");
+    assert.strictEqual(childEnv.CLOUDFORGE_GIT_TOKEN, "mock-gh-token");
+
+    // Verify essential OS environment variables are preserved
+    const hasPath = childEnv.PATH !== undefined || childEnv.Path !== undefined;
+    assert.strictEqual(hasPath, true, "PATH/Path must be preserved for Git execution");
+    if (process.platform === "win32") {
+      const hasSystemRoot = childEnv.SystemRoot !== undefined || childEnv.SYSTEMROOT !== undefined;
+      assert.strictEqual(hasSystemRoot, true, "SystemRoot must be preserved on Windows");
+    }
+  } finally {
+    process.env = originalEnv;
+  }
+  console.log("   ✓ Git child-process environment isolation passed");
 
   console.log("\nAll Phase 1.2 Git isolation tests passed successfully!");
 }

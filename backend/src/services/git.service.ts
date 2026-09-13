@@ -100,6 +100,72 @@ export function validateRepositoryUrl(url: string): { owner: string; repo: strin
 }
 
 /**
+ * Environment variable allowlist for Git child processes.
+ * Strictly prevents backend secrets (e.g., DATABASE_URL, JWT_SECRET, ENCRYPTION_KEY)
+ * from being inherited by Git or askpass subprocesses.
+ */
+const SAFE_GIT_ENV_ALLOWLIST = new Set([
+  // Core path and executable resolution
+  "PATH",
+  "Path",
+  "PATHEXT",
+  // Windows OS environment essentials
+  "SYSTEMROOT",
+  "SystemRoot",
+  "SYSTEMDRIVE",
+  "SystemDrive",
+  "COMSPEC",
+  "ComSpec",
+  "WINDIR",
+  "windir",
+  "ALLUSERSPROFILE",
+  "ProgramData",
+  "PROGRAMFILES",
+  "ProgramFiles",
+  "PROGRAMFILES(X86)",
+  "ProgramFiles(x86)",
+  "COMMONPROGRAMFILES",
+  "CommonProgramFiles",
+  // Temporary directories
+  "TEMP",
+  "TMP",
+  "TMPDIR",
+  // User home and profile directories (needed by Git and SSH/GPG tools)
+  "HOME",
+  "USERPROFILE",
+  "HOMEDRIVE",
+  "HOMEPATH",
+  // Localization and system settings
+  "LANG",
+  "LC_ALL",
+  "LC_CTYPE",
+  "LC_MESSAGES",
+  "TZ",
+]);
+
+/**
+ * Builds a restricted environment object containing only allowlisted platform variables
+ * and explicitly passed Git configuration variables.
+ */
+export function getSafeGitChildEnv(overrides: Record<string, string | undefined> = {}): NodeJS.ProcessEnv {
+  const safeEnv: NodeJS.ProcessEnv = {};
+
+  for (const [key, value] of Object.entries(process.env)) {
+    if (value !== undefined && SAFE_GIT_ENV_ALLOWLIST.has(key)) {
+      safeEnv[key] = value;
+    }
+  }
+
+  for (const [key, value] of Object.entries(overrides)) {
+    if (value !== undefined) {
+      safeEnv[key] = value;
+    }
+  }
+
+  return safeEnv;
+}
+
+/**
  * Executes a Git command with discrete argument arrays, shell disabled, and timeout.
  */
 function runGitProcess(
@@ -125,7 +191,7 @@ function runGitProcess(
 
     const child = spawn("git", args, {
       cwd: options.cwd,
-      env: options.env ?? process.env,
+      env: options.env ?? getSafeGitChildEnv(),
       shell: false,
       windowsHide: true,
     });
@@ -262,14 +328,13 @@ export async function cloneRepositorySecurely(options: {
   // Create ephemeral askpass helper inside workspace
   const askpassScriptPath = await createAskpassHelper(workspaceDir);
 
-  // Construct child-only environment (never added to parent Express process.env)
-  const childEnv: NodeJS.ProcessEnv = {
-    ...process.env,
+  // Construct child-only environment with allowlisted system variables and Git tokens
+  const childEnv = getSafeGitChildEnv({
     GIT_TERMINAL_PROMPT: "0",
     GIT_ASKPASS: process.execPath, // Path to current node executable
     GIT_ASKPASS_SCRIPT: askpassScriptPath,
     CLOUDFORGE_GIT_TOKEN: githubToken,
-  };
+  });
 
   // Run a wrapper askpass caller script so git executes node askpass.js
   const runnerScriptPath = path.join(workspaceDir, "askpass-runner.bat");

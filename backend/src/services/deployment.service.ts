@@ -72,44 +72,62 @@ export async function prepareDeploymentWorkspace(
   const { canonicalUrl } = validateRepositoryUrl(deployment.repositoryUrl);
   await validateBranchName(deployment.branch);
 
-  // 4. Allocate isolated workspace
+  if (options?.abortSignal?.aborted) {
+    throw new Error("Deployment cancelled by user.");
+  }
+
+  // 4. Atomic status transition / verification (before creating workspace on disk)
+  const claimed = await prisma.deployment.updateMany({
+    where: {
+      id: deploymentId,
+      status: "QUEUED",
+    },
+    data: {
+      status: "INITIALIZING",
+      startedAt: new Date(),
+      errorMessage: null,
+    },
+  });
+
+  if (claimed.count === 0) {
+    // Deployment was not QUEUED; check if it was already claimed by DeploymentWorker or cancelled/terminal
+    const current = await prisma.deployment.findUnique({
+      where: { id: deploymentId },
+      select: { status: true },
+    });
+
+    if (!current) {
+      throw new Error("Deployment not found or access denied.");
+    }
+
+    if (current.status === "CANCELLED" || options?.abortSignal?.aborted) {
+      throw new Error("Deployment cancelled by user.");
+    }
+
+    if (current.status !== "INITIALIZING") {
+      throw new Error(`Deployment cannot be prepared: current status is ${current.status}.`);
+    }
+  }
+
+  // 5. Allocate isolated workspace path
   const workspaceDir = path.resolve(SCRATCH_ROOT_DIR, deploymentId);
   assertWorkspaceBoundary(workspaceDir);
 
-  // Clean if directory already exists from previous attempts
-  if (fs.existsSync(workspaceDir)) {
-    await cleanupWorkspace(workspaceDir);
-  }
-  await fs.promises.mkdir(workspaceDir, { recursive: true });
-
-  if (options?.abortSignal?.aborted) {
-    await cleanupWorkspace(workspaceDir);
-    throw new Error("Deployment cancelled by user.");
-  }
-
-  // 5. Transition status: QUEUED -> INITIALIZING (if still QUEUED)
-  const currentBefore = await prisma.deployment.findUnique({
-    where: { id: deploymentId },
-    select: { status: true },
-  });
-
-  if (currentBefore?.status === "CANCELLED") {
-    await cleanupWorkspace(workspaceDir);
-    throw new Error("Deployment cancelled by user.");
-  }
-
-  if (currentBefore?.status === "QUEUED") {
-    await prisma.deployment.update({
-      where: { id: deploymentId },
-      data: {
-        status: "INITIALIZING",
-        startedAt: new Date(),
-        errorMessage: null,
-      },
-    });
-  }
-
   try {
+    if (options?.abortSignal?.aborted) {
+      throw new Error("Deployment cancelled by user.");
+    }
+
+    // Clean if directory already exists from previous attempts
+    if (fs.existsSync(workspaceDir)) {
+      await cleanupWorkspace(workspaceDir);
+    }
+    await fs.promises.mkdir(workspaceDir, { recursive: true });
+
+    if (options?.abortSignal?.aborted) {
+      throw new Error("Deployment cancelled by user.");
+    }
+
     // 6. Secure shallow clone using child-only GIT_ASKPASS
     const repoDir = await cloneRepositorySecurely({
       workspaceDir,
