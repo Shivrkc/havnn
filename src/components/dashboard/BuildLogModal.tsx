@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react'
 import { 
   X, RefreshCw, CheckCircle2, AlertTriangle, 
   Terminal, ShieldAlert, GitBranch, Hash, Clock,
-  Copy, Check, Download, Search, ArrowDown
+  Copy, Check, Download, Search, ArrowDown, Sparkles
 } from 'lucide-react';
 import { DeploymentStatus, DeploymentLog, BackendDeployment } from '../../types';
 import { 
@@ -11,6 +11,7 @@ import {
   getDeploymentRawLogs,
   cancelDeployment 
 } from '../../services/deployment.service';
+import { HavnAiAssistant } from './HavnAiAssistant';
 
 const MAX_RENDER_LINES = 2500;
 
@@ -37,7 +38,8 @@ export const BuildLogModal: React.FC<BuildLogModalProps> = ({
   const [cancelError, setCancelError] = useState<string | null>(null);
   const [pollError, setPollError] = useState<string | null>(null);
 
-  // Search, filter, copy, download, and scroll indicator
+  // Search, filter, copy, download, scroll indicator, and active tab
+  const [activeModalTab, setActiveModalTab] = useState<'console' | 'ai'>('console');
   const [searchQuery, setSearchQuery] = useState<string>('');
   const [filterStream, setFilterStream] = useState<'ALL' | 'SYSTEM' | 'STDOUT' | 'STDERR'>('ALL');
   const [copied, setCopied] = useState<boolean>(false);
@@ -81,6 +83,7 @@ export const BuildLogModal: React.FC<BuildLogModalProps> = ({
       setIsCancelling(false);
       setCancelError(null);
       setPollError(null);
+      setActiveModalTab('console');
       setSearchQuery('');
       setFilterStream('ALL');
       setCopied(false);
@@ -268,9 +271,9 @@ export const BuildLogModal: React.FC<BuildLogModalProps> = ({
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-md animate-fade-in">
-      <div className="bg-slate-900 border border-slate-700/80 rounded-3xl w-full max-w-4xl overflow-hidden shadow-2xl shadow-sky-950/30 flex flex-col max-h-[90vh] motion-safe:animate-fade-in-up">
+      <div className="bg-slate-900 border border-slate-700/80 rounded-3xl w-full max-w-4xl overflow-hidden shadow-2xl shadow-sky-950/30 flex flex-col h-[88vh] max-h-[850px] min-h-[520px] motion-safe:animate-fade-in-up">
         {/* Header */}
-        <div className="p-5 sm:px-6 border-b border-slate-800 flex items-center justify-between bg-slate-950/50">
+        <div className="p-5 sm:px-6 border-b border-slate-800 flex items-center justify-between bg-slate-950/50 shrink-0">
           <div className="space-y-1">
             <div className="flex items-center gap-2.5">
               <Terminal className="w-4 h-4 text-blue-400" />
@@ -333,33 +336,90 @@ export const BuildLogModal: React.FC<BuildLogModalProps> = ({
           </div>
         </div>
 
-        {/* Metadata Banner */}
-        {deployment && (
-          <div className="px-6 py-2 bg-slate-950/80 border-b border-slate-800/80 flex flex-wrap items-center justify-between gap-2 text-[11px] font-mono text-slate-400">
-            <div className="flex items-center gap-4">
-              {deployment.commitMsg && (
-                <span className="truncate max-w-sm text-slate-300 italic">
-                  "{deployment.commitMsg}"
-                </span>
-              )}
-              {deployment.durationMs != null && (
-                <span className="flex items-center gap-1 text-slate-400">
-                  <Clock className="w-3 h-3" /> {Math.round(deployment.durationMs / 1000)}s
-                </span>
-              )}
-            </div>
-            {deployment.imageTag && (
-              <span className="text-slate-500 truncate max-w-xs" title={deployment.imageTag}>
-                Tag: {deployment.imageTag}
-              </span>
-            )}
+        {/* Modal Navigation Tabs: Terminal Console vs HAVN AI Assistant */}
+        <div className="flex items-center justify-between px-6 py-2 bg-slate-950/90 border-b border-slate-800 shrink-0">
+          <div className="flex items-center gap-1.5">
+            <button
+              type="button"
+              onClick={() => setActiveModalTab('console')}
+              className={`px-3 py-1.5 rounded-xl font-bold text-xs flex items-center gap-1.5 transition-all cursor-pointer ${
+                activeModalTab === 'console'
+                  ? 'bg-slate-800 text-white shadow-xs'
+                  : 'text-slate-400 hover:text-slate-200 hover:bg-slate-900'
+              }`}
+            >
+              <Terminal className="w-3.5 h-3.5 text-blue-400" />
+              Terminal Console
+            </button>
+            <button
+              type="button"
+              onClick={() => setActiveModalTab('ai')}
+              className={`px-3 py-1.5 rounded-xl font-bold text-xs flex items-center gap-1.5 transition-all cursor-pointer ${
+                activeModalTab === 'ai'
+                  ? 'bg-sky-600 text-white shadow-xs shadow-sky-500/20'
+                  : 'text-slate-400 hover:text-slate-200 hover:bg-slate-900'
+              }`}
+            >
+              <Sparkles className="w-3.5 h-3.5 text-sky-400" />
+              HAVN AI Assistant
+            </button>
           </div>
-        )}
 
-        {/* Console Controls: Search, Stream Filters, Copy, Download */}
-        <div className="px-6 py-2.5 bg-slate-900/90 border-b border-slate-800 flex flex-wrap items-center justify-between gap-3 text-xs">
-          {/* Stream Filter Buttons */}
-          <div className="flex items-center gap-1.5 bg-slate-950/80 p-1 rounded-xl border border-slate-800">
+          {activeModalTab === 'console' && (
+            <button
+              type="button"
+              onClick={() => setActiveModalTab('ai')}
+              className="px-2.5 py-1 bg-sky-950/60 hover:bg-sky-900/80 text-sky-300 hover:text-white rounded-xl border border-sky-800/80 font-bold flex items-center gap-1.5 transition-all cursor-pointer text-xs"
+              title="Open HAVN AI diagnostic assistant"
+            >
+              <Sparkles className="w-3.5 h-3.5 text-sky-400" />
+              <span>Ask HAVN AI</span>
+            </button>
+          )}
+        </div>
+
+        {/* AI Assistant View - Preserved across tab switches */}
+        <div className={`flex-1 min-h-0 flex flex-col ${activeModalTab === 'ai' ? '' : 'hidden'}`}>
+          <HavnAiAssistant
+            deploymentId={deploymentId}
+            deploymentStatus={status}
+            projectName={projectName || deployment?.repositoryName}
+            onSelectSequence={(seq) => {
+              setActiveModalTab('console');
+              setSearchQuery(String(seq));
+            }}
+          />
+        </div>
+
+        {/* Terminal Console View - Preserved across tab switches */}
+        <div className={`flex-1 min-h-0 flex flex-col ${activeModalTab === 'console' ? '' : 'hidden'}`}>
+          {/* Metadata Banner */}
+            {deployment && (
+              <div className="px-6 py-2 bg-slate-950/80 border-b border-slate-800/80 flex flex-wrap items-center justify-between gap-2 text-[11px] font-mono text-slate-400">
+                <div className="flex items-center gap-4">
+                  {deployment.commitMsg && (
+                    <span className="truncate max-w-sm text-slate-300 italic">
+                      "{deployment.commitMsg}"
+                    </span>
+                  )}
+                  {deployment.durationMs != null && (
+                    <span className="flex items-center gap-1 text-slate-400">
+                      <Clock className="w-3 h-3" /> {Math.round(deployment.durationMs / 1000)}s
+                    </span>
+                  )}
+                </div>
+                {deployment.imageTag && (
+                  <span className="text-slate-500 truncate max-w-xs" title={deployment.imageTag}>
+                    Tag: {deployment.imageTag}
+                  </span>
+                )}
+              </div>
+            )}
+
+            {/* Console Controls: Search, Stream Filters, Copy, Download */}
+            <div className="px-6 py-2.5 bg-slate-900/90 border-b border-slate-800 flex flex-wrap items-center justify-between gap-3 text-xs">
+              {/* Stream Filter Buttons */}
+              <div className="flex items-center gap-1.5 bg-slate-950/80 p-1 rounded-xl border border-slate-800">
             {(['ALL', 'SYSTEM', 'STDOUT', 'STDERR'] as const).map((s) => (
               <button
                 key={s}
@@ -462,7 +522,7 @@ export const BuildLogModal: React.FC<BuildLogModalProps> = ({
           <div
             ref={logContainerRef}
             onScroll={handleScroll}
-            className="p-5 bg-slate-950 font-mono text-xs text-slate-300 overflow-y-auto flex-1 min-h-[320px] max-h-[520px] space-y-1 selection:bg-blue-600 selection:text-white"
+            className="p-5 bg-slate-950 font-mono text-xs text-slate-300 overflow-y-auto flex-1 min-h-0 space-y-1 selection:bg-blue-600 selection:text-white"
           >
             {logs.length === 0 ? (
               <div className="h-full flex flex-col items-center justify-center py-16 text-slate-500 space-y-2">
@@ -523,9 +583,10 @@ export const BuildLogModal: React.FC<BuildLogModalProps> = ({
             </button>
           )}
         </div>
+        </div>
 
         {/* Footer */}
-        <div className="p-4 px-6 border-t border-slate-800 bg-slate-950/50 flex items-center justify-between text-xs text-slate-400">
+        <div className="p-4 px-6 border-t border-slate-800 bg-slate-950/50 flex items-center justify-between text-xs text-slate-400 shrink-0">
           <div className="flex items-center gap-3">
             <span className="flex items-center gap-1.5">
               <span
