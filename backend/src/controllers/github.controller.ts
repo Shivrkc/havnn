@@ -125,14 +125,20 @@ export const githubRepositories = async (
     const perPageQuery = req.query.per_page;
     const maxPagesQuery = req.query.max_pages;
 
-    const page = typeof pageQuery === "string" ? parseInt(pageQuery, 10) : undefined;
-    const perPage = typeof perPageQuery === "string" ? parseInt(perPageQuery, 10) : undefined;
-    const maxPages = typeof maxPagesQuery === "string" ? parseInt(maxPagesQuery, 10) : undefined;
+    const rawPage = typeof pageQuery === "string" ? parseInt(pageQuery, 10) : undefined;
+    const rawPerPage = typeof perPageQuery === "string" ? parseInt(perPageQuery, 10) : undefined;
+    const rawMaxPages = typeof maxPagesQuery === "string" ? parseInt(maxPagesQuery, 10) : undefined;
+
+    const page = rawPage && !isNaN(rawPage) && rawPage > 0 ? rawPage : undefined;
+    const perPage =
+      rawPerPage && !isNaN(rawPerPage) ? Math.min(100, Math.max(1, rawPerPage)) : undefined;
+    const maxPages =
+      rawMaxPages && !isNaN(rawMaxPages) ? Math.min(10, Math.max(1, rawMaxPages)) : undefined;
 
     const repositories = await githubService.getGithubRepositories(userId, {
-      page: page && !isNaN(page) ? page : undefined,
-      perPage: perPage && !isNaN(perPage) ? perPage : undefined,
-      maxPages: maxPages && !isNaN(maxPages) ? maxPages : undefined,
+      page,
+      perPage,
+      maxPages,
     });
 
     return res.status(200).json({

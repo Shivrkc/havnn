@@ -240,7 +240,7 @@ export const getGithubRepositories = async (
   }
 
   // Multi-page fetch: follow pagination to retrieve repositories beyond the first 100
-  const maxPages = options?.maxPages || 10;
+  const maxPages = Math.min(10, Math.max(1, options?.maxPages || 10));
   const allRepos: any[] = [];
   let currentPage = 1;
   let hasNext = true;

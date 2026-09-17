@@ -635,6 +635,10 @@ export const resetPassword = async (
     );
   }
 
+  if (newPassword.length > 128) {
+    throw new Error("Password must not exceed 128 characters.");
+  }
+
   // Hash the token received from the reset URL.
   const tokenHash = crypto
     .createHash("sha256")
@@ -721,6 +725,10 @@ export const changePassword = async (
 
   if (newPassword.length < 8) {
     throw new Error("New password must be at least 8 characters long.");
+  }
+
+  if (newPassword.length > 128) {
+    throw new Error("New password must not exceed 128 characters.");
   }
 
   const isSamePassword = await bcrypt.compare(newPassword, user.password);

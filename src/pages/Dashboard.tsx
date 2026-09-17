@@ -244,6 +244,7 @@ export default function Dashboard() {
       const allDeps = deploymentBatches.flat();
       allDeps.sort(sortDeploymentsNewestFirst);
       setDeployments(allDeps);
+      setProjectError(null);
 
       return mapped;
     } catch (err: any) {

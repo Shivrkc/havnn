@@ -44,6 +44,9 @@ async function runTest() {
 
   const originalNodeEnv = process.env.NODE_ENV;
 
+  const originalTrustProxy = app.get("trust proxy");
+  app.set("trust proxy", 1);
+
   try {
     rateLimiterStore.reset();
 
@@ -145,6 +148,7 @@ async function runTest() {
     console.log("  ALL TEST-EMAIL PROTECTION TESTS PASSED SUCCESSFULLY!            ");
     console.log("==================================================================");
   } finally {
+    app.set("trust proxy", originalTrustProxy);
     process.env.NODE_ENV = originalNodeEnv;
     rateLimiterStore.reset();
     await new Promise<void>((resolve) => server.close(() => resolve()));

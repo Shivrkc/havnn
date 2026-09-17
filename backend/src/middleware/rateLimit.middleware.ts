@@ -89,11 +89,8 @@ export class InMemoryRateLimiter {
 export const rateLimiterStore = new InMemoryRateLimiter();
 
 export const getClientIp = (req: Request): string => {
-  return (
-    (req.headers["x-forwarded-for"] as string)?.split(",")[0]?.trim() ||
-    req.socket.remoteAddress ||
-    "127.0.0.1"
-  );
+  const ip = req.ip || req.socket.remoteAddress || "127.0.0.1";
+  return ip.startsWith("::ffff:") ? ip.slice(7) : ip;
 };
 
 // 1. Forgot password rate limiters
@@ -146,4 +143,55 @@ export const testEmailLimiter = rateLimiterStore.createMiddleware({
   max: 3,
   message: "Too many test email requests. Please try again later.",
   keyGenerator: (req) => `test-email:ip:${getClientIp(req)}`,
+});
+
+// 5. Login rate limiters
+// Per-IP: 10 attempts per 15 minutes to thwart brute-forcing
+export const loginIpLimiter = rateLimiterStore.createMiddleware({
+  windowMs: 15 * 60 * 1000,
+  max: 10,
+  message: "Too many login attempts from this IP. Please try again later.",
+  keyGenerator: (req) => `login:ip:${getClientIp(req)}`,
+});
+
+// Per-Account: 5 attempts per 15 minutes for the requested email
+export const loginAccountLimiter = rateLimiterStore.createMiddleware({
+  windowMs: 15 * 60 * 1000,
+  max: 5,
+  message: "Too many login attempts for this account. Please try again later.",
+  keyGenerator: (req) => {
+    const rawEmail = typeof req.body?.email === "string" ? req.body.email : "";
+    const emailKey = rawEmail.trim() ? normalizeEmail(rawEmail) : "unknown";
+    return `login:account:${emailKey}`;
+  },
+});
+
+// 6. Registration rate limiter
+// Per-IP: 10 account creations per hour to prevent bot signup spam
+export const registerIpLimiter = rateLimiterStore.createMiddleware({
+  windowMs: 60 * 60 * 1000,
+  max: 10,
+  message: "Too many accounts created from this IP. Please try again later.",
+  keyGenerator: (req) => `register:ip:${getClientIp(req)}`,
+});
+
+// 7. OAuth code exchange rate limiter
+// Per-IP: 20 attempts per 15 minutes
+export const oauthExchangeLimiter = rateLimiterStore.createMiddleware({
+  windowMs: 15 * 60 * 1000,
+  max: 20,
+  message: "Too many OAuth exchange requests. Please try again later.",
+  keyGenerator: (req) => `oauth-exchange:ip:${getClientIp(req)}`,
+});
+
+// 8. Deployment creation rate limiter
+// Per-User: 10 deployments created per 5 minutes to prevent deployment pipeline spam
+export const deploymentCreationLimiter = rateLimiterStore.createMiddleware({
+  windowMs: 5 * 60 * 1000,
+  max: 10,
+  message: "Deployment creation limit reached. Please wait before triggering additional builds.",
+  keyGenerator: (req: AuthRequest) => {
+    const userId = req.user?.id || getClientIp(req);
+    return `deploy-create:user:${userId}`;
+  },
 });

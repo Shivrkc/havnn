@@ -42,6 +42,9 @@ async function runTest() {
   const address = server.address() as any;
   const port = address.port;
 
+  const originalTrustProxy = app.get("trust proxy");
+  app.set("trust proxy", 1);
+
   try {
     // Clean slate for rate limiter
     rateLimiterStore.reset();
@@ -281,6 +284,7 @@ async function runTest() {
     console.log("  ALL PASSWORD ENDPOINT RATE LIMITING TESTS PASSED!               ");
     console.log("==================================================================");
   } finally {
+    app.set("trust proxy", originalTrustProxy);
     rateLimiterStore.reset();
     await new Promise<void>((resolve) => server.close(() => resolve()));
   }

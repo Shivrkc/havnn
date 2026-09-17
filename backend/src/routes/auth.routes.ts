@@ -15,13 +15,23 @@ import {
 } from "../controllers/auth.controller";
 
 import { authenticate } from "../middleware/auth.middleware";
-import { validateRegister } from "../middleware/validation.middleware";
+import {
+  validateRegister,
+  validateLogin,
+  validateForgotPassword,
+  validateResetPassword,
+  validateChangePassword,
+} from "../middleware/validation.middleware";
 import {
   forgotPasswordIpLimiter,
   forgotPasswordAccountLimiter,
   resetPasswordLimiter,
   changePasswordLimiter,
   testEmailLimiter,
+  loginIpLimiter,
+  loginAccountLimiter,
+  registerIpLimiter,
+  oauthExchangeLimiter,
 } from "../middleware/rateLimit.middleware";
 
 import {
@@ -94,7 +104,7 @@ router.get("/google", async (req: Request, res: Response) => {
 router.get("/google/callback", googleCallback);
 
 // OAuth One-time Code Exchange
-router.post("/oauth/exchange", exchangeOAuthCode);
+router.post("/oauth/exchange", oauthExchangeLimiter, exchangeOAuthCode);
 /*
 Existing Authentication Routes
 */
@@ -105,26 +115,39 @@ router.post("/test-email", testEmailLimiter, testEmail);
 
 router.post(
   "/register",
+  registerIpLimiter,
   validateRegister,
   registerUser
 );
 
-router.post("/login", loginUser);
+router.post(
+  "/login",
+  loginIpLimiter,
+  loginAccountLimiter,
+  validateLogin,
+  loginUser
+);
+
 router.post(
   "/forgot-password",
   forgotPasswordIpLimiter,
   forgotPasswordAccountLimiter,
+  validateForgotPassword,
   forgotPassword
 );
+
 router.post(
   "/reset-password",
   resetPasswordLimiter,
+  validateResetPassword,
   resetPassword
 );
+
 router.put(
   "/change-password",
   authenticate,
   changePasswordLimiter,
+  validateChangePassword,
   changePassword
 );
 

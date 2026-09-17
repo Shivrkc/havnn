@@ -1,5 +1,6 @@
-﻿import assert from "assert";
+import assert from "assert";
 import axios from "axios";
+import prisma from "../../lib/prisma";
 import { loginWithGoogle, loginWithGithub } from "../auth.service";
 
 async function runTest() {
@@ -122,6 +123,14 @@ async function runTest() {
     process.env.GITHUB_CLIENT_ID = originalGithubId;
     process.env.GITHUB_CLIENT_SECRET = originalGithubSecret;
     process.env.GITHUB_CALLBACK_URL = originalGithubCallback;
+
+    try {
+      await prisma.user.deleteMany({
+        where: { email: { in: ["test-google@example.com", "test-github@example.com"] } },
+      });
+    } catch (cleanupErr) {
+      console.warn("Notice: Cleanup of test users skipped or failed:", cleanupErr);
+    }
   }
 }
 

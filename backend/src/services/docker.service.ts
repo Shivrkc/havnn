@@ -88,44 +88,50 @@ export class BuildLogBatcher {
     });
   }
 
-  private isFlushing = false;
+  private inFlight: Promise<void> | null = null;
 
   /**
    * Flushes accumulated logs to PostgreSQL in batches of 50.
-   * Concurrency-guarded: avoids interleaving concurrent flush calls.
+   * Concurrency-guarded: avoids interleaving concurrent flush calls; callers await active DB write.
    * Failure-safe: if createMany fails, the batch is unshifted back onto the front of the queue
    * preserving exact sequence numbers, ordering, and preventing data loss.
    */
   public async flush(): Promise<void> {
-    if (this.isFlushing || this.queue.length === 0) return;
-
-    this.isFlushing = true;
-    const batch = this.queue.splice(0, 50);
-
-    try {
-      await prisma.buildLog.createMany({
-        data: batch.map((item) => ({
-          deploymentId: this.deploymentId,
-          line: item.line,
-          stream: item.stream,
-          sequence: item.sequence,
-          timestamp: item.timestamp,
-        })),
-      });
-    } catch (err) {
-      // Put the unpersisted batch back at the front of the queue
-      this.queue.unshift(...batch);
-      throw err;
-    } finally {
-      this.isFlushing = false;
+    if (this.inFlight) {
+      await this.inFlight;
+      return;
     }
+    if (this.queue.length === 0) return;
+
+    const batch = this.queue.splice(0, 50);
+    this.inFlight = (async () => {
+      try {
+        await prisma.buildLog.createMany({
+          data: batch.map((item) => ({
+            deploymentId: this.deploymentId,
+            line: item.line,
+            stream: item.stream,
+            sequence: item.sequence,
+            timestamp: item.timestamp,
+          })),
+        });
+      } catch (err) {
+        // Put the unpersisted batch back at the front of the queue
+        this.queue.unshift(...batch);
+        throw err;
+      } finally {
+        this.inFlight = null;
+      }
+    })();
+
+    await this.inFlight;
   }
 
   /**
-   * Flushes all remaining items in the queue.
+   * Flushes all remaining items in the queue and waits for in-flight writes to settle.
    */
   public async flushAll(): Promise<void> {
-    while (this.queue.length > 0) {
+    while (this.queue.length > 0 || this.inFlight !== null) {
       await this.flush();
     }
   }
