@@ -8,6 +8,7 @@ import {
   KeyRound,
   ArrowUpRight
 } from 'lucide-react';
+import { useTheme } from '../../context/ThemeContext';
 
 const TECH_STACK = [
   { name: 'React', label: 'React' },
@@ -107,10 +108,10 @@ function GlassFeatureCard({
           : 'transform 0.4s ease-out, background-color 0.3s ease, border-color 0.3s ease, box-shadow 0.3s ease',
         animationDelay: `${index * 80}ms`
       }}
-      className="group relative backdrop-blur-xl bg-white/40 hover:bg-white/60 border border-white/60 hover:border-white/90 rounded-3xl p-6 sm:p-7 shadow-lg shadow-sky-900/5 hover:shadow-xl hover:shadow-blue-600/10 transition-all duration-300 flex flex-col justify-between overflow-hidden cursor-pointer animate-fade-in-up"
+      className="group relative backdrop-blur-xl bg-white/40 hover:bg-white/60 dark:bg-[#16191f]/80 dark:hover:bg-[#1e222b]/90 border border-white/60 hover:border-white/90 dark:border-[#282d37] dark:hover:border-[#374151] rounded-3xl p-6 sm:p-7 shadow-lg shadow-sky-900/5 dark:shadow-black/30 hover:shadow-xl hover:shadow-blue-600/10 transition-all duration-300 flex flex-col justify-between overflow-hidden cursor-pointer animate-fade-in-up"
     >
       {/* Light Reflection Glow Overlay */}
-      <div className="absolute -top-20 -left-20 w-40 h-40 bg-white/40 blur-xl rounded-full pointer-events-none group-hover:translate-x-10 group-hover:translate-y-10 transition-transform duration-700 ease-out" />
+      <div className="absolute -top-20 -left-20 w-40 h-40 bg-white/40 dark:bg-white/5 blur-xl rounded-full pointer-events-none group-hover:translate-x-10 group-hover:translate-y-10 transition-transform duration-700 ease-out" />
 
       {/* Subtle Top Border Glow */}
       <div className="absolute top-0 left-0 right-0 h-[1.5px] bg-gradient-to-r from-transparent via-blue-400/40 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
@@ -118,21 +119,21 @@ function GlassFeatureCard({
       <div className="space-y-5 relative z-10">
         {/* Card Header: Icon & Tag */}
         <div className="flex items-center justify-between">
-          <div className="w-11 h-11 rounded-2xl bg-white/70 border border-white/80 shadow-xs flex items-center justify-center text-blue-600 group-hover:text-blue-700 group-hover:bg-blue-600/10 group-hover:scale-105 transition-all duration-300">
+          <div className="w-11 h-11 rounded-2xl bg-white/70 dark:bg-[#1e222b] border border-white/80 dark:border-[#282d37] shadow-xs flex items-center justify-center text-blue-600 dark:text-blue-400 group-hover:text-blue-700 dark:group-hover:text-blue-300 group-hover:scale-105 transition-all duration-300">
             <Icon className="w-5 h-5 transition-transform duration-300 group-hover:-translate-y-0.5" />
           </div>
-          <span className="text-[11px] font-mono font-semibold text-slate-700 bg-white/50 border border-white/70 px-3 py-1 rounded-full group-hover:text-blue-950 group-hover:bg-white/80 transition-colors shadow-2xs">
+          <span className="text-[11px] font-mono font-semibold text-slate-700 dark:text-slate-300 bg-white/50 dark:bg-[#1e222b]/80 border border-white/70 dark:border-[#282d37] px-3 py-1 rounded-full group-hover:text-blue-950 dark:group-hover:text-white transition-colors shadow-2xs">
             {feature.tag}
           </span>
         </div>
 
         {/* Card Title & Description */}
         <div className="space-y-2 text-left">
-          <h3 className="text-lg font-bold text-slate-900 group-hover:text-blue-600 transition-colors flex items-center justify-between">
+          <h3 className="text-lg font-bold text-slate-900 dark:text-white group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors flex items-center justify-between">
             <span>{feature.title}</span>
-            <ArrowUpRight className="w-4 h-4 text-slate-400 opacity-0 group-hover:opacity-100 group-hover:text-blue-600 transition-all duration-300 -translate-x-1 group-hover:translate-x-0" />
+            <ArrowUpRight className="w-4 h-4 text-slate-400 opacity-0 group-hover:opacity-100 group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-all duration-300 -translate-x-1 group-hover:translate-x-0" />
           </h3>
-          <p className="text-sm text-slate-600 leading-relaxed font-normal">
+          <p className="text-sm text-slate-600 dark:text-slate-300 leading-relaxed font-normal">
             {feature.description}
           </p>
         </div>
@@ -142,6 +143,7 @@ function GlassFeatureCard({
 }
 
 export default function Features() {
+  const { theme } = useTheme();
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
 
   // Seamless Cloud Ocean Extension Canvas Animation
@@ -184,15 +186,22 @@ export default function Features() {
     }));
 
     const speed = 0.0006;
+    const isDark = theme === 'dark';
 
     const render = () => {
       ctx.clearRect(0, 0, width, height);
 
       // Continuous Aerial Sky Gradient
       const skyGrad = ctx.createLinearGradient(0, 0, 0, height);
-      skyGrad.addColorStop(0, '#e0f2fe'); // Soft horizon transition from Hero
-      skyGrad.addColorStop(0.5, '#bae6fd'); // Light sky blue
-      skyGrad.addColorStop(1, '#f0f9ff'); // Very soft sky bottom
+      if (isDark) {
+        skyGrad.addColorStop(0, '#0d0f12');
+        skyGrad.addColorStop(0.5, '#14171d');
+        skyGrad.addColorStop(1, '#0d0f12');
+      } else {
+        skyGrad.addColorStop(0, '#e0f2fe'); // Soft horizon transition from Hero
+        skyGrad.addColorStop(0.5, '#bae6fd'); // Light sky blue
+        skyGrad.addColorStop(1, '#f0f9ff'); // Very soft sky bottom
+      }
       ctx.fillStyle = skyGrad;
       ctx.fillRect(0, 0, width, height);
 
@@ -221,9 +230,15 @@ export default function Features() {
           currentRadius
         );
 
-        cloudGlow.addColorStop(0, `rgba(255, 255, 255, ${currentOpacity})`);
-        cloudGlow.addColorStop(0.6, `rgba(241, 245, 249, ${currentOpacity * 0.8})`);
-        cloudGlow.addColorStop(1, 'rgba(203, 213, 225, 0)');
+        if (isDark) {
+          cloudGlow.addColorStop(0, `rgba(191, 196, 207, ${currentOpacity * 0.45})`);
+          cloudGlow.addColorStop(0.6, `rgba(35, 39, 48, ${currentOpacity * 0.3})`);
+          cloudGlow.addColorStop(1, 'rgba(13, 15, 18, 0)');
+        } else {
+          cloudGlow.addColorStop(0, `rgba(255, 255, 255, ${currentOpacity})`);
+          cloudGlow.addColorStop(0.6, `rgba(241, 245, 249, ${currentOpacity * 0.8})`);
+          cloudGlow.addColorStop(1, 'rgba(203, 213, 225, 0)');
+        }
 
         ctx.beginPath();
         ctx.fillStyle = cloudGlow;
@@ -244,10 +259,10 @@ export default function Features() {
       }
       window.removeEventListener('resize', handleResize);
     };
-  }, []);
+  }, [theme]);
 
   return (
-    <section id="features" className="py-28 relative overflow-hidden text-slate-900 selection:bg-sky-200">
+    <section id="features" className="py-28 relative overflow-hidden text-slate-900 dark:text-white selection:bg-sky-200">
       
       {/* Dynamic Canvas Continuing the Sky & Cloud Ocean Environment */}
       <canvas
@@ -260,14 +275,14 @@ export default function Features() {
         
         {/* Trusted Ecosystems Banner */}
         <div className="space-y-6 text-center">
-          <p className="text-[11px] font-mono font-bold text-blue-950/60 uppercase tracking-widest">
+          <p className="text-[11px] font-mono font-bold text-blue-950/60 dark:text-blue-300/80 uppercase tracking-widest">
             Trusted & Supported Ecosystems
           </p>
           <div className="flex flex-wrap items-center justify-center gap-4 sm:gap-6 md:gap-8 opacity-90">
             {TECH_STACK.map((tech) => (
               <div 
                 key={tech.name} 
-                className="flex items-center gap-2 backdrop-blur-md bg-white/40 border border-white/60 px-4 py-1.5 rounded-full text-slate-700 hover:text-blue-600 hover:bg-white/70 hover:border-white transition-all duration-200 text-xs font-semibold shadow-2xs cursor-default"
+                className="flex items-center gap-2 backdrop-blur-md bg-white/40 dark:bg-[#16191f]/80 border border-white/60 dark:border-[#282d37] px-4 py-1.5 rounded-full text-slate-700 dark:text-slate-300 hover:text-blue-600 dark:hover:text-blue-400 hover:bg-white/70 dark:hover:bg-[#1e222b] hover:border-white dark:hover:border-[#374151] transition-all duration-200 text-xs font-semibold shadow-2xs cursor-default"
               >
                 <span className="w-1.5 h-1.5 rounded-full bg-blue-500 shadow-xs" />
                 <span>{tech.label}</span>
@@ -279,21 +294,21 @@ export default function Features() {
         {/* Section Heading */}
         <div className="space-y-16">
           <div className="text-center max-w-2xl mx-auto space-y-4">
-            <div className="inline-flex items-center gap-2 backdrop-blur-md bg-white/50 border border-white/80 rounded-full px-4 py-1 text-xs text-blue-900 font-bold shadow-xs">
-              <span className="w-2 h-2 rounded-full bg-blue-600 animate-pulse" />
+            <div className="inline-flex items-center gap-2 backdrop-blur-md bg-white/50 dark:bg-[#16191f]/90 border border-white/80 dark:border-[#282d37] rounded-full px-4 py-1 text-xs text-blue-900 dark:text-blue-300 font-bold shadow-xs">
+              <span className="w-2 h-2 rounded-full bg-blue-600 dark:bg-blue-400 animate-pulse" />
               <span>Platform Capabilities</span>
             </div>
             
-            <h2 className="text-4xl sm:text-5xl font-extrabold text-slate-900 tracking-tight leading-tight">
+            <h2 className="text-4xl sm:text-5xl font-extrabold text-slate-900 dark:text-white tracking-tight leading-tight">
               Everything You Need to Deploy Better
             </h2>
             
-            <p className="text-slate-600 text-base sm:text-lg leading-relaxed">
+            <p className="text-slate-600 dark:text-slate-300 text-base sm:text-lg leading-relaxed">
               Designed for modern development workflows. High-performance infrastructure without the ops complexity.
             </p>
           </div>
 
-          {/* 3-Column Light Glass Feature Card Grid */}
+          {/* 3-Column Light/Dark Glass Feature Card Grid */}
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 lg:gap-8">
             {FEATURES.map((feature, idx) => (
               <GlassFeatureCard 

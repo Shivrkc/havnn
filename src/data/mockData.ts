@@ -18,7 +18,7 @@ export const FEATURES = [
   {
     icon: 'Zap',
     title: 'Global Edge Network',
-    description: 'Deploy assets to over 100 global edge locations. Users experience ultra-low latency requests powered by CloudForge Edge.',
+    description: 'Deploy assets to over 100 global edge locations. Users experience ultra-low latency requests powered by HAVN Edge.',
     badge: 'Speed'
   },
   {
@@ -103,11 +103,11 @@ export const PRICING_PLANS = [
 
 export const FAQ_ITEMS = [
   {
-    question: 'How does CloudForge connect to my GitHub account?',
-    answer: 'CloudForge uses the official GitHub OAuth and App integrations. When you authorize CloudForge, you can choose to grant access to either all of your repositories or specifically selected ones. We never read or store your personal raw credentials.'
+    question: 'How does HAVN connect to my GitHub account?',
+    answer: 'HAVN uses the official GitHub OAuth and App integrations. When you authorize HAVN, you can choose to grant access to either all of your repositories or specifically selected ones. We never read or store your personal raw credentials.'
   },
   {
-    question: 'What frameworks does CloudForge support out-of-the-box?',
+    question: 'What frameworks does HAVN support out-of-the-box?',
     answer: 'We support all major frontend and full-stack frameworks including Vite, React, Next.js, Remix, Astro, SvelteKit, Vue, and Angular, as well as backend runtimes like Node.js, Go, Rust, Python (FastAPI), and Bun.'
   },
   {
@@ -119,7 +119,7 @@ export const FAQ_ITEMS = [
     answer: 'We do not hard-block your projects immediately. For Hobby accounts, we will send warning notifications. For Pro accounts, extra bandwidth is charged transparently at $0.15 per GB, or you can scale up your tier.'
   },
   {
-    question: 'Does CloudForge support monorepos?',
+    question: 'Does HAVN support monorepos?',
     answer: 'Absolutely. During project setup, you can define custom root directories, build overrides, and output paths, making it simple to manage NX, Turbo, or Lerna monorepos.'
   },
   {
@@ -143,8 +143,9 @@ export const MOCK_PROJECTS: Project[] = [
     name: 'nexus-analytics-dashboard',
     repo: 'dev-master/nexus-analytics',
     owner: 'dev-master',
+    branch: 'main',
     status: 'ready',
-    url: 'https://nexus-analytics.cloudforge.app',
+    url: 'https://nexus-analytics.havn.app',
     updatedAt: '12 minutes ago',
     deploymentsCount: 24
   },
@@ -153,8 +154,9 @@ export const MOCK_PROJECTS: Project[] = [
     name: 'ecommerce-payment-service',
     repo: 'dev-master/stripe-checkout-node',
     owner: 'dev-master',
+    branch: 'main',
     status: 'ready',
-    url: 'https://payments.cloudforge.app',
+    url: 'https://payments.havn.app',
     updatedAt: '2 hours ago',
     deploymentsCount: 42
   },
@@ -163,8 +165,9 @@ export const MOCK_PROJECTS: Project[] = [
     name: 'ai-storyteller-client',
     repo: 'dev-master/ai-image-generator',
     owner: 'dev-master',
+    branch: 'main',
     status: 'building',
-    url: 'https://storyteller.cloudforge.app',
+    url: 'https://storyteller.havn.app',
     updatedAt: 'Just now',
     deploymentsCount: 8
   }
@@ -173,47 +176,56 @@ export const MOCK_PROJECTS: Project[] = [
 export const MOCK_DEPLOYMENTS: Deployment[] = [
   {
     id: 'd1',
+    projectId: 'p1',
     projectName: 'nexus-analytics-dashboard',
     status: 'ready',
     branch: 'main',
     commitMsg: 'feat: add realtime retention cohort charts',
     commitHash: '7f9a2d4',
     deployedAt: '12 mins ago',
-    url: 'https://nexus-analytics-7f9a2d4.cloudforge.app',
-    environment: 'production'
+    url: 'https://nexus-analytics-7f9a2d4.havn.app',
+    environment: 'production',
+    durationMs: 72000
   },
   {
     id: 'd2',
+    projectId: 'p1',
     projectName: 'nexus-analytics-dashboard',
     status: 'ready',
-    branch: 'main',
-    commitMsg: 'refactor: memoize heavy canvas grid elements',
+    branch: 'staging',
+    commitMsg: 'Update Prometheus alerting thresholds',
     commitHash: 'c42d90a',
-    deployedAt: 'Yesterday',
-    url: 'https://nexus-analytics-c42d90a.cloudforge.app',
-    environment: 'preview'
+    commitAuthor: 'Sarah Chen',
+    deployedAt: '4 hours ago',
+    url: 'https://nexus-analytics-c42d90a.havn.app',
+    environment: 'preview',
+    durationMs: 54000
   },
   {
     id: 'd3',
+    projectId: 'p2',
     projectName: 'ecommerce-payment-service',
     status: 'ready',
     branch: 'main',
     commitMsg: 'fix: validate stripe webhook secure signature headers',
     commitHash: 'e182bd5',
     deployedAt: '2 hours ago',
-    url: 'https://payments-e182bd5.cloudforge.app',
-    environment: 'production'
+    url: 'https://payments-e182bd5.havn.app',
+    environment: 'production',
+    durationMs: 124000
   },
   {
     id: 'd4',
+    projectId: 'p3',
     projectName: 'ai-storyteller-client',
     status: 'building',
     branch: 'main',
     commitMsg: 'chore: configure deep gemini integration logic',
     commitHash: '9a0bf21',
     deployedAt: 'Just now',
-    url: 'https://storyteller-9a0bf21.cloudforge.app',
-    environment: 'production'
+    url: 'https://storyteller-9a0bf21.havn.app',
+    environment: 'preview',
+    durationMs: 42000
   }
 ];
 

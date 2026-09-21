@@ -1,8 +1,9 @@
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { Mail, KeyRound, CheckCircle2, AlertCircle, ArrowLeft } from "lucide-react";
 import { ROUTES } from "../constants/routes";
 import { forgotPassword } from "../services/auth.service";
+import { useCanvasSky } from "../utils/useCanvasSky";
 
 export default function ForgotPassword() {
   const navigate = useNavigate();
@@ -13,118 +14,8 @@ export default function ForgotPassword() {
   const [message, setMessage] = useState("");
   const [error, setError] = useState("");
 
-  // High-Altitude Blue Sky & Realistic Horizontal Drifting Cloud Canvas
-  useEffect(() => {
-    const canvas = canvasRef.current;
-    if (!canvas) return;
-    const ctx = canvas.getContext("2d");
-    if (!ctx) return;
-
-    let animationFrameId: number;
-    let width = (canvas.width = window.innerWidth);
-    let height = (canvas.height = window.innerHeight);
-
-    const handleResize = () => {
-      if (!canvas) return;
-      width = canvas.width = window.innerWidth;
-      height = canvas.height = window.innerHeight;
-    };
-    window.addEventListener("resize", handleResize);
-
-    // Realistic Cloud Formations
-    const cloudCount = 38;
-    interface CloudPuff {
-      x: number;
-      y: number;
-      z: number;
-      radius: number;
-      opacity: number;
-      driftSpeed: number;
-    }
-
-    const clouds: CloudPuff[] = Array.from({ length: cloudCount }, () => ({
-      x: Math.random() * width,
-      y: height * 0.12 + Math.random() * (height * 0.78),
-      z: Math.random(),
-      radius: 130 + Math.random() * 210,
-      opacity: 0.35 + Math.random() * 0.4,
-      driftSpeed: 0.18 + Math.random() * 0.32,
-    }));
-
-    const render = () => {
-      ctx.clearRect(0, 0, width, height);
-
-      // Deep Rich High-Altitude Sky Blue Atmospheric Gradient
-      const skyGrad = ctx.createLinearGradient(0, 0, 0, height);
-      skyGrad.addColorStop(0, "#0284c7");    // Deep Vibrant Sky Blue Top
-      skyGrad.addColorStop(0.30, "#38bdf8"); // Clear Mid Sky Blue
-      skyGrad.addColorStop(0.65, "#7dd3fc"); // Atmospheric Atmosphere Blue
-      skyGrad.addColorStop(0.88, "#bae6fd"); // Soft Horizon Sky Blue
-      skyGrad.addColorStop(1, "#e0f2fe");    // Natural Crisp Base
-      ctx.fillStyle = skyGrad;
-      ctx.fillRect(0, 0, width, height);
-
-      // Natural Sunlight Atmospheric Bloom
-      const sunGlow = ctx.createRadialGradient(
-        width * 0.5,
-        height * 0.15,
-        10,
-        width * 0.5,
-        height * 0.15,
-        width * 0.65
-      );
-      sunGlow.addColorStop(0, "rgba(255, 255, 255, 0.7)");
-      sunGlow.addColorStop(0.4, "rgba(224, 242, 254, 0.35)");
-      sunGlow.addColorStop(0.8, "rgba(125, 211, 252, 0.1)");
-      sunGlow.addColorStop(1, "rgba(255, 255, 255, 0)");
-      ctx.fillStyle = sunGlow;
-      ctx.fillRect(0, 0, width, height);
-
-      // Render Layered Volumetric White Clouds
-      clouds.sort((a, b) => a.z - b.z);
-
-      clouds.forEach((cloud) => {
-        // Continuous Horizontal Drift
-        cloud.x += cloud.driftSpeed * (0.6 + cloud.z * 0.4);
-        if (cloud.x - cloud.radius > width) {
-          cloud.x = -cloud.radius;
-          cloud.y = height * 0.12 + Math.random() * (height * 0.78);
-        }
-
-        const scale = 0.5 + cloud.z * 0.8;
-        const currentRadius = cloud.radius * scale;
-        const currentOpacity = cloud.opacity;
-
-        const cloudGlow = ctx.createRadialGradient(
-          cloud.x - currentRadius * 0.2,
-          cloud.y - currentRadius * 0.25,
-          currentRadius * 0.05,
-          cloud.x,
-          cloud.y,
-          currentRadius
-        );
-
-        cloudGlow.addColorStop(0, `rgba(255, 255, 255, ${currentOpacity * 0.95})`);
-        cloudGlow.addColorStop(0.5, `rgba(248, 250, 252, ${currentOpacity * 0.8})`);
-        cloudGlow.addColorStop(0.85, `rgba(226, 232, 240, ${currentOpacity * 0.25})`);
-        cloudGlow.addColorStop(1, "rgba(203, 213, 225, 0)");
-
-        ctx.beginPath();
-        ctx.fillStyle = cloudGlow;
-        ctx.arc(cloud.x, cloud.y, currentRadius, 0, Math.PI * 2);
-        ctx.fill();
-      });
-
-      animationFrameId = requestAnimationFrame(render);
-    };
-
-    render();
-
-    return () => {
-      cancelAnimationFrame(animationFrameId);
-      window.removeEventListener("resize", handleResize);
-    };
-  }, []);
+  // Dynamic Theme-Aware 2D Canvas Atmosphere
+  useCanvasSky(canvasRef);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -148,8 +39,8 @@ export default function ForgotPassword() {
       );
     } catch (err: any) {
       setError(
-        err?.response?.data?.message ||
-          "Unable to process your request. Please try again."
+        err.response?.data?.message ||
+          "Failed to process request. Please try again."
       );
     } finally {
       setLoading(false);
@@ -157,55 +48,58 @@ export default function ForgotPassword() {
   };
 
   return (
-    <main className="min-h-screen flex flex-col justify-between relative overflow-x-hidden font-sans selection:bg-sky-200 pt-20">
+    <main className="min-h-screen flex flex-col justify-between relative overflow-x-hidden font-sans selection:bg-blue-600/30 selection:text-white pt-20">
       {/* Background Animated Sky Canvas */}
       <canvas
         ref={canvasRef}
+        aria-hidden="true"
         className="fixed inset-0 w-full h-full pointer-events-none z-0"
       />
 
       {/* Main Floating Translucent Glass Interface */}
       <div className="flex-1 flex items-center justify-center py-10 px-4 sm:px-6 lg:px-8 relative z-20">
-        <div className="max-w-md w-full backdrop-blur-2xl bg-white/60 hover:bg-white/65 border border-white/90 rounded-3xl p-6 sm:p-8 shadow-2xl shadow-sky-950/20 relative transition-all duration-300 animate-fade-in-up">
+        <div className="max-w-md w-full backdrop-blur-2xl bg-white/60 hover:bg-white/65 dark:bg-[#16191f]/85 dark:hover:bg-[#16191f]/90 border border-white/90 dark:border-[#282d37] rounded-3xl p-6 sm:p-8 shadow-2xl shadow-sky-950/20 dark:shadow-black/60 relative transition-all duration-300 animate-fade-in-up">
           
           <div className="space-y-6">
             <div className="space-y-2">
-              <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-blue-100/90 border border-blue-200 text-blue-900 text-[11px] font-bold shadow-2xs">
-                <KeyRound className="w-3.5 h-3.5 text-blue-600" />
+              <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-blue-100/90 dark:bg-blue-950/60 border border-blue-200 dark:border-blue-800/80 text-blue-900 dark:text-blue-300 text-[11px] font-bold shadow-2xs">
+                <KeyRound className="w-3.5 h-3.5 text-blue-600 dark:text-blue-400" />
                 ACCOUNT RECOVERY
               </div>
-              <h2 className="text-2xl sm:text-3xl font-sans font-extrabold text-slate-900 tracking-tight">Forgot password?</h2>
-              <p className="text-xs text-slate-700 font-sans font-semibold leading-relaxed">
+              <h2 className="text-2xl sm:text-3xl font-sans font-extrabold text-slate-900 dark:text-[#f1f3f5] tracking-tight">Forgot password?</h2>
+              <p className="text-xs text-slate-700 dark:text-slate-400 font-sans font-semibold leading-relaxed">
                 Enter your email address and we'll send you instructions to reset your password.
               </p>
             </div>
 
             {error && (
-              <div role="alert" className="p-3 bg-red-500/10 border border-red-300/80 rounded-xl text-xs text-red-800 font-semibold flex items-center gap-2 backdrop-blur-sm animate-shake">
-                <AlertCircle className="w-4 h-4 shrink-0 text-red-600" />
+              <div role="alert" className="p-3 bg-red-500/10 dark:bg-red-950/40 border border-red-300/80 dark:border-red-800/80 rounded-xl text-xs text-red-800 dark:text-red-300 font-semibold flex items-center gap-2 backdrop-blur-sm animate-shake">
+                <AlertCircle className="w-4 h-4 shrink-0 text-red-600 dark:text-red-400" />
                 <span>{error}</span>
               </div>
             )}
 
             {message && (
-              <div role="status" aria-live="polite" className="p-3 bg-emerald-500/10 border border-emerald-300/80 rounded-xl text-xs text-emerald-900 font-semibold flex items-center gap-2 backdrop-blur-sm">
-                <CheckCircle2 className="w-4 h-4 shrink-0 text-emerald-600" />
+              <div role="status" aria-live="polite" className="p-3 bg-emerald-500/10 dark:bg-emerald-950/40 border border-emerald-300/80 dark:border-emerald-800/80 rounded-xl text-xs text-emerald-900 dark:text-emerald-300 font-semibold flex items-center gap-2 backdrop-blur-sm">
+                <CheckCircle2 className="w-4 h-4 shrink-0 text-emerald-600 dark:text-emerald-400" />
                 <span>{message}</span>
               </div>
             )}
 
-            <form onSubmit={handleSubmit} className="space-y-4">
+            <form onSubmit={handleSubmit} className="space-y-4" autoComplete="off">
               <div className="space-y-1.5">
-                <label className="text-[11px] font-bold text-slate-800 uppercase tracking-wider block">Email address</label>
+                <label className="text-[11px] font-bold text-slate-800 dark:text-slate-300 uppercase tracking-wider block">Email address</label>
                 <div className="relative">
-                  <Mail className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+                  <Mail className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 dark:text-slate-500" />
                   <input
                     type="email"
+                    name="email"
+                    autoComplete="off"
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
-                    placeholder="name@company.com"
+                    placeholder="you@example.com"
                     required
-                    className="w-full pl-10 pr-4 py-2.5 bg-white/75 focus:bg-white border border-white/90 focus:border-blue-500 rounded-xl text-xs text-slate-900 placeholder:text-slate-400 outline-none transition-all duration-200 shadow-2xs focus:ring-2 focus:ring-blue-500/20 font-semibold"
+                    className="w-full pl-10 pr-4 py-2.5 bg-white/75 dark:bg-[#12151a] focus:bg-white dark:focus:bg-[#16191f] border border-white/90 dark:border-[#282d37] focus:border-blue-500 dark:focus:border-blue-500 rounded-xl text-xs text-slate-900 dark:text-[#f1f3f5] placeholder:text-slate-400 dark:placeholder:text-slate-500 outline-none transition-all duration-200 shadow-2xs focus:ring-2 focus:ring-blue-500/20 font-semibold"
                   />
                 </div>
               </div>
@@ -213,7 +107,7 @@ export default function ForgotPassword() {
               <button
                 type="submit"
                 disabled={loading}
-                className="w-full bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 disabled:opacity-70 text-white font-bold text-xs py-3 rounded-xl flex items-center justify-center gap-2 shadow-lg shadow-blue-600/30 hover:shadow-xl hover:shadow-blue-600/40 transition-all active:scale-[0.98] mt-2 cursor-pointer"
+                className="w-full bg-blue-600 hover:bg-blue-500 dark:bg-blue-600 dark:hover:bg-blue-500 disabled:opacity-70 text-white font-bold text-xs py-3 rounded-xl flex items-center justify-center gap-2 shadow-lg shadow-blue-600/30 hover:shadow-xl hover:shadow-blue-600/40 transition-all active:scale-[0.98] mt-2 cursor-pointer"
               >
                 {loading ? (
                   <span className="inline-flex items-center gap-2">
@@ -229,11 +123,11 @@ export default function ForgotPassword() {
               </button>
             </form>
 
-            <div className="pt-2 text-center border-t border-slate-200/80">
+            <div className="pt-2 text-center border-t border-slate-200/80 dark:border-[#282d37]">
               <button
                 type="button"
                 onClick={() => navigate(ROUTES.LOGIN)}
-                className="inline-flex items-center gap-1.5 text-xs font-bold text-blue-600 hover:text-blue-700 hover:underline cursor-pointer"
+                className="inline-flex items-center gap-1.5 text-xs font-bold text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 hover:underline cursor-pointer"
               >
                 <ArrowLeft className="w-3.5 h-3.5" />
                 Back to Login
@@ -245,7 +139,7 @@ export default function ForgotPassword() {
       </div>
 
       {/* Minimal Footer */}
-      <footer className="relative z-20 py-4 text-center text-xs text-slate-800 font-bold">
+      <footer className="relative z-20 py-4 text-center text-xs text-slate-800 dark:text-slate-400 font-bold">
         © {new Date().getFullYear()} HAVN Inc. All rights reserved.
       </footer>
 

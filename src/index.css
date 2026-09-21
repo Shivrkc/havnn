@@ -1,6 +1,8 @@
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;700&display=swap');
 @import "tailwindcss";
 
+@custom-variant dark (&:where(.dark, .dark *));
+
 @theme {
   --font-sans: "Inter", ui-sans-serif, system-ui, -apple-system, sans-serif;
   --font-mono: "JetBrains Mono", ui-monospace, SFMono-Regular, monospace;
@@ -11,14 +13,89 @@
   --color-brand-dark: #030303;
   --color-brand-card: #0d0d0d;
   --color-brand-border: rgba(255, 255, 255, 0.08);
+
+  --color-app-bg: var(--color-background);
+  --color-app-fg: var(--color-foreground);
+  --color-app-surface: var(--color-surface);
+  --color-app-surface-elevated: var(--color-surface-elevated);
+  --color-app-border: var(--color-border);
+  --color-app-muted: var(--color-muted);
+  --color-app-accent: var(--color-accent);
+  --color-app-accent-fg: var(--color-accent-foreground);
+  --color-app-input: var(--color-input);
+  --color-app-card: var(--color-card);
+  --color-app-card-border: var(--color-card-border);
+  --color-app-navbar: var(--color-navbar);
+}
+
+/* Light theme default design tokens */
+:root {
+  color-scheme: light;
+  --color-background: #f8fafc;
+  --color-foreground: #0f172a;
+  --color-surface: rgba(255, 255, 255, 0.85);
+  --color-surface-elevated: #ffffff;
+  --color-surface-hover: #f1f5f9;
+  --color-border: #e2e8f0;
+  --color-border-subtle: #f1f5f9;
+  --color-muted: #64748b;
+  --color-accent: #2563eb;
+  --color-accent-hover: #1d4ed8;
+  --color-accent-foreground: #ffffff;
+  --color-input: #ffffff;
+  --color-card: #ffffff;
+  --color-card-border: #e2e8f0;
+  --color-card-hover: #f8fafc;
+  --color-navbar: rgba(248, 250, 252, 0.8);
+  --color-navbar-scrolled: rgba(255, 255, 255, 0.95);
+  --color-navbar-border: #e2e8f0;
+  --color-navbar-text: #0f172a;
+  --color-scrollbar-track: #e2e8f0;
+  --color-scrollbar-thumb: #94a3b8;
+  --color-scrollbar-thumb-hover: #64748b;
+}
+
+/* Dark theme design tokens - Sophisticated Graphite & Charcoal Foundation */
+[data-theme="dark"],
+:root.dark {
+  color-scheme: dark;
+  --color-background: #0d0f12;
+  --color-foreground: #f1f3f5;
+  --color-surface: #16191f;
+  --color-surface-elevated: #1e222b;
+  --color-surface-hover: #252a35;
+  --color-border: #282d37;
+  --color-border-subtle: rgba(255, 255, 255, 0.05);
+  --color-muted: #9ca3af;
+  --color-accent: #3b82f6;
+  --color-accent-hover: #2563eb;
+  --color-accent-foreground: #ffffff;
+  --color-input: #12151a;
+  --color-card: #16191f;
+  --color-card-border: #282d37;
+  --color-card-hover: #1e222b;
+  --color-navbar: rgba(22, 25, 31, 0.75);
+  --color-navbar-scrolled: rgba(13, 15, 18, 0.92);
+  --color-navbar-border: #282d37;
+  --color-navbar-text: #f1f3f5;
+  --color-scrollbar-track: #0d0f12;
+  --color-scrollbar-thumb: #282d37;
+  --color-scrollbar-thumb-hover: #374151;
 }
 
 /* Base resets & styling */
 body {
   font-family: var(--font-sans);
-  background-color: var(--color-brand-dark);
-  color: #f4f4f5;
+  background-color: var(--color-background);
+  color: var(--color-foreground);
   overflow-x: hidden;
+  transition: background-color 0.3s ease, color 0.3s ease;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  body {
+    transition: none !important;
+  }
 }
 
 /* Custom Scrollbar */
@@ -28,16 +105,16 @@ body {
 }
 
 ::-webkit-scrollbar-track {
-  background: #09090b;
+  background: var(--color-scrollbar-track);
 }
 
 ::-webkit-scrollbar-thumb {
-  background: #27272a;
+  background: var(--color-scrollbar-thumb);
   border-radius: 4px;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: #3f3f46;
+  background: var(--color-scrollbar-thumb-hover);
 }
 
 /* Interactive & visual accents */
@@ -49,25 +126,25 @@ body {
 }
 
 .glow-blue {
-  box-shadow: 0 0 50px -12px rgba(37, 99, 235, 0.2);
+  box-shadow: 0 0 40px -12px rgba(59, 130, 246, 0.15);
 }
 
-.glow-purple {
-  box-shadow: 0 0 50px -12px rgba(139, 92, 246, 0.2);
+.glow-subtle {
+  box-shadow: 0 0 30px -10px rgba(0, 0, 0, 0.3);
 }
 
 .glass {
-  background: rgba(18, 18, 20, 0.7);
+  background: var(--color-surface);
   backdrop-filter: blur(12px);
   -webkit-backdrop-filter: blur(12px);
-  border: 1px solid rgba(255, 255, 255, 0.06);
+  border: 1px solid var(--color-border);
 }
 
 .glass-header {
-  background: rgba(9, 9, 11, 0.8);
+  background: var(--color-navbar);
   backdrop-filter: blur(12px);
   -webkit-backdrop-filter: blur(12px);
-  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+  border-bottom: 1px solid var(--color-border);
 }
 
 @keyframes pulse-slow {

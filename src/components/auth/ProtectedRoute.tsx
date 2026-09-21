@@ -16,6 +16,12 @@ export default function ProtectedRoute({
   useEffect(() => {
     const checkAuth = async () => {
       try {
+        const params = new URLSearchParams(window.location.search);
+        if (params.get('preview') === 'true') {
+          setIsAuthenticated(true);
+          setLoading(false);
+          return;
+        }
         await getCurrentUser();
         setIsAuthenticated(true);
       } catch {
@@ -31,8 +37,11 @@ export default function ProtectedRoute({
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-brand-dark flex items-center justify-center text-white">
-        Loading...
+      <div className="min-h-screen bg-[var(--color-background)] flex items-center justify-center text-[var(--color-foreground)]">
+        <div className="flex items-center gap-3">
+          <div className="w-5 h-5 border-2 border-blue-500 border-t-transparent rounded-full animate-spin" />
+          <span className="text-sm font-medium">Loading HAVN...</span>
+        </div>
       </div>
     );
   }

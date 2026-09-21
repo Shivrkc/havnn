@@ -1,8 +1,10 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { HelpCircle, ChevronDown } from 'lucide-react';
 import { FAQ_ITEMS } from '../../data/mockData';
+import { useTheme } from '../../context/ThemeContext';
 
 export default function Faq() {
+  const { theme } = useTheme();
   const [openIndex, setOpenIndex] = useState<number | null>(0);
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
 
@@ -58,15 +60,22 @@ export default function Faq() {
     }
 
     const speed = 0.0005;
+    const isDark = theme === 'dark';
 
     const render = () => {
       ctx.clearRect(0, 0, width, height);
 
       // Sky gradient continuation matching sky atmosphere
       const skyGrad = ctx.createLinearGradient(0, 0, 0, height);
-      skyGrad.addColorStop(0, '#e0f2fe'); // Top transition matching bottom of Pricing
-      skyGrad.addColorStop(0.5, '#bae6fd');
-      skyGrad.addColorStop(1, '#f0f9ff');
+      if (isDark) {
+        skyGrad.addColorStop(0, '#0d0f12');
+        skyGrad.addColorStop(0.5, '#14171d');
+        skyGrad.addColorStop(1, '#0d0f12');
+      } else {
+        skyGrad.addColorStop(0, '#e0f2fe'); // Top transition matching bottom of Pricing
+        skyGrad.addColorStop(0.5, '#bae6fd');
+        skyGrad.addColorStop(1, '#f0f9ff');
+      }
       ctx.fillStyle = skyGrad;
       ctx.fillRect(0, 0, width, height);
 
@@ -95,9 +104,15 @@ export default function Faq() {
           currentRadius
         );
 
-        cloudGlow.addColorStop(0, `rgba(255, 255, 255, ${currentOpacity})`);
-        cloudGlow.addColorStop(0.6, `rgba(241, 245, 249, ${currentOpacity * 0.8})`);
-        cloudGlow.addColorStop(1, 'rgba(203, 213, 225, 0)');
+        if (isDark) {
+          cloudGlow.addColorStop(0, `rgba(191, 196, 207, ${currentOpacity * 0.45})`);
+          cloudGlow.addColorStop(0.6, `rgba(35, 39, 48, ${currentOpacity * 0.3})`);
+          cloudGlow.addColorStop(1, 'rgba(13, 15, 18, 0)');
+        } else {
+          cloudGlow.addColorStop(0, `rgba(255, 255, 255, ${currentOpacity})`);
+          cloudGlow.addColorStop(0.6, `rgba(241, 245, 249, ${currentOpacity * 0.8})`);
+          cloudGlow.addColorStop(1, 'rgba(203, 213, 225, 0)');
+        }
 
         ctx.beginPath();
         ctx.fillStyle = cloudGlow;
@@ -121,10 +136,10 @@ export default function Faq() {
       }
       window.removeEventListener('resize', handleResize);
     };
-  }, []);
+  }, [theme]);
 
   return (
-    <section id="faq" className="py-28 relative overflow-hidden text-slate-900 selection:bg-sky-200">
+    <section id="faq" className="py-28 relative overflow-hidden text-slate-900 dark:text-white selection:bg-sky-200">
       
       {/* Background Canvas extending cloud environment */}
       <canvas
@@ -136,16 +151,16 @@ export default function Faq() {
         
         {/* Header Block */}
         <div className="text-center space-y-4 max-w-2xl mx-auto">
-          <div className="inline-flex items-center gap-2 backdrop-blur-md bg-white/50 border border-white/80 rounded-full px-4 py-1.5 text-xs text-blue-900 font-bold shadow-xs">
-            <HelpCircle className="w-3.5 h-3.5 text-blue-600" />
+          <div className="inline-flex items-center gap-2 backdrop-blur-md bg-white/50 dark:bg-slate-900/60 border border-white/80 dark:border-white/15 rounded-full px-4 py-1.5 text-xs text-blue-900 dark:text-blue-300 font-bold shadow-xs">
+            <HelpCircle className="w-3.5 h-3.5 text-blue-600 dark:text-blue-400" />
             <span>FAQ DATABASE</span>
           </div>
           
-          <h2 className="text-4xl sm:text-5xl font-extrabold text-slate-900 tracking-tight leading-tight">
+          <h2 className="text-4xl sm:text-5xl font-extrabold text-slate-900 dark:text-white tracking-tight leading-tight">
             Frequently Answered Concerns
           </h2>
           
-          <p className="text-slate-600 text-base sm:text-lg leading-relaxed font-normal">
+          <p className="text-slate-600 dark:text-slate-300 text-base sm:text-lg leading-relaxed font-normal">
             Everything you need to know about setting up integrations, automatic builds, bandwidth limitations, and high-performance serverless computations.
           </p>
         </div>
@@ -162,8 +177,8 @@ export default function Faq() {
                 key={index}
                 className={`rounded-2xl transition-all duration-300 border backdrop-blur-xl motion-safe:animate-fade-in-up ${
                   isOpen 
-                    ? 'bg-white/60 border-blue-500/50 shadow-xl shadow-blue-600/10' 
-                    : 'bg-white/40 hover:bg-white/60 border-white/60 hover:border-white/90 shadow-lg shadow-sky-900/5'
+                    ? 'bg-white/60 dark:bg-[#16191f]/90 border-blue-500/50 shadow-xl shadow-blue-600/10' 
+                    : 'bg-white/40 hover:bg-white/60 dark:bg-[#16191f]/80 dark:hover:bg-[#1e222b]/90 border border-white/60 hover:border-white/90 dark:border-[#282d37] dark:hover:border-[#374151] shadow-lg shadow-sky-900/5 dark:shadow-black/30'
                 }`}
                 style={{ animationDelay: `${index * 70}ms` }}
               >
@@ -177,14 +192,14 @@ export default function Faq() {
                     className="w-full px-6 py-5 flex items-center justify-between text-left cursor-pointer group transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-600 focus-visible:ring-offset-2 rounded-2xl"
                   >
                     <span className={`font-bold text-base sm:text-lg leading-snug transition-colors ${
-                      isOpen ? 'text-blue-600' : 'text-slate-900 group-hover:text-blue-700'
+                      isOpen ? 'text-blue-600 dark:text-blue-400' : 'text-slate-900 dark:text-white group-hover:text-blue-700 dark:group-hover:text-blue-300'
                     }`}>
                       {faq.question}
                     </span>
                     <span className={`ml-4 p-2 rounded-xl border flex-shrink-0 transition-all duration-300 ${
                       isOpen 
                         ? 'bg-blue-600 text-white border-blue-600 shadow-xs' 
-                        : 'bg-white/60 border-white/80 text-slate-500 group-hover:border-blue-200 group-hover:text-blue-600'
+                        : 'bg-white/60 dark:bg-[#1e222b] border-white/80 dark:border-[#282d37] text-slate-500 dark:text-slate-400 group-hover:border-blue-200 group-hover:text-blue-600 dark:group-hover:text-blue-400'
                     }`}>
                       <ChevronDown className={`w-4 h-4 transition-transform duration-300 ${isOpen ? 'rotate-180' : ''}`} />
                     </span>
@@ -203,7 +218,7 @@ export default function Faq() {
                   }`}
                 >
                   <div className="overflow-hidden">
-                    <p className="px-6 pb-6 pt-2 text-sm sm:text-base text-slate-600 leading-relaxed font-normal text-left border-t border-slate-200/50">
+                    <p className="px-6 pb-6 pt-2 text-sm sm:text-base text-slate-600 dark:text-slate-300 leading-relaxed font-normal text-left border-t border-slate-200/50 dark:border-[#282d37]">
                       {faq.answer}
                     </p>
                   </div>
@@ -215,16 +230,14 @@ export default function Faq() {
 
         {/* Developer Help Glass Banner */}
         <div className="text-center pt-2">
-          <div className="inline-block backdrop-blur-xl bg-white/40 border border-white/70 rounded-2xl px-6 py-4 shadow-lg shadow-sky-900/5">
-            <p className="text-xs sm:text-sm text-slate-700 font-medium">
+          <div className="inline-block backdrop-blur-xl bg-white/40 dark:bg-[#16191f]/80 border border-white/70 dark:border-[#282d37] rounded-2xl px-6 py-4 shadow-lg shadow-sky-900/5 dark:shadow-black/20">
+            <p className="text-xs sm:text-sm text-slate-700 dark:text-slate-300 font-medium">
               Have a technical query not listed in our database?{' '}
               <a
-                href="#docs"
-                onClick={(e) => {
-                  e.preventDefault();
-                  alert('Support channel is active in this mockup! Click Sign Up or Login to view active chat channels.');
-                }}
-                className="text-blue-600 hover:text-blue-700 font-bold underline underline-offset-4 decoration-blue-500/30 hover:decoration-blue-600 transition-colors"
+                href="https://github.com/Shivrkc/cloudforge"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-blue-600 hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300 font-bold underline underline-offset-4 decoration-blue-500/30 hover:decoration-blue-600 transition-colors"
               >
                 Reach out to our Core Developers
               </a>

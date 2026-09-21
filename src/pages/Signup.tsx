@@ -1,8 +1,9 @@
-import { useState, FormEvent, useEffect, useRef } from 'react';
+import { useState, FormEvent, useRef } from 'react';
 import { Mail, Lock, Eye, EyeOff, Github, Chrome, User, Rocket, Bot, BarChart3, ShieldCheck } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { ROUTES } from '../constants/routes';
 import { register, getOAuthUrl } from "../services/auth.service";
+import { useCanvasSky } from '../utils/useCanvasSky';
 
 export default function Signup() {
   const navigate = useNavigate();
@@ -18,128 +19,9 @@ export default function Signup() {
   const [isLoading, setIsLoading] = useState(false);
   const [registrationComplete, setRegistrationComplete] = useState(false);
 
-  // High-Altitude Blue Sky & Realistic Horizontal Drifting Cloud Canvas
-  useEffect(() => {
-    const canvas = canvasRef.current;
-    if (!canvas) return;
-    const ctx = canvas.getContext('2d');
-    if (!ctx) return;
+  // Dynamic Theme-Aware 2D Canvas Atmosphere
+  useCanvasSky(canvasRef);
 
-    let animationFrameId: number;
-    let width = (canvas.width = window.innerWidth);
-    let height = (canvas.height = window.innerHeight);
-    const reduceMotion = typeof window !== 'undefined' && window.matchMedia 
-      ? window.matchMedia('(prefers-reduced-motion: reduce)').matches 
-      : false;
-
-    const handleResize = () => {
-      if (!canvas) return;
-      width = canvas.width = window.innerWidth;
-      height = canvas.height = window.innerHeight;
-      if (reduceMotion) {
-        render();
-      }
-    };
-    window.addEventListener('resize', handleResize);
-
-    // Realistic Cloud Formations
-    const cloudCount = 38;
-    interface CloudPuff {
-      x: number;
-      y: number;
-      z: number;
-      radius: number;
-      opacity: number;
-      driftSpeed: number;
-    }
-
-    const clouds: CloudPuff[] = Array.from({ length: cloudCount }, () => ({
-      x: Math.random() * width,
-      y: height * 0.12 + Math.random() * (height * 0.78),
-      z: Math.random(),
-      radius: 130 + Math.random() * 210,
-      opacity: 0.35 + Math.random() * 0.4,
-      driftSpeed: 0.18 + Math.random() * 0.32,
-    }));
-
-    const render = () => {
-      ctx.clearRect(0, 0, width, height);
-
-      // Deep Rich High-Altitude Sky Blue Atmospheric Gradient
-      const skyGrad = ctx.createLinearGradient(0, 0, 0, height);
-      skyGrad.addColorStop(0, '#0284c7');    // Deep Vibrant Sky Blue Top
-      skyGrad.addColorStop(0.30, '#38bdf8'); // Clear Mid Sky Blue
-      skyGrad.addColorStop(0.65, '#7dd3fc'); // Atmospheric Atmosphere Blue
-      skyGrad.addColorStop(0.88, '#bae6fd'); // Soft Horizon Sky Blue
-      skyGrad.addColorStop(1, '#e0f2fe');    // Natural Crisp Base
-      ctx.fillStyle = skyGrad;
-      ctx.fillRect(0, 0, width, height);
-
-      // Natural Sunlight Atmospheric Bloom
-      const sunGlow = ctx.createRadialGradient(
-        width * 0.5,
-        height * 0.15,
-        10,
-        width * 0.5,
-        height * 0.15,
-        width * 0.65
-      );
-      sunGlow.addColorStop(0, 'rgba(255, 255, 255, 0.7)');
-      sunGlow.addColorStop(0.4, 'rgba(224, 242, 254, 0.35)');
-      sunGlow.addColorStop(0.8, 'rgba(125, 211, 252, 0.1)');
-      sunGlow.addColorStop(1, 'rgba(255, 255, 255, 0)');
-      ctx.fillStyle = sunGlow;
-      ctx.fillRect(0, 0, width, height);
-
-      // Render Layered Volumetric White Clouds
-      clouds.sort((a, b) => a.z - b.z);
-
-      clouds.forEach((cloud) => {
-        // Continuous Horizontal Drift
-        cloud.x += cloud.driftSpeed * (0.6 + cloud.z * 0.4);
-        if (cloud.x - cloud.radius > width) {
-          cloud.x = -cloud.radius;
-          cloud.y = height * 0.12 + Math.random() * (height * 0.78);
-        }
-
-        const scale = 0.5 + cloud.z * 0.8;
-        const currentRadius = cloud.radius * scale;
-        const currentOpacity = cloud.opacity;
-
-        const cloudGlow = ctx.createRadialGradient(
-          cloud.x - currentRadius * 0.2,
-          cloud.y - currentRadius * 0.25,
-          currentRadius * 0.05,
-          cloud.x,
-          cloud.y,
-          currentRadius
-        );
-
-        cloudGlow.addColorStop(0, `rgba(255, 255, 255, ${currentOpacity * 0.95})`);
-        cloudGlow.addColorStop(0.5, `rgba(248, 250, 252, ${currentOpacity * 0.8})`);
-        cloudGlow.addColorStop(0.85, `rgba(226, 232, 240, ${currentOpacity * 0.25})`);
-        cloudGlow.addColorStop(1, 'rgba(203, 213, 225, 0)');
-
-        ctx.beginPath();
-        ctx.fillStyle = cloudGlow;
-        ctx.arc(cloud.x, cloud.y, currentRadius, 0, Math.PI * 2);
-        ctx.fill();
-      });
-
-      if (!reduceMotion) {
-        animationFrameId = requestAnimationFrame(render);
-      }
-    };
-
-    render();
-
-    return () => {
-      if (animationFrameId) {
-        cancelAnimationFrame(animationFrameId);
-      }
-      window.removeEventListener('resize', handleResize);
-    };
-  }, [registrationComplete]);
 
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
@@ -208,26 +90,26 @@ export default function Signup() {
 
         {/* Success Message Card */}
         <div className="flex-1 flex items-center justify-center pt-24 sm:pt-28 pb-10 px-4 sm:px-6 lg:px-8 relative z-20">
-          <div className="max-w-md w-full backdrop-blur-2xl bg-white/60 hover:bg-white/65 border border-white/90 rounded-3xl p-6 sm:p-10 shadow-2xl shadow-sky-950/20 text-center relative transition-all duration-300 animate-fade-in-up space-y-6">
-            <div className="w-12 h-12 rounded-2xl bg-blue-100/90 border border-blue-200 flex items-center justify-center mx-auto text-blue-600 shadow-2xs">
+          <div className="max-w-md w-full backdrop-blur-2xl bg-white/60 hover:bg-white/65 dark:bg-[#16191f]/85 dark:hover:bg-[#16191f]/90 border border-white/90 dark:border-[#282d37] rounded-3xl p-6 sm:p-10 shadow-2xl shadow-sky-950/20 dark:shadow-black/60 text-center relative transition-all duration-300 animate-fade-in-up space-y-6">
+            <div className="w-12 h-12 rounded-2xl bg-blue-100/90 dark:bg-blue-950/60 border border-blue-200 dark:border-blue-800/80 flex items-center justify-center mx-auto text-blue-600 dark:text-blue-400 shadow-2xs">
               <Mail className="w-6 h-6" />
             </div>
 
             <div className="space-y-2">
-              <h2 className="text-2xl font-extrabold text-slate-900 tracking-tight">Check your email</h2>
-              <p className="text-xs text-slate-700 font-semibold">
+              <h2 className="text-2xl font-extrabold text-slate-900 dark:text-[#f1f3f5] tracking-tight">Check your email</h2>
+              <p className="text-xs text-slate-700 dark:text-slate-400 font-semibold">
                 We've sent a verification link to
               </p>
-              <p className="text-sm font-bold text-blue-600 break-all">{email}</p>
+              <p className="text-sm font-bold text-blue-600 dark:text-blue-400 break-all">{email}</p>
             </div>
 
-            <p className="text-xs text-slate-700 font-semibold leading-relaxed">
+            <p className="text-xs text-slate-700 dark:text-slate-400 font-semibold leading-relaxed">
               Verify your email address before signing in to HAVN. Check your spam or junk folder if you don't see it.
             </p>
 
             <button
               onClick={() => navigate(ROUTES.LOGIN)}
-              className="w-full bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white font-bold text-xs py-3 rounded-xl flex items-center justify-center gap-2 shadow-lg shadow-blue-600/30 hover:shadow-xl hover:shadow-blue-600/40 transition-all active:scale-[0.98] cursor-pointer"
+              className="w-full bg-blue-600 hover:bg-blue-500 text-white font-bold text-xs py-3 rounded-xl flex items-center justify-center gap-2 shadow-lg shadow-blue-600/30 hover:shadow-xl hover:shadow-blue-600/40 transition-all active:scale-[0.98] cursor-pointer"
             >
               Go to Login
             </button>
@@ -235,7 +117,7 @@ export default function Signup() {
         </div>
 
         {/* Minimal Footer */}
-        <footer className="relative z-20 py-4 text-center text-xs text-slate-800 font-bold">
+        <footer className="relative z-20 py-4 text-center text-xs text-slate-800 dark:text-slate-400 font-bold">
           © {new Date().getFullYear()} HAVN Inc. All rights reserved.
         </footer>
       </main>
@@ -245,7 +127,7 @@ export default function Signup() {
   return (
     <main
       id="signup-container"
-      className="min-h-screen flex flex-col justify-between relative overflow-x-hidden font-sans selection:bg-sky-200"
+      className="min-h-screen flex flex-col justify-between relative overflow-x-hidden font-sans selection:bg-blue-600/30 selection:text-white"
     >
       {/* Background Animated Sky Canvas */}
       <canvas
@@ -256,75 +138,81 @@ export default function Signup() {
 
       {/* Main Floating Translucent Glass Signup Interface */}
       <div className="flex-1 flex items-center justify-center pt-24 sm:pt-28 pb-10 px-4 sm:px-6 lg:px-8 relative z-20">
-        <div className="max-w-4xl w-full grid grid-cols-1 md:grid-cols-2 gap-8 items-center backdrop-blur-2xl bg-white/60 hover:bg-white/65 border border-white/90 rounded-3xl p-6 sm:p-10 shadow-2xl shadow-sky-950/20 relative transition-all duration-300 animate-fade-in-up">
+        <div className="max-w-4xl w-full grid grid-cols-1 md:grid-cols-2 gap-8 items-center backdrop-blur-2xl bg-white/60 hover:bg-white/65 dark:bg-[#16191f]/85 dark:hover:bg-[#16191f]/90 border border-white/90 dark:border-[#282d37] rounded-3xl p-6 sm:p-10 shadow-2xl shadow-sky-950/20 dark:shadow-black/60 relative transition-all duration-300 animate-fade-in-up">
 
           {/* Left Side Content - Form Panel */}
           <div className="space-y-6 w-full">
             <div className="space-y-2">
-              <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-blue-100/90 border border-blue-200 text-blue-900 text-[11px] font-bold shadow-2xs">
-                <ShieldCheck className="w-3.5 h-3.5 text-blue-600" />
+              <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-blue-100/90 dark:bg-blue-950/60 border border-blue-200 dark:border-blue-800/80 text-blue-900 dark:text-blue-300 text-[11px] font-bold shadow-2xs">
+                <ShieldCheck className="w-3.5 h-3.5 text-blue-600 dark:text-blue-400" />
                 CREATE ACCOUNT
               </div>
-              <h2 className="text-2xl sm:text-3xl font-sans font-extrabold text-slate-900 tracking-tight">Get started with HAVN</h2>
-              <p className="text-xs text-slate-700 font-sans font-semibold">
+              <h2 className="text-2xl sm:text-3xl font-sans font-extrabold text-slate-900 dark:text-[#f1f3f5] tracking-tight">Get started with HAVN</h2>
+              <p className="text-xs text-slate-700 dark:text-slate-400 font-sans font-semibold">
                 Create an account to start deploying your projects.
               </p>
             </div>
 
             {error && (
-              <div className="p-3 bg-red-500/10 border border-red-300/80 rounded-xl text-xs text-red-800 font-semibold flex items-center gap-2 backdrop-blur-sm animate-shake">
+              <div className="p-3 bg-red-500/10 dark:bg-red-950/40 border border-red-300/80 dark:border-red-800/80 rounded-xl text-xs text-red-800 dark:text-red-300 font-semibold flex items-center gap-2 backdrop-blur-sm animate-shake">
                 ⚠️ {error}
               </div>
             )}
 
-            <form onSubmit={handleSubmit} className="space-y-3.5">
+            <form onSubmit={handleSubmit} className="space-y-3.5" autoComplete="off">
               <div className="space-y-1.5">
-                <label htmlFor="signup-name" className="text-[11px] font-bold text-slate-800 uppercase tracking-wider block">Full Name</label>
+                <label htmlFor="signup-name" className="text-[11px] font-bold text-slate-800 dark:text-slate-300 uppercase tracking-wider block">Full Name</label>
                 <div className="relative">
-                  <User className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+                  <User className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 dark:text-slate-500" />
                   <input
                     id="signup-name"
+                    name="name"
                     type="text"
+                    autoComplete="off"
                     value={name}
                     onChange={(e) => setName(e.target.value)}
                     placeholder="Jane Doe"
-                    className="w-full pl-10 pr-4 py-2.5 bg-white/75 focus:bg-white border border-white/90 focus:border-blue-500 rounded-xl text-xs text-slate-900 placeholder:text-slate-400 outline-none transition-all duration-200 shadow-2xs focus:ring-2 focus:ring-blue-500/20 font-semibold"
+                    className="w-full pl-10 pr-4 py-2.5 bg-white/75 dark:bg-[#12151a] focus:bg-white dark:focus:bg-[#16191f] border border-white/90 dark:border-[#282d37] focus:border-blue-500 dark:focus:border-blue-500 rounded-xl text-xs text-slate-900 dark:text-[#f1f3f5] placeholder:text-slate-400 dark:placeholder:text-slate-500 outline-none transition-all duration-200 shadow-2xs focus:ring-2 focus:ring-blue-500/20 font-semibold"
                   />
                 </div>
               </div>
 
               <div className="space-y-1.5">
-                <label htmlFor="signup-email" className="text-[11px] font-bold text-slate-800 uppercase tracking-wider block">Email</label>
+                <label htmlFor="signup-email" className="text-[11px] font-bold text-slate-800 dark:text-slate-300 uppercase tracking-wider block">Email</label>
                 <div className="relative">
-                  <Mail className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+                  <Mail className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 dark:text-slate-500" />
                   <input
                     id="signup-email"
+                    name="email"
                     type="email"
+                    autoComplete="off"
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
-                    placeholder="name@company.com"
-                    className="w-full pl-10 pr-4 py-2.5 bg-white/75 focus:bg-white border border-white/90 focus:border-blue-500 rounded-xl text-xs text-slate-900 placeholder:text-slate-400 outline-none transition-all duration-200 shadow-2xs focus:ring-2 focus:ring-blue-500/20 font-semibold"
+                    placeholder="you@example.com"
+                    className="w-full pl-10 pr-4 py-2.5 bg-white/75 dark:bg-[#12151a] focus:bg-white dark:focus:bg-[#16191f] border border-white/90 dark:border-[#282d37] focus:border-blue-500 dark:focus:border-blue-500 rounded-xl text-xs text-slate-900 dark:text-[#f1f3f5] placeholder:text-slate-400 dark:placeholder:text-slate-500 outline-none transition-all duration-200 shadow-2xs focus:ring-2 focus:ring-blue-500/20 font-semibold"
                   />
                 </div>
               </div>
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
                 <div className="space-y-1.5">
-                  <label htmlFor="signup-password" className="text-[11px] font-bold text-slate-800 uppercase tracking-wider block">Password</label>
+                  <label htmlFor="signup-password" className="text-[11px] font-bold text-slate-800 dark:text-slate-300 uppercase tracking-wider block">Password</label>
                   <div className="relative">
-                    <Lock className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+                    <Lock className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 dark:text-slate-500" />
                     <input
                       id="signup-password"
+                      name="password"
                       type={showPassword ? 'text' : 'password'}
+                      autoComplete="new-password"
                       value={password}
                       onChange={(e) => setPassword(e.target.value)}
-                      placeholder="••••••••"
-                      className="w-full pl-10 pr-10 py-2.5 bg-white/75 focus:bg-white border border-white/90 focus:border-blue-500 rounded-xl text-xs text-slate-900 placeholder:text-slate-400 outline-none transition-all duration-200 shadow-2xs focus:ring-2 focus:ring-blue-500/20 font-mono"
+                      placeholder="Create a password"
+                      className="w-full pl-10 pr-10 py-2.5 bg-white/75 dark:bg-[#12151a] focus:bg-white dark:focus:bg-[#16191f] border border-white/90 dark:border-[#282d37] focus:border-blue-500 dark:focus:border-blue-500 rounded-xl text-xs text-slate-900 dark:text-[#f1f3f5] placeholder:text-slate-400 dark:placeholder:text-slate-500 outline-none transition-all duration-200 shadow-2xs focus:ring-2 focus:ring-blue-500/20 font-mono"
                     />
                     <button
                       type="button"
                       onClick={() => setShowPassword(!showPassword)}
-                      className="absolute right-3.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 transition-colors cursor-pointer"
+                      className="absolute right-3.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 transition-colors cursor-pointer"
                     >
                       {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                     </button>
@@ -332,37 +220,39 @@ export default function Signup() {
                 </div>
 
                 <div className="space-y-1.5">
-                  <label htmlFor="signup-confirm-password" className="text-[11px] font-bold text-slate-800 uppercase tracking-wider block">Confirm Password</label>
+                  <label htmlFor="signup-confirm-password" className="text-[11px] font-bold text-slate-800 dark:text-slate-300 uppercase tracking-wider block">Confirm Password</label>
                   <div className="relative">
-                    <Lock className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+                    <Lock className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 dark:text-slate-500" />
                     <input
                       id="signup-confirm-password"
+                      name="confirmPassword"
                       type={showPassword ? 'text' : 'password'}
+                      autoComplete="new-password"
                       value={confirmPassword}
                       onChange={(e) => setConfirmPassword(e.target.value)}
-                      placeholder="••••••••"
-                      className="w-full pl-10 pr-4 py-2.5 bg-white/75 focus:bg-white border border-white/90 focus:border-blue-500 rounded-xl text-xs text-slate-900 placeholder:text-slate-400 outline-none transition-all duration-200 shadow-2xs focus:ring-2 focus:ring-blue-500/20 font-mono"
+                      placeholder="Confirm password"
+                      className="w-full pl-10 pr-4 py-2.5 bg-white/75 dark:bg-[#12151a] focus:bg-white dark:focus:bg-[#16191f] border border-white/90 dark:border-[#282d37] focus:border-blue-500 dark:focus:border-blue-500 rounded-xl text-xs text-slate-900 dark:text-[#f1f3f5] placeholder:text-slate-400 dark:placeholder:text-slate-500 outline-none transition-all duration-200 shadow-2xs focus:ring-2 focus:ring-blue-500/20 font-mono"
                     />
                   </div>
                 </div>
               </div>
 
               <div className="flex items-center justify-between pt-1">
-                <label className="flex items-start gap-2.5 text-xs text-slate-800 font-semibold select-none cursor-pointer leading-normal group">
+                <label className="flex items-start gap-2.5 text-xs text-slate-800 dark:text-slate-300 font-semibold select-none cursor-pointer leading-normal group">
                   <input
                     type="checkbox"
                     checked={agreeTerms}
                     onChange={(e) => setAgreeTerms(e.target.checked)}
-                    className="w-4 h-4 rounded border-slate-300 text-blue-600 focus:ring-blue-500 accent-blue-600 cursor-pointer mt-0.5"
+                    className="w-4 h-4 rounded border-slate-300 dark:border-slate-700 bg-white dark:bg-[#12151a] text-blue-600 focus:ring-blue-500 accent-blue-600 cursor-pointer mt-0.5"
                   />
-                  <span className="group-hover:text-slate-900 transition-colors">I agree to the Terms of Service and Privacy Policy.</span>
+                  <span className="group-hover:text-slate-900 dark:group-hover:text-[#f1f3f5] transition-colors">I agree to the Terms of Service and Privacy Policy.</span>
                 </label>
               </div>
 
               <button
                 type="submit"
                 disabled={isLoading}
-                className="w-full bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 disabled:opacity-70 text-white font-bold text-xs py-3 rounded-xl flex items-center justify-center gap-2 shadow-lg shadow-blue-600/30 hover:shadow-xl hover:shadow-blue-600/40 transition-all active:scale-[0.98] mt-2 cursor-pointer"
+                className="w-full bg-blue-600 hover:bg-blue-500 dark:bg-blue-600 dark:hover:bg-blue-500 disabled:opacity-70 text-white font-bold text-xs py-3 rounded-xl flex items-center justify-center gap-2 shadow-lg shadow-blue-600/30 hover:shadow-xl hover:shadow-blue-600/40 transition-all active:scale-[0.98] mt-2 cursor-pointer"
               >
                 {isLoading ? (
                   <span className="inline-flex items-center gap-2">
@@ -379,50 +269,50 @@ export default function Signup() {
             </form>
 
             <div className="relative my-6 text-center">
-              <span className="absolute inset-x-0 top-1/2 h-px bg-slate-300/80 -translate-y-1/2"></span>
-              <span className="relative bg-white/90 px-3 text-[10px] font-bold text-slate-500 uppercase tracking-widest rounded-full">
+              <span className="absolute inset-x-0 top-1/2 h-px bg-slate-300/80 dark:bg-[#282d37] -translate-y-1/2"></span>
+              <span className="relative bg-white/90 dark:bg-[#16191f] px-3 text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest rounded-full">
                 or integrate with
               </span>
             </div>
 
             <div className="grid grid-cols-2 gap-3">
               <button
-  type="button"
-  onClick={() => handleOAuthSignup("github")}
-  className="flex items-center justify-center gap-2 py-2.5 border border-white/90 hover:border-blue-300 bg-white/75 hover:bg-white text-xs text-slate-800 font-bold rounded-xl transition-all shadow-2xs hover:shadow-xs active:scale-[0.98] cursor-pointer"
->
-  <Github className="w-4 h-4 text-slate-800" /> GitHub
-</button>
+                type="button"
+                onClick={() => handleOAuthSignup("github")}
+                className="flex items-center justify-center gap-2 py-2.5 border border-white/90 dark:border-[#282d37] hover:border-blue-300 dark:hover:border-blue-500 bg-white/75 hover:bg-white dark:bg-[#1e222b] dark:hover:bg-[#252a35] text-xs text-slate-800 dark:text-[#f1f3f5] font-bold rounded-xl transition-all shadow-2xs hover:shadow-xs active:scale-[0.98] cursor-pointer"
+              >
+                <Github className="w-4 h-4 text-slate-800 dark:text-[#f1f3f5]" /> GitHub
+              </button>
               <button
-  type="button"
-  onClick={() => handleOAuthSignup("google")}
-  className="flex items-center justify-center gap-2 py-2.5 border border-white/90 hover:border-blue-300 bg-white/75 hover:bg-white text-xs text-slate-800 font-bold rounded-xl transition-all shadow-2xs hover:shadow-xs active:scale-[0.98] cursor-pointer"
->
-  <Chrome className="w-4 h-4 text-blue-600" /> Google
-</button>
+                type="button"
+                onClick={() => handleOAuthSignup("google")}
+                className="flex items-center justify-center gap-2 py-2.5 border border-white/90 dark:border-[#282d37] hover:border-blue-300 dark:hover:border-blue-500 bg-white/75 hover:bg-white dark:bg-[#1e222b] dark:hover:bg-[#252a35] text-xs text-slate-800 dark:text-[#f1f3f5] font-bold rounded-xl transition-all shadow-2xs hover:shadow-xs active:scale-[0.98] cursor-pointer"
+              >
+                <Chrome className="w-4 h-4 text-blue-600 dark:text-blue-400" /> Google
+              </button>
             </div>
 
-            <p className="text-center text-xs text-slate-700 font-sans pt-2 font-semibold">
+            <p className="text-center text-xs text-slate-700 dark:text-slate-400 font-sans pt-2 font-semibold">
               Already have an account?{' '}
-              <button onClick={() => navigate(ROUTES.LOGIN)} className="text-blue-600 hover:text-blue-700 font-extrabold hover:underline cursor-pointer">Log in</button>
+              <button onClick={() => navigate(ROUTES.LOGIN)} className="text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 font-extrabold hover:underline cursor-pointer">Log in</button>
             </p>
           </div>
 
           {/* Right Side Content - Translucent Glass Marketing Info Panel */}
-          <div className="hidden md:flex flex-col justify-center h-full backdrop-blur-xl bg-white/40 border border-white/80 rounded-2xl p-7 space-y-7 shadow-2xs">
+          <div className="hidden md:flex flex-col justify-center h-full backdrop-blur-xl bg-white/40 dark:bg-[#12151a]/60 border border-white/80 dark:border-[#282d37] rounded-2xl p-7 space-y-7 shadow-2xs">
 
             {/* Deploy with confidence */}
             <div className="flex items-start gap-4">
-              <div className="w-10 h-10 rounded-xl bg-blue-100/90 border border-blue-200 flex items-center justify-center flex-shrink-0 shadow-2xs">
-                <Rocket className="w-5 h-5 text-blue-600" />
+              <div className="w-10 h-10 rounded-xl bg-blue-100/90 dark:bg-blue-950/60 border border-blue-200 dark:border-blue-800/80 flex items-center justify-center flex-shrink-0 shadow-2xs">
+                <Rocket className="w-5 h-5 text-blue-600 dark:text-blue-400" />
               </div>
 
               <div>
-                <h3 className="text-base font-extrabold text-slate-900">
+                <h3 className="text-base font-extrabold text-slate-900 dark:text-[#f1f3f5]">
                   Deploy with confidence
                 </h3>
 
-                <p className="mt-1.5 text-xs text-slate-700 leading-relaxed font-semibold">
+                <p className="mt-1.5 text-xs text-slate-700 dark:text-slate-400 leading-relaxed font-semibold">
                   Deploy directly from your Git repository with a clean, guided
                   workflow. Build, monitor, and manage your applications from one
                   place.
@@ -430,20 +320,20 @@ export default function Signup() {
               </div>
             </div>
 
-            <div className="border-t border-slate-200/80"></div>
+            <div className="border-t border-slate-200/80 dark:border-[#282d37]"></div>
 
             {/* AI Assistant */}
             <div className="flex items-start gap-4">
-              <div className="w-10 h-10 rounded-xl bg-blue-100/90 border border-blue-200 flex items-center justify-center flex-shrink-0 shadow-2xs">
-                <Bot className="w-5 h-5 text-blue-600" />
+              <div className="w-10 h-10 rounded-xl bg-blue-100/90 dark:bg-blue-950/60 border border-blue-200 dark:border-blue-800/80 flex items-center justify-center flex-shrink-0 shadow-2xs">
+                <Bot className="w-5 h-5 text-blue-600 dark:text-blue-400" />
               </div>
 
               <div>
-                <h3 className="text-base font-extrabold text-slate-900">
+                <h3 className="text-base font-extrabold text-slate-900 dark:text-[#f1f3f5]">
                   AI that helps, not confuses
                 </h3>
 
-                <p className="mt-1.5 text-xs text-slate-700 leading-relaxed font-semibold">
+                <p className="mt-1.5 text-xs text-slate-700 dark:text-slate-400 leading-relaxed font-semibold">
                   HAVN explains deployment errors in plain English, suggests fixes,
                   and helps you move faster whether you're just starting or already
                   experienced.
@@ -451,20 +341,20 @@ export default function Signup() {
               </div>
             </div>
 
-            <div className="border-t border-slate-200/80"></div>
+            <div className="border-t border-slate-200/80 dark:border-[#282d37]"></div>
 
             {/* Build & Grow */}
             <div className="flex items-start gap-4">
-              <div className="w-10 h-10 rounded-xl bg-blue-100/90 border border-blue-200 flex items-center justify-center flex-shrink-0 shadow-2xs">
-                <BarChart3 className="w-5 h-5 text-blue-600" />
+              <div className="w-10 h-10 rounded-xl bg-blue-100/90 dark:bg-blue-950/60 border border-blue-200 dark:border-blue-800/80 flex items-center justify-center flex-shrink-0 shadow-2xs">
+                <BarChart3 className="w-5 h-5 text-blue-600 dark:text-blue-400" />
               </div>
 
               <div>
-                <h3 className="text-base font-extrabold text-slate-900">
+                <h3 className="text-base font-extrabold text-slate-900 dark:text-[#f1f3f5]">
                   Build and grow
                 </h3>
 
-                <p className="mt-1.5 text-xs text-slate-700 leading-relaxed font-semibold">
+                <p className="mt-1.5 text-xs text-slate-700 dark:text-slate-400 leading-relaxed font-semibold">
                   Track deployments, monitor project history, and keep every release
                   organized as your applications evolve.
                 </p>
@@ -477,7 +367,7 @@ export default function Signup() {
       </div>
 
       {/* Minimal Footer */}
-      <footer className="relative z-20 py-4 text-center text-xs text-slate-800 font-bold">
+      <footer className="relative z-20 py-4 text-center text-xs text-slate-800 dark:text-slate-400 font-bold">
         © {new Date().getFullYear()} HAVN Inc. All rights reserved.
       </footer>
 

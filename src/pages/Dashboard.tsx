@@ -21,6 +21,7 @@ import {
 } from '../services/github.service';
 import { BuildLogModal } from '../components/dashboard/BuildLogModal';
 import { ProjectCard } from '../components/dashboard/ProjectCard';
+import { useCanvasSky } from '../utils/useCanvasSky';
 
 const formatRelativeTime = (dateString: string): string => {
   if (!dateString) return 'Just now';
@@ -496,85 +497,7 @@ export default function Dashboard() {
     }
   };
 
-  useEffect(() => {
-    const canvas = canvasRef.current;
-    if (!canvas) return;
-
-    const ctx = canvas.getContext('2d');
-    if (!ctx) return;
-
-    let animationFrameId: number;
-    let width = (canvas.width = window.innerWidth);
-    let height = (canvas.height = window.innerHeight);
-
-    const handleResize = () => {
-      if (!canvas) return;
-      width = canvas.width = window.innerWidth;
-      height = canvas.height = window.innerHeight;
-    };
-
-    window.addEventListener('resize', handleResize);
-
-    const clouds = Array.from({ length: 18 }, () => ({
-      x: Math.random() * width,
-      y: height * 0.1 + Math.random() * (height * 0.8),
-      radius: 90 + Math.random() * 160,
-      driftSpeed: 0.12 + Math.random() * 0.35,
-      opacity: 0.18 + Math.random() * 0.35,
-      z: Math.random()
-    }));
-
-    const render = () => {
-      ctx.clearRect(0, 0, width, height);
-
-      const skyGradient = ctx.createLinearGradient(0, 0, 0, height);
-      skyGradient.addColorStop(0, '#f0f9ff');
-      skyGradient.addColorStop(0.35, '#e0f2fe');
-      skyGradient.addColorStop(0.75, '#bae6fd');
-      skyGradient.addColorStop(1, '#7dd3fc');
-      ctx.fillStyle = skyGradient;
-      ctx.fillRect(0, 0, width, height);
-
-      const sunGlow = ctx.createRadialGradient(
-        width * 0.8,
-        height * 0.2,
-        20,
-        width * 0.8,
-        height * 0.2,
-        width * 0.65
-      );
-      sunGlow.addColorStop(0, 'rgba(255, 255, 255, 0.7)');
-      sunGlow.addColorStop(0.4, 'rgba(224, 242, 254, 0.3)');
-      sunGlow.addColorStop(0.85, 'rgba(125, 211, 252, 0.1)');
-      sunGlow.addColorStop(1, 'rgba(255, 255, 255, 0)');
-      ctx.fillStyle = sunGlow;
-      ctx.fillRect(0, 0, width, height);
-
-      clouds.forEach((cloud) => {
-        cloud.x += cloud.driftSpeed * (0.6 + cloud.z * 0.4);
-        if (cloud.x - cloud.radius > width) {
-          cloud.x = -cloud.radius;
-        }
-        
-        ctx.beginPath();
-        const grad = ctx.createRadialGradient(cloud.x, cloud.y, 0, cloud.x, cloud.y, cloud.radius);
-        grad.addColorStop(0, `rgba(255,255,255,${cloud.opacity})`);
-        grad.addColorStop(1, 'rgba(255,255,255,0)');
-        ctx.fillStyle = grad;
-        ctx.arc(cloud.x, cloud.y, cloud.radius, 0, Math.PI * 2);
-        ctx.fill();
-      });
-
-      animationFrameId = requestAnimationFrame(render);
-    };
-
-    render();
-
-    return () => {
-      cancelAnimationFrame(animationFrameId);
-      window.removeEventListener('resize', handleResize);
-    };
-  }, []);
+  useCanvasSky(canvasRef, { cloudCount: 18, baseSpeed: 0.8 });
 
   const handleProvisionDb = (e: FormEvent) => {
     e.preventDefault();
@@ -590,7 +513,7 @@ export default function Dashboard() {
           id: `db-${Date.now()}`,
           name: dbNameClean,
           status: 'active',
-          url: `postgresql://forge_admin:cf_sec_${Math.random().toString(36).substring(7)}@db.cloudforge.internal:5432/${dbNameClean}`,
+          url: `postgresql://havn_admin:hv_sec_${Math.random().toString(36).substring(7)}@db.havn.internal:5432/${dbNameClean}`,
           size: '128 MB (Tier: Hobby)'
         }
       ]);
@@ -649,7 +572,7 @@ export default function Dashboard() {
     avgDurationMs > 0 ? `${Math.round(avgDurationMs / 1000)}s` : '--';
 
   return (
-    <div id="dashboard-workspace" className="min-h-screen flex flex-col relative overflow-x-hidden font-sans selection:bg-sky-200">
+    <div id="dashboard-workspace" className="min-h-screen flex flex-col relative overflow-x-hidden font-sans selection:bg-sky-200 dark:selection:bg-slate-700">
       
       <canvas
         ref={canvasRef}
@@ -659,15 +582,15 @@ export default function Dashboard() {
       <div className="pt-28 sm:pt-32 pb-16 flex-1 flex flex-col relative z-20 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 space-y-6">
         
         {githubStatusError && !isConnectModalOpen && (
-          <div className="backdrop-blur-xl bg-amber-50/90 border border-amber-200 text-amber-900 rounded-2xl p-4 flex items-center justify-between text-xs font-semibold shadow-sm">
+          <div className="backdrop-blur-xl bg-amber-50/90 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-800/60 text-amber-900 dark:text-amber-300 rounded-2xl p-4 flex items-center justify-between text-xs font-semibold shadow-sm">
             <div className="flex items-center gap-2">
-              <AlertCircle className="w-4 h-4 text-amber-600 flex-shrink-0" />
+              <AlertCircle className="w-4 h-4 text-amber-600 dark:text-amber-400 flex-shrink-0" />
               <span>{githubStatusError}</span>
             </div>
             <button
               type="button"
               onClick={() => setGithubStatusError(null)}
-              className="text-amber-600 hover:text-amber-800 font-bold ml-2 cursor-pointer text-sm"
+              className="text-amber-600 hover:text-amber-800 dark:text-amber-400 dark:hover:text-amber-200 font-bold ml-2 cursor-pointer text-sm"
               title="Dismiss"
             >
               ✕
@@ -675,7 +598,7 @@ export default function Dashboard() {
           </div>
         )}
 
-        <section className="backdrop-blur-2xl bg-white/60 hover:bg-white/65 border border-white/90 rounded-3xl p-6 shadow-xl shadow-sky-950/10 transition-all duration-300">
+        <section className="backdrop-blur-2xl bg-white/60 hover:bg-white/65 dark:bg-[#16191f]/80 dark:hover:bg-[#16191f]/90 border border-white/90 dark:border-[#282d37] rounded-3xl p-6 shadow-xl shadow-sky-950/10 dark:shadow-none transition-all duration-300">
           <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
             <div 
               onClick={() => navigate(ROUTES.PROFILE)}
@@ -688,35 +611,35 @@ export default function Dashboard() {
                 }
               }}
               title="View Account Settings & Profile"
-              className="flex items-center space-x-4 p-2 -m-2 rounded-2xl transition-all duration-200 group cursor-pointer hover:bg-white/40 focus:outline-none focus:ring-2 focus:ring-blue-500/40"
+              className="flex items-center space-x-4 p-2 -m-2 rounded-2xl transition-all duration-200 group cursor-pointer hover:bg-white/40 dark:hover:bg-[#1e222b]/50 focus:outline-none focus:ring-2 focus:ring-blue-500/40"
             >
               {currentUser?.avatar && !avatarError ? (
                 <img
                   src={currentUser.avatar}
                   alt={currentUser.name || 'User Avatar'}
                   onError={() => setAvatarError(true)}
-                  className="w-12 h-12 rounded-2xl object-cover shadow-md shadow-blue-600/30 border border-white/80 group-hover:ring-2 group-hover:ring-blue-500/40 transition-all duration-200"
+                  className="w-12 h-12 rounded-2xl object-cover shadow-md shadow-blue-600/30 border border-white/80 dark:border-[#282d37] group-hover:ring-2 group-hover:ring-blue-500/40 transition-all duration-200"
                 />
               ) : (
                 <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-blue-600 to-indigo-600 text-white font-extrabold flex items-center justify-center text-lg shadow-md shadow-blue-600/30 group-hover:ring-2 group-hover:ring-blue-500/40 transition-all duration-200">
-                  {((currentUser?.name || currentUser?.email || 'CF').substring(0, 2)).toUpperCase()}
+                  {((currentUser?.name || currentUser?.email || 'HV').substring(0, 2)).toUpperCase()}
                 </div>
               )}
               <div className="space-y-1">
                 <div className="flex items-center gap-2.5">
-                  <h1 className="text-xl font-extrabold text-slate-900 tracking-tight">
+                  <h1 className="text-xl font-extrabold text-slate-900 dark:text-[#f1f3f5] tracking-tight">
                     {currentUser?.name || (currentUser?.email ? currentUser.email.split('@')[0] : 'dev-master')}
                   </h1>
-                  <span className="text-[11px] bg-blue-100/90 text-blue-900 border border-blue-200 px-2.5 py-0.5 rounded-full font-bold shadow-2xs capitalize">
+                  <span className="text-[11px] bg-blue-100/90 dark:bg-blue-950/50 text-blue-900 dark:text-blue-300 border border-blue-200 dark:border-blue-800/60 px-2.5 py-0.5 rounded-full font-bold shadow-2xs capitalize">
                     {currentUser?.provider ? `${currentUser.provider} account` : 'Hobby Plan'}
                   </span>
                   {githubConnected && githubUsername && (
-                    <span className="flex items-center gap-1 text-[11px] bg-slate-900 text-white px-2.5 py-0.5 rounded-full font-bold shadow-2xs">
+                    <span className="flex items-center gap-1 text-[11px] bg-slate-900 dark:bg-[#1e222b] text-white dark:text-slate-200 border border-transparent dark:border-[#282d37] px-2.5 py-0.5 rounded-full font-bold shadow-2xs">
                       <Github className="w-3 h-3" /> @{githubUsername}
                     </span>
                   )}
                 </div>
-                <p className="text-xs text-slate-700 font-semibold">
+                <p className="text-xs text-slate-700 dark:text-slate-400 font-semibold">
                   {currentUser?.email ? `${currentUser.email} • Cloud Deployment Engine` : 'Personal Developer Workspace • Cloud Deployment Engine'}
                 </p>
               </div>
@@ -726,21 +649,21 @@ export default function Dashboard() {
               <button
                 type="button"
                 onClick={() => navigate(ROUTES.PROFILE)}
-                className="bg-white/70 hover:bg-white text-slate-800 hover:text-slate-950 font-bold text-xs py-3 px-4 rounded-xl border border-white/90 transition-all shadow-sm hover:shadow flex items-center gap-1.5 active:scale-[0.98] cursor-pointer"
+                className="bg-white/70 hover:bg-white dark:bg-[#1e222b]/70 dark:hover:bg-[#1e222b] text-slate-800 hover:text-slate-950 dark:text-slate-200 dark:hover:text-white font-bold text-xs py-3 px-4 rounded-xl border border-white/90 dark:border-[#282d37] transition-all shadow-sm hover:shadow flex items-center gap-1.5 active:scale-[0.98] cursor-pointer"
                 title="View Profile & Account Settings"
               >
-                <User className="w-4 h-4 text-slate-600" />
+                <User className="w-4 h-4 text-slate-600 dark:text-slate-300" />
                 <span>Account</span>
               </button>
               {loadingGithubStatus ? (
-                <div className="text-xs text-slate-500 font-bold flex items-center gap-1.5 px-3 py-2 bg-white/50 rounded-xl border border-white/80">
-                  <RefreshCw className="w-3.5 h-3.5 animate-spin text-blue-600" /> Checking GitHub status...
+                <div className="text-xs text-slate-500 dark:text-slate-400 font-bold flex items-center gap-1.5 px-3 py-2 bg-white/50 dark:bg-[#16191f]/50 rounded-xl border border-white/80 dark:border-[#282d37]">
+                  <RefreshCw className="w-3.5 h-3.5 animate-spin text-blue-600 dark:text-blue-400" /> Checking GitHub status...
                 </div>
               ) : !githubConnected ? (
                 <button
                   type="button"
                   onClick={handleConnectGithubOAuth}
-                  className="bg-slate-900 hover:bg-black text-white font-bold text-xs py-3 px-5 rounded-xl transition-all shadow-lg shadow-slate-900/20 hover:shadow-xl flex items-center gap-2 active:scale-[0.98] cursor-pointer"
+                  className="bg-slate-900 hover:bg-black dark:bg-[#1e222b] dark:hover:bg-[#282d37] dark:border dark:border-[#282d37] text-white font-bold text-xs py-3 px-5 rounded-xl transition-all shadow-lg shadow-slate-900/20 dark:shadow-none hover:shadow-xl flex items-center gap-2 active:scale-[0.98] cursor-pointer"
                 >
                   <Github className="w-4 h-4" />
                   Connect GitHub
@@ -758,13 +681,13 @@ export default function Dashboard() {
             </div>
           </div>
 
-          <div className="mt-6 pt-4 border-t border-slate-200/80 flex items-center space-x-2 sm:space-x-4 overflow-x-auto no-scrollbar">
+          <div className="mt-6 pt-4 border-t border-slate-200/80 dark:border-[#282d37] flex items-center space-x-2 sm:space-x-4 overflow-x-auto no-scrollbar">
             <button
               onClick={() => setActiveTab('overview')}
               className={`px-4 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer whitespace-nowrap flex items-center gap-1.5 ${
                 activeTab === 'overview'
                   ? 'bg-blue-600 text-white shadow-md shadow-blue-600/25'
-                  : 'text-slate-700 hover:text-slate-900 hover:bg-white/60'
+                  : 'text-slate-700 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200 hover:bg-white/60 dark:hover:bg-[#1e222b]/60'
               }`}
             >
               <Layers className="w-3.5 h-3.5" />
@@ -775,7 +698,7 @@ export default function Dashboard() {
               className={`px-4 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer whitespace-nowrap flex items-center gap-1.5 ${
                 activeTab === 'deployments'
                   ? 'bg-blue-600 text-white shadow-md shadow-blue-600/25'
-                  : 'text-slate-700 hover:text-slate-900 hover:bg-white/60'
+                  : 'text-slate-700 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200 hover:bg-white/60 dark:hover:bg-[#1e222b]/60'
               }`}
             >
               <Activity className="w-3.5 h-3.5" />
@@ -786,7 +709,7 @@ export default function Dashboard() {
               className={`px-4 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer whitespace-nowrap flex items-center gap-1.5 ${
                 activeTab === 'databases'
                   ? 'bg-blue-600 text-white shadow-md shadow-blue-600/25'
-                  : 'text-slate-700 hover:text-slate-900 hover:bg-white/60'
+                  : 'text-slate-700 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200 hover:bg-white/60 dark:hover:bg-[#1e222b]/60'
               }`}
             >
               <Database className="w-3.5 h-3.5" />
@@ -797,7 +720,7 @@ export default function Dashboard() {
               className={`px-4 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer whitespace-nowrap flex items-center gap-1.5 ${
                 activeTab === 'env-vars'
                   ? 'bg-blue-600 text-white shadow-md shadow-blue-600/25'
-                  : 'text-slate-700 hover:text-slate-900 hover:bg-white/60'
+                  : 'text-slate-700 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200 hover:bg-white/60 dark:hover:bg-[#1e222b]/60'
               }`}
             >
               <Key className="w-3.5 h-3.5" />
@@ -809,37 +732,37 @@ export default function Dashboard() {
         {activeTab === 'overview' && (
           <div className="space-y-6 motion-safe:animate-fade-in-up">
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-              <div className="backdrop-blur-xl bg-white/60 border border-white/90 rounded-2xl p-4 shadow-sm space-y-1">
-                <span className="text-[11px] font-bold text-slate-500 uppercase tracking-wider flex items-center gap-1">
-                  <Server className="w-3.5 h-3.5 text-blue-600" /> Active Projects
+              <div className="backdrop-blur-xl bg-white/60 dark:bg-[#16191f]/80 border border-white/90 dark:border-[#282d37] rounded-2xl p-4 shadow-sm space-y-1">
+                <span className="text-[11px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider flex items-center gap-1">
+                  <Server className="w-3.5 h-3.5 text-blue-600 dark:text-blue-400" /> Active Projects
                 </span>
-                <p className="text-2xl font-extrabold text-slate-900">{activeProjectsCount}</p>
+                <p className="text-2xl font-extrabold text-slate-900 dark:text-[#f1f3f5]">{activeProjectsCount}</p>
               </div>
 
-              <div className="backdrop-blur-xl bg-white/60 border border-white/90 rounded-2xl p-4 shadow-sm space-y-1">
-                <span className="text-[11px] font-bold text-slate-500 uppercase tracking-wider flex items-center gap-1">
-                  <Activity className="w-3.5 h-3.5 text-blue-600" /> Total Deploys
+              <div className="backdrop-blur-xl bg-white/60 dark:bg-[#16191f]/80 border border-white/90 dark:border-[#282d37] rounded-2xl p-4 shadow-sm space-y-1">
+                <span className="text-[11px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider flex items-center gap-1">
+                  <Activity className="w-3.5 h-3.5 text-blue-600 dark:text-blue-400" /> Total Deploys
                 </span>
-                <p className="text-2xl font-extrabold text-slate-900">{totalDeploymentsCount > 0 ? totalDeploymentsCount : "--"}</p>
+                <p className="text-2xl font-extrabold text-slate-900 dark:text-[#f1f3f5]">{totalDeploymentsCount > 0 ? totalDeploymentsCount : "--"}</p>
               </div>
 
-              <div className="backdrop-blur-xl bg-white/60 border border-white/90 rounded-2xl p-4 shadow-sm space-y-1">
-                <span className="text-[11px] font-bold text-slate-500 uppercase tracking-wider flex items-center gap-1">
-                  <TrendingUp className="w-3.5 h-3.5 text-emerald-600" /> Success Rate
+              <div className="backdrop-blur-xl bg-white/60 dark:bg-[#16191f]/80 border border-white/90 dark:border-[#282d37] rounded-2xl p-4 shadow-sm space-y-1">
+                <span className="text-[11px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider flex items-center gap-1">
+                  <TrendingUp className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400" /> Success Rate
                 </span>
-                <p className="text-2xl font-extrabold text-slate-900">{successRateText}</p>
+                <p className="text-2xl font-extrabold text-slate-900 dark:text-[#f1f3f5]">{successRateText}</p>
               </div>
 
-              <div className="backdrop-blur-xl bg-white/60 border border-white/90 rounded-2xl p-4 shadow-sm space-y-1">
-                <span className="text-[11px] font-bold text-slate-500 uppercase tracking-wider flex items-center gap-1">
-                  <Clock className="w-3.5 h-3.5 text-indigo-600" /> Avg Deploy Time
+              <div className="backdrop-blur-xl bg-white/60 dark:bg-[#16191f]/80 border border-white/90 dark:border-[#282d37] rounded-2xl p-4 shadow-sm space-y-1">
+                <span className="text-[11px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider flex items-center gap-1">
+                  <Clock className="w-3.5 h-3.5 text-indigo-600 dark:text-indigo-400" /> Avg Deploy Time
                 </span>
-                <p className="text-2xl font-extrabold text-slate-900">{avgDeployTimeText}</p>
+                <p className="text-2xl font-extrabold text-slate-900 dark:text-[#f1f3f5]">{avgDeployTimeText}</p>
               </div>
             </div>
 
             <div className="relative max-w-md">
-              <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-slate-400">
+              <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-slate-400 dark:text-slate-500">
                 <Search className="w-4 h-4" />
               </div>
               <input
@@ -847,26 +770,26 @@ export default function Dashboard() {
                 placeholder="Search active projects or git branches..."
                 value={searchProjectQuery}
                 onChange={(e) => setSearchProjectQuery(e.target.value)}
-                className="w-full backdrop-blur-xl bg-white/75 focus:bg-white border border-white/90 focus:border-blue-500 rounded-xl pl-10 pr-4 py-2.5 text-xs text-slate-900 font-semibold placeholder:text-slate-400 outline-none transition-all shadow-2xs focus:ring-2 focus:ring-blue-500/20"
+                className="w-full backdrop-blur-xl bg-white/75 focus:bg-white dark:bg-[#16191f]/80 dark:focus:bg-[#16191f] border border-white/90 dark:border-[#282d37] focus:border-blue-500 dark:focus:border-blue-500 rounded-xl pl-10 pr-4 py-2.5 text-xs text-slate-900 dark:text-[#f1f3f5] font-semibold placeholder:text-slate-400 dark:placeholder:text-slate-500 outline-none transition-all shadow-2xs focus:ring-2 focus:ring-blue-500/20"
               />
             </div>
 
             {loadingProjects ? (
-              <div className="text-center py-16 backdrop-blur-xl bg-white/50 border border-slate-200/80 rounded-3xl p-8 space-y-3">
-                <RefreshCw className="w-8 h-8 text-blue-600 animate-spin mx-auto" />
-                <p className="text-sm font-bold text-slate-800">Loading projects from server...</p>
+              <div className="text-center py-16 backdrop-blur-xl bg-white/50 dark:bg-[#16191f]/80 border border-slate-200/80 dark:border-[#282d37] rounded-3xl p-8 space-y-3">
+                <RefreshCw className="w-8 h-8 text-blue-600 dark:text-blue-400 animate-spin mx-auto" />
+                <p className="text-sm font-bold text-slate-800 dark:text-slate-200">Loading projects from server...</p>
               </div>
             ) : projectError ? (
-              <div className="text-center py-16 backdrop-blur-xl bg-white/50 border border-red-200/80 rounded-3xl p-8 space-y-3">
-                <AlertTriangle className="w-10 h-10 text-red-500 mx-auto" />
-                <p className="text-sm font-bold text-slate-800">Unable to load projects</p>
-                <p className="text-xs text-red-600 font-medium">{projectError}</p>
+              <div className="text-center py-16 backdrop-blur-xl bg-white/50 dark:bg-[#16191f]/80 border border-red-200/80 dark:border-red-900/40 rounded-3xl p-8 space-y-3">
+                <AlertTriangle className="w-10 h-10 text-red-500 dark:text-red-400 mx-auto" />
+                <p className="text-sm font-bold text-slate-800 dark:text-slate-200">Unable to load projects</p>
+                <p className="text-xs text-red-600 dark:text-red-400 font-medium">{projectError}</p>
               </div>
             ) : filteredProjects.length === 0 ? (
-              <div className="text-center py-20 backdrop-blur-xl bg-white/50 border border-dashed border-slate-300 rounded-3xl p-8 space-y-3">
-                <AlertTriangle className="w-10 h-10 text-amber-500 mx-auto" />
-                <p className="text-sm font-bold text-slate-800">No projects found.</p>
-                <p className="text-xs text-slate-600">Connect a GitHub repository to trigger your first cloud deployment.</p>
+              <div className="text-center py-20 backdrop-blur-xl bg-white/50 dark:bg-[#16191f]/80 border border-dashed border-slate-300 dark:border-[#282d37] rounded-3xl p-8 space-y-3">
+                <AlertTriangle className="w-10 h-10 text-amber-500 dark:text-amber-400 mx-auto" />
+                <p className="text-sm font-bold text-slate-800 dark:text-slate-200">No projects found.</p>
+                <p className="text-xs text-slate-600 dark:text-slate-400">Connect a GitHub repository to trigger your first cloud deployment.</p>
               </div>
             ) : (
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
@@ -884,17 +807,17 @@ export default function Dashboard() {
               </div>
             )}
 
-            <div className="backdrop-blur-2xl bg-white/60 border border-white/90 rounded-2xl overflow-hidden shadow-lg shadow-sky-950/5 space-y-3 p-6">
-              <div className="flex items-center justify-between border-b border-slate-200/80 pb-4">
+            <div className="backdrop-blur-2xl bg-white/60 dark:bg-[#16191f]/80 border border-white/90 dark:border-[#282d37] rounded-2xl overflow-hidden shadow-lg shadow-sky-950/5 dark:shadow-none space-y-3 p-6">
+              <div className="flex items-center justify-between border-b border-slate-200/80 dark:border-[#282d37] pb-4">
                 <div>
-                  <h3 className="text-base font-extrabold text-slate-900">Recent Deployment Activity</h3>
-                  <p className="text-xs text-slate-600 font-semibold">Latest commits deployed across your workspace repositories</p>
+                  <h3 className="text-base font-extrabold text-slate-900 dark:text-[#f1f3f5]">Recent Deployment Activity</h3>
+                  <p className="text-xs text-slate-600 dark:text-slate-400 font-semibold">Latest commits deployed across your workspace repositories</p>
                 </div>
               </div>
 
-              <div className="divide-y divide-slate-200/70">
+              <div className="divide-y divide-slate-200/70 dark:divide-[#282d37]">
                 {deployments.length === 0 ? (
-                  <div className="text-center py-8 text-xs font-semibold text-slate-500">
+                  <div className="text-center py-8 text-xs font-semibold text-slate-500 dark:text-slate-400">
                     No recent deployment activity.
                   </div>
                 ) : (
@@ -902,38 +825,38 @@ export default function Dashboard() {
                     <div
                       key={dep.id}
                       onClick={() => handleOpenDeploymentLogs(dep.id, dep.projectName)}
-                      className="py-3 flex flex-col sm:flex-row sm:items-center justify-between gap-3 hover:bg-white/60 rounded-xl px-3 transition-colors cursor-pointer"
+                      className="py-3 flex flex-col sm:flex-row sm:items-center justify-between gap-3 hover:bg-white/60 dark:hover:bg-[#1e222b]/60 rounded-xl px-3 transition-colors cursor-pointer"
                       title="Click to view build console and logs"
                     >
                       <div className="space-y-0.5">
                         <div className="flex items-center gap-2">
-                          <span className="text-xs font-bold text-slate-900">{dep.projectName}</span>
-                          <span className="text-[10px] font-mono bg-blue-100 text-blue-900 px-1.5 py-0.2 rounded font-bold">
+                          <span className="text-xs font-bold text-slate-900 dark:text-[#f1f3f5]">{dep.projectName}</span>
+                          <span className="text-[10px] font-mono bg-blue-100 dark:bg-blue-950/60 text-blue-900 dark:text-blue-300 px-1.5 py-0.2 rounded font-bold border border-blue-200 dark:border-blue-900/60">
                             {dep.branch}
                           </span>
-                          <span className="text-[10px] font-mono text-slate-500">
+                          <span className="text-[10px] font-mono text-slate-500 dark:text-slate-400">
                             {dep.commitHash}
                           </span>
                         </div>
-                        <p className="text-xs text-slate-600 italic truncate max-w-md">"{dep.commitMsg}"</p>
+                        <p className="text-xs text-slate-600 dark:text-slate-400 italic truncate max-w-md">"{dep.commitMsg}"</p>
                       </div>
 
                       <div className="flex items-center gap-3 text-xs font-semibold shrink-0">
-                        <span className="text-slate-500 text-[11px]">{dep.deployedAt}</span>
+                        <span className="text-slate-500 dark:text-slate-400 text-[11px]">{dep.deployedAt}</span>
                         {dep.status === 'BUILT' || dep.status === 'ready' ? (
-                          <span className="flex items-center gap-1 text-emerald-700 font-bold bg-emerald-100/80 border border-emerald-200 px-2 py-0.5 rounded-full text-[10px]">
+                          <span className="flex items-center gap-1 text-emerald-700 dark:text-emerald-400 font-bold bg-emerald-100/80 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-800/60 px-2 py-0.5 rounded-full text-[10px]">
                             <CheckCircle2 className="w-3 h-3" /> Live
                           </span>
                         ) : dep.status === 'FAILED' || dep.status === 'failed' ? (
-                          <span className="flex items-center gap-1 text-red-700 font-bold bg-red-100/80 border border-red-200 px-2 py-0.5 rounded-full text-[10px]">
+                          <span className="flex items-center gap-1 text-red-700 dark:text-red-400 font-bold bg-red-100/80 dark:bg-red-950/40 border border-red-200 dark:border-red-800/60 px-2 py-0.5 rounded-full text-[10px]">
                             <AlertTriangle className="w-3 h-3" /> Failed
                           </span>
-                        ) : dep.status === 'CANCELLED' || dep.status === 'cancelled' ? (
-                          <span className="flex items-center gap-1 text-slate-700 font-bold bg-slate-100 border border-slate-200 px-2 py-0.5 rounded-full text-[10px]">
+                        ) : dep.status === 'CANCELLED' || (dep.status as string) === 'cancelled' ? (
+                          <span className="flex items-center gap-1 text-slate-700 dark:text-slate-400 font-bold bg-slate-100 dark:bg-[#1e222b] border border-slate-200 dark:border-[#282d37] px-2 py-0.5 rounded-full text-[10px]">
                             Cancelled
                           </span>
                         ) : (
-                          <span className="flex items-center gap-1 text-blue-700 font-bold bg-blue-100 border border-blue-200 px-2 py-0.5 rounded-full text-[10px]">
+                          <span className="flex items-center gap-1 text-blue-700 dark:text-blue-400 font-bold bg-blue-100 dark:bg-blue-950/40 border border-blue-200 dark:border-blue-800/60 px-2 py-0.5 rounded-full text-[10px]">
                             <RefreshCw className="w-3 h-3 animate-spin" /> {dep.status}
                           </span>
                         )}
@@ -948,49 +871,49 @@ export default function Dashboard() {
         )}
 
         {activeTab === 'deployments' && (
-          <div className="backdrop-blur-2xl bg-white/60 border border-white/90 rounded-3xl overflow-hidden shadow-xl shadow-sky-950/10 motion-safe:animate-fade-in-up">
-            <div className="px-6 py-5 border-b border-slate-200/80 bg-white/40 flex items-center justify-between">
+          <div className="backdrop-blur-2xl bg-white/60 dark:bg-[#16191f]/80 border border-white/90 dark:border-[#282d37] rounded-3xl overflow-hidden shadow-xl shadow-sky-950/10 dark:shadow-none motion-safe:animate-fade-in-up">
+            <div className="px-6 py-5 border-b border-slate-200/80 dark:border-[#282d37] bg-white/40 dark:bg-[#12151a]/60 flex items-center justify-between">
               <div>
-                <h2 className="text-base font-extrabold text-slate-900">Deployment History</h2>
-                <p className="text-xs text-slate-600 font-semibold">Real-time status of your deployment pipeline runs</p>
+                <h2 className="text-base font-extrabold text-slate-900 dark:text-[#f1f3f5]">Deployment History</h2>
+                <p className="text-xs text-slate-600 dark:text-slate-400 font-semibold">Real-time status of your deployment pipeline runs</p>
               </div>
               <button
                 type="button"
                 onClick={reloadProjects}
-                className="text-xs text-blue-600 hover:text-blue-700 font-bold flex items-center gap-1 hover:underline cursor-pointer"
+                className="text-xs text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 font-bold flex items-center gap-1 hover:underline cursor-pointer"
               >
                 <RefreshCw className="w-3.5 h-3.5" /> Refresh
               </button>
             </div>
 
-            <div className="divide-y divide-slate-200/80">
+            <div className="divide-y divide-slate-200/80 dark:divide-[#282d37]">
               {deployments.length === 0 ? (
                 <div className="text-center py-16 px-4 space-y-2">
-                  <Activity className="w-8 h-8 text-slate-400 mx-auto" />
-                  <p className="text-sm font-bold text-slate-800">No deployments found</p>
-                  <p className="text-xs text-slate-500 font-medium">Connect a repository and deploy a project to view deployment history.</p>
+                  <Activity className="w-8 h-8 text-slate-400 dark:text-slate-500 mx-auto" />
+                  <p className="text-sm font-bold text-slate-800 dark:text-slate-200">No deployments found</p>
+                  <p className="text-xs text-slate-500 dark:text-slate-400 font-medium">Connect a repository and deploy a project to view deployment history.</p>
                 </div>
               ) : (
                 deployments.map((dep) => (
                   <div 
                     key={dep.id} 
                     onClick={() => handleOpenDeploymentLogs(dep.id, dep.projectName)}
-                    className="p-6 flex flex-col md:flex-row items-start md:items-center justify-between gap-4 hover:bg-white/50 transition-colors cursor-pointer"
+                    className="p-6 flex flex-col md:flex-row items-start md:items-center justify-between gap-4 hover:bg-white/50 dark:hover:bg-[#1e222b]/50 transition-colors cursor-pointer"
                   >
                     <div className="space-y-1.5 max-w-xl">
                       <div className="flex items-center gap-2.5">
-                        <span className="text-sm font-extrabold text-slate-900">{dep.projectName}</span>
-                        <span className="text-[10px] font-bold uppercase px-2 py-0.5 rounded-full border bg-blue-100 text-blue-900 border-blue-200">
+                        <span className="text-sm font-extrabold text-slate-900 dark:text-[#f1f3f5]">{dep.projectName}</span>
+                        <span className="text-[10px] font-bold uppercase px-2 py-0.5 rounded-full border bg-blue-100 dark:bg-blue-950/60 text-blue-900 dark:text-blue-300 border-blue-200 dark:border-blue-900/60">
                           Production
                         </span>
                       </div>
 
-                      <p className="text-xs text-slate-700 font-semibold italic">
+                      <p className="text-xs text-slate-700 dark:text-slate-300 font-semibold italic">
                         "{dep.commitMsg}"
                       </p>
 
-                      <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-slate-600 font-semibold">
-                        <span className="flex items-center gap-1"><GitBranch className="w-3.5 h-3.5 text-slate-800" /> {dep.branch}</span>
+                      <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-slate-600 dark:text-slate-400 font-semibold">
+                        <span className="flex items-center gap-1"><GitBranch className="w-3.5 h-3.5 text-slate-800 dark:text-slate-300" /> {dep.branch}</span>
                         <span>SHA: {dep.commitHash}</span>
                         <span>Deployed {dep.deployedAt}</span>
                         {dep.durationMs && <span>Duration: {Math.round(dep.durationMs / 1000)}s</span>}
@@ -999,20 +922,20 @@ export default function Dashboard() {
 
                     <div className="flex items-center gap-3">
                       {dep.status === 'BUILT' || dep.status === 'ready' ? (
-                        <span className="bg-emerald-100/90 border border-emerald-200 text-emerald-800 text-xs font-bold px-3 py-1 rounded-full flex items-center gap-1.5">
-                          <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" /> Built
+                        <span className="bg-emerald-100/90 dark:bg-emerald-950/50 border border-emerald-200 dark:border-emerald-800/60 text-emerald-800 dark:text-emerald-400 text-xs font-bold px-3 py-1 rounded-full flex items-center gap-1.5">
+                          <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400" /> Built
                         </span>
                       ) : dep.status === 'FAILED' || dep.status === 'failed' ? (
-                        <span className="bg-red-100/90 border border-red-200 text-red-800 text-xs font-bold px-3 py-1 rounded-full flex items-center gap-1.5">
-                          <AlertTriangle className="w-3.5 h-3.5 text-red-600" /> Failed
+                        <span className="bg-red-100/90 dark:bg-red-950/50 border border-red-200 dark:border-red-800/60 text-red-800 dark:text-red-400 text-xs font-bold px-3 py-1 rounded-full flex items-center gap-1.5">
+                          <AlertTriangle className="w-3.5 h-3.5 text-red-600 dark:text-red-400" /> Failed
                         </span>
-                      ) : dep.status === 'CANCELLED' || dep.status === 'cancelled' ? (
-                        <span className="bg-slate-100 border border-slate-300 text-slate-700 text-xs font-bold px-3 py-1 rounded-full flex items-center gap-1.5">
+                      ) : dep.status === 'CANCELLED' || (dep.status as string) === 'cancelled' ? (
+                        <span className="bg-slate-100 dark:bg-[#1e222b] border border-slate-300 dark:border-[#282d37] text-slate-700 dark:text-slate-400 text-xs font-bold px-3 py-1 rounded-full flex items-center gap-1.5">
                           Cancelled
                         </span>
                       ) : (
-                        <span className="bg-blue-100/90 border border-blue-200 text-blue-800 text-xs font-bold px-3 py-1 rounded-full flex items-center gap-1.5">
-                          <RefreshCw className="w-3.5 h-3.5 animate-spin text-blue-600" /> {dep.status}
+                        <span className="bg-blue-100/90 dark:bg-blue-950/50 border border-blue-200 dark:border-blue-800/60 text-blue-800 dark:text-blue-300 text-xs font-bold px-3 py-1 rounded-full flex items-center gap-1.5">
+                          <RefreshCw className="w-3.5 h-3.5 animate-spin text-blue-600 dark:text-blue-400" /> {dep.status}
                         </span>
                       )}
                     </div>
@@ -1025,13 +948,13 @@ export default function Dashboard() {
 
         {activeTab === 'databases' && (
           <div className="space-y-6 motion-safe:animate-fade-in-up">
-            <div className="backdrop-blur-2xl bg-white/60 border border-white/90 rounded-3xl p-6 sm:p-8 space-y-6 shadow-xl shadow-sky-950/10">
+            <div className="backdrop-blur-2xl bg-white/60 dark:bg-[#16191f]/80 border border-white/90 dark:border-[#282d37] rounded-3xl p-6 sm:p-8 space-y-6 shadow-xl shadow-sky-950/10 dark:shadow-none">
               <div className="space-y-1.5">
-                <span className="text-[11px] font-bold text-blue-600 uppercase tracking-wider flex items-center gap-1">
+                <span className="text-[11px] font-bold text-blue-600 dark:text-blue-400 uppercase tracking-wider flex items-center gap-1">
                   <Database className="w-4 h-4" /> Serverless Cloud PostgreSQL
                 </span>
-                <h2 className="text-xl font-extrabold text-slate-900">Provision New Database</h2>
-                <p className="text-slate-700 text-xs leading-relaxed font-semibold">
+                <h2 className="text-xl font-extrabold text-slate-900 dark:text-[#f1f3f5]">Provision New Database</h2>
+                <p className="text-slate-700 dark:text-slate-400 text-xs leading-relaxed font-semibold">
                   Spin up transactional, serverless PostgreSQL clusters instantly. Databases scale computing nodes automatically.
                 </p>
               </div>
@@ -1043,7 +966,7 @@ export default function Dashboard() {
                   placeholder="e.g. app-production-db"
                   value={newDbName}
                   onChange={(e) => setNewDbName(e.target.value)}
-                  className="bg-white/75 focus:bg-white border border-white/90 focus:border-blue-500 rounded-xl px-4 py-2.5 text-xs text-slate-900 placeholder:text-slate-400 outline-none transition-all shadow-2xs focus:ring-2 focus:ring-blue-500/20 font-semibold flex-1"
+                  className="bg-white/75 focus:bg-white dark:bg-[#12151a] dark:focus:bg-[#12151a] border border-white/90 dark:border-[#282d37] focus:border-blue-500 dark:focus:border-blue-500 rounded-xl px-4 py-2.5 text-xs text-slate-900 dark:text-[#f1f3f5] placeholder:text-slate-400 dark:placeholder:text-slate-500 outline-none transition-all shadow-2xs focus:ring-2 focus:ring-blue-500/20 font-semibold flex-1"
                   disabled={isProvisioningDb}
                 />
                 <button
@@ -1064,30 +987,30 @@ export default function Dashboard() {
               </form>
             </div>
 
-            <div className="backdrop-blur-2xl bg-white/60 border border-white/90 rounded-3xl overflow-hidden shadow-xl shadow-sky-950/10">
-              <div className="px-6 py-4 border-b border-slate-200/80 bg-white/40">
-                <h3 className="text-xs font-bold text-slate-700 uppercase tracking-wider">Active Workspace Databases</h3>
+            <div className="backdrop-blur-2xl bg-white/60 dark:bg-[#16191f]/80 border border-white/90 dark:border-[#282d37] rounded-3xl overflow-hidden shadow-xl shadow-sky-950/10 dark:shadow-none">
+              <div className="px-6 py-4 border-b border-slate-200/80 dark:border-[#282d37] bg-white/40 dark:bg-[#12151a]/60">
+                <h3 className="text-xs font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider">Active Workspace Databases</h3>
               </div>
               
-              <div className="divide-y divide-slate-200/80">
+              <div className="divide-y divide-slate-200/80 dark:divide-[#282d37]">
                 {databases.length === 0 ? (
-                  <div className="text-center py-12 px-4 space-y-1 text-slate-500">
-                    <p className="text-xs font-bold text-slate-700">No databases provisioned yet</p>
-                    <p className="text-[11px] font-medium text-slate-500">Launch a managed PostgreSQL cluster above for zero-config persistence.</p>
+                  <div className="text-center py-12 px-4 space-y-1 text-slate-500 dark:text-slate-400">
+                    <p className="text-xs font-bold text-slate-700 dark:text-slate-300">No databases provisioned yet</p>
+                    <p className="text-[11px] font-medium text-slate-500 dark:text-slate-400">Launch a managed PostgreSQL cluster above for zero-config persistence.</p>
                   </div>
                 ) : (
                   databases.map((db) => (
-                    <div key={db.id} className="p-5 flex flex-col md:flex-row md:items-center justify-between gap-4 hover:bg-white/40 transition-colors">
+                    <div key={db.id} className="p-5 flex flex-col md:flex-row md:items-center justify-between gap-4 hover:bg-white/40 dark:hover:bg-[#1e222b]/40 transition-colors">
                       <div className="space-y-1">
                         <div className="flex items-center gap-2">
-                          <span className="text-sm font-bold text-slate-900">{db.name}</span>
-                          <span className="text-[10px] bg-emerald-100 text-emerald-800 border border-emerald-200 px-2 py-0.5 rounded font-bold">
+                          <span className="text-sm font-bold text-slate-900 dark:text-[#f1f3f5]">{db.name}</span>
+                          <span className="text-[10px] bg-emerald-100 dark:bg-emerald-950/50 text-emerald-800 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-800/60 px-2 py-0.5 rounded font-bold">
                             {db.status}
                           </span>
                         </div>
-                        <code className="text-xs text-blue-600 font-mono block select-all">{db.url}</code>
+                        <code className="text-xs text-blue-600 dark:text-blue-400 font-mono block select-all">{db.url}</code>
                       </div>
-                      <span className="text-xs text-slate-500 font-semibold">{db.size}</span>
+                      <span className="text-xs text-slate-500 dark:text-slate-400 font-semibold">{db.size}</span>
                     </div>
                   ))
                 )}
@@ -1098,13 +1021,13 @@ export default function Dashboard() {
 
         {activeTab === 'env-vars' && (
           <div className="space-y-6 motion-safe:animate-fade-in-up">
-            <div className="backdrop-blur-2xl bg-white/60 border border-white/90 rounded-3xl p-6 sm:p-8 space-y-6 shadow-xl shadow-sky-950/10">
+            <div className="backdrop-blur-2xl bg-white/60 dark:bg-[#16191f]/80 border border-white/90 dark:border-[#282d37] rounded-3xl p-6 sm:p-8 space-y-6 shadow-xl shadow-sky-950/10 dark:shadow-none">
               <div className="space-y-1.5">
-                <span className="text-[11px] font-bold text-indigo-600 uppercase tracking-wider flex items-center gap-1">
+                <span className="text-[11px] font-bold text-indigo-600 dark:text-indigo-400 uppercase tracking-wider flex items-center gap-1">
                   <Key className="w-4 h-4" /> Secure Environment Storage
                 </span>
-                <h2 className="text-xl font-extrabold text-slate-900">Configure Environment Keys</h2>
-                <p className="text-slate-700 text-xs leading-relaxed font-semibold">
+                <h2 className="text-xl font-extrabold text-slate-900 dark:text-[#f1f3f5]">Configure Environment Keys</h2>
+                <p className="text-slate-700 dark:text-slate-400 text-xs leading-relaxed font-semibold">
                   Inject parameters and secrets dynamically into your build runs securely. Keys are encrypted at-rest using AES-256.
                 </p>
               </div>
@@ -1114,7 +1037,7 @@ export default function Dashboard() {
                   <select
                     value={newEnvProject}
                     onChange={(e) => setNewEnvProject(e.target.value)}
-                    className="bg-white/75 focus:bg-white border border-white/90 focus:border-blue-500 rounded-xl px-4 py-2.5 text-xs text-slate-900 font-semibold focus:outline-none w-full cursor-pointer shadow-2xs"
+                    className="bg-white/75 focus:bg-white dark:bg-[#12151a] dark:focus:bg-[#12151a] border border-white/90 dark:border-[#282d37] focus:border-blue-500 rounded-xl px-4 py-2.5 text-xs text-slate-900 dark:text-[#f1f3f5] font-semibold focus:outline-none w-full cursor-pointer shadow-2xs"
                   >
                     {projects.length === 0 ? (
                       <option value="">No projects available</option>
@@ -1133,7 +1056,7 @@ export default function Dashboard() {
                     placeholder="API_KEY_NAME"
                     value={newEnvKey}
                     onChange={(e) => setNewEnvKey(e.target.value)}
-                    className="bg-white/75 focus:bg-white border border-white/90 focus:border-blue-500 rounded-xl px-4 py-2.5 text-xs text-slate-900 placeholder:text-slate-400 focus:outline-none w-full font-mono uppercase shadow-2xs"
+                    className="bg-white/75 focus:bg-white dark:bg-[#12151a] dark:focus:bg-[#12151a] border border-white/90 dark:border-[#282d37] focus:border-blue-500 rounded-xl px-4 py-2.5 text-xs text-slate-900 dark:text-[#f1f3f5] placeholder:text-slate-400 dark:placeholder:text-slate-500 focus:outline-none w-full font-mono uppercase shadow-2xs"
                   />
                 </div>
 
@@ -1144,7 +1067,7 @@ export default function Dashboard() {
                     placeholder="secret_parameter_value"
                     value={newEnvValue}
                     onChange={(e) => setNewEnvValue(e.target.value)}
-                    className="bg-white/75 focus:bg-white border border-white/90 focus:border-blue-500 rounded-xl px-4 py-2.5 text-xs text-slate-900 placeholder:text-slate-400 focus:outline-none w-full font-mono shadow-2xs"
+                    className="bg-white/75 focus:bg-white dark:bg-[#12151a] dark:focus:bg-[#12151a] border border-white/90 dark:border-[#282d37] focus:border-blue-500 rounded-xl px-4 py-2.5 text-xs text-slate-900 dark:text-[#f1f3f5] placeholder:text-slate-400 dark:placeholder:text-slate-500 focus:outline-none w-full font-mono shadow-2xs"
                   />
                 </div>
 
@@ -1159,34 +1082,34 @@ export default function Dashboard() {
               </form>
             </div>
 
-            <div className="backdrop-blur-2xl bg-white/60 border border-white/90 rounded-3xl overflow-hidden shadow-xl shadow-sky-950/10">
-              <div className="px-6 py-4 border-b border-slate-200/80 bg-white/40">
-                <h3 className="text-xs font-bold text-slate-700 uppercase tracking-wider">Configured Credentials Matrix</h3>
+            <div className="backdrop-blur-2xl bg-white/60 dark:bg-[#16191f]/80 border border-white/90 dark:border-[#282d37] rounded-3xl overflow-hidden shadow-xl shadow-sky-950/10 dark:shadow-none">
+              <div className="px-6 py-4 border-b border-slate-200/80 dark:border-[#282d37] bg-white/40 dark:bg-[#12151a]/60">
+                <h3 className="text-xs font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider">Configured Credentials Matrix</h3>
               </div>
 
-              <div className="divide-y divide-slate-200/80">
+              <div className="divide-y divide-slate-200/80 dark:divide-[#282d37]">
                 {envVars.length === 0 ? (
-                  <div className="text-center py-12 px-4 space-y-1 text-slate-500">
-                    <p className="text-xs font-bold text-slate-700">No environment keys defined yet</p>
-                    <p className="text-[11px] font-medium text-slate-500">Add secure key-value pairs above for your project configurations.</p>
+                  <div className="text-center py-12 px-4 space-y-1 text-slate-500 dark:text-slate-400">
+                    <p className="text-xs font-bold text-slate-700 dark:text-slate-300">No environment keys defined yet</p>
+                    <p className="text-[11px] font-medium text-slate-500 dark:text-slate-400">Add secure key-value pairs above for your project configurations.</p>
                   </div>
                 ) : (
                   envVars.map((ev) => (
-                    <div key={ev.id} className="p-5 flex flex-col md:flex-row md:items-center justify-between gap-4 hover:bg-white/40 transition-colors">
+                    <div key={ev.id} className="p-5 flex flex-col md:flex-row md:items-center justify-between gap-4 hover:bg-white/40 dark:hover:bg-[#1e222b]/40 transition-colors">
                       <div className="space-y-1">
                         <div className="flex items-center gap-2">
-                          <code className="text-xs font-extrabold text-blue-700 font-mono">{ev.key}</code>
-                          <span className="text-[10px] bg-slate-100 text-slate-700 border border-slate-200 px-2 py-0.5 rounded font-bold">
+                          <code className="text-xs font-extrabold text-blue-700 dark:text-blue-400 font-mono">{ev.key}</code>
+                          <span className="text-[10px] bg-slate-100 dark:bg-[#12151a] text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-[#282d37] px-2 py-0.5 rounded font-bold">
                             {ev.project}
                           </span>
                         </div>
-                        <code className="text-xs text-slate-600 font-mono block select-all">{ev.value}</code>
+                        <code className="text-xs text-slate-600 dark:text-slate-400 font-mono block select-all">{ev.value}</code>
                       </div>
 
                       <button
                         type="button"
                         onClick={() => handleDeleteEnvVar(ev.id)}
-                        className="p-2 text-slate-400 hover:text-red-600 rounded-xl border border-white/90 bg-white/60 hover:bg-white transition-all shadow-2xs flex items-center justify-center cursor-pointer"
+                        className="p-2 text-slate-400 dark:text-slate-400 hover:text-red-600 dark:hover:text-red-400 rounded-xl border border-white/90 dark:border-[#282d37] bg-white/60 dark:bg-[#1e222b] hover:bg-white dark:hover:bg-[#282d37] transition-all shadow-2xs flex items-center justify-center cursor-pointer"
                         aria-label="Delete key"
                       >
                         <Trash className="w-4 h-4" />
@@ -1210,14 +1133,14 @@ export default function Dashboard() {
       />
 
       {isConnectModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/40 backdrop-blur-md animate-fade-in">
-          <div className="bg-white/90 backdrop-blur-2xl border border-white/90 rounded-3xl p-6 sm:p-8 w-full max-w-xl shadow-2xl shadow-sky-950/20 space-y-6 motion-safe:animate-fade-in-up">
-            <div className="flex justify-between items-center border-b border-slate-200/80 pb-4">
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/40 dark:bg-black/60 backdrop-blur-md animate-fade-in">
+          <div className="bg-white/95 dark:bg-[#16191f] backdrop-blur-2xl border border-white/90 dark:border-[#282d37] rounded-3xl p-6 sm:p-8 w-full max-w-xl shadow-2xl shadow-sky-950/20 dark:shadow-none space-y-6 motion-safe:animate-fade-in-up">
+            <div className="flex justify-between items-center border-b border-slate-200/80 dark:border-[#282d37] pb-4">
               <div className="space-y-0.5">
-                <h3 className="font-extrabold text-lg text-slate-900">
+                <h3 className="font-extrabold text-lg text-slate-900 dark:text-[#f1f3f5]">
                   Connect GitHub Repository
                 </h3>
-                <p className="text-xs text-slate-600 font-semibold">Select a repository to import into CloudForge</p>
+                <p className="text-xs text-slate-600 dark:text-slate-400 font-semibold">Select a repository to import into HAVN</p>
               </div>
               <button
                 type="button"
@@ -1228,14 +1151,14 @@ export default function Dashboard() {
                   setBranches([]);
                   setConnectModalError(null);
                 }}
-                className="p-2 text-slate-400 hover:text-slate-600 rounded-xl hover:bg-white/80 transition-all cursor-pointer"
+                className="p-2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 rounded-xl hover:bg-white/80 dark:hover:bg-[#1e222b] transition-all cursor-pointer"
               >
                 ✕
               </button>
             </div>
 
             {connectModalError && (
-              <div className="p-3 bg-red-50 border border-red-200 rounded-xl text-xs text-red-700 font-semibold flex items-center justify-between">
+              <div className="p-3 bg-red-50 dark:bg-red-950/40 border border-red-200 dark:border-red-900/50 rounded-xl text-xs text-red-700 dark:text-red-400 font-semibold flex items-center justify-between">
                 <span>{connectModalError}</span>
                 <button type="button" onClick={() => setConnectModalError(null)} className="text-red-500 hover:text-red-700">✕</button>
               </div>
@@ -1244,46 +1167,46 @@ export default function Dashboard() {
             {!selectedRepo ? (
               <>
                 <div className="relative">
-                  <Search className="w-4 h-4 absolute left-3.5 top-3 text-slate-400" />
+                  <Search className="w-4 h-4 absolute left-3.5 top-3 text-slate-400 dark:text-slate-500" />
                   <input
                     type="text"
                     placeholder="Filter repositories..."
                     value={searchRepoQuery}
                     onChange={(e) => setSearchRepoQuery(e.target.value)}
-                    className="w-full bg-white/75 border border-slate-200 focus:border-blue-500 rounded-xl pl-10 pr-4 py-2.5 text-xs font-semibold text-slate-900 outline-none"
+                    className="w-full bg-white/75 dark:bg-[#12151a] border border-slate-200 dark:border-[#282d37] focus:border-blue-500 dark:focus:border-blue-500 rounded-xl pl-10 pr-4 py-2.5 text-xs font-semibold text-slate-900 dark:text-[#f1f3f5] placeholder:text-slate-400 dark:placeholder:text-slate-500 outline-none"
                   />
                 </div>
 
                 {loadingRepos ? (
                   <div className="text-center py-12 space-y-2">
-                    <RefreshCw className="w-6 h-6 animate-spin text-blue-600 mx-auto" />
-                    <p className="text-xs font-bold text-slate-600">Loading GitHub repositories...</p>
+                    <RefreshCw className="w-6 h-6 animate-spin text-blue-600 dark:text-blue-400 mx-auto" />
+                    <p className="text-xs font-bold text-slate-600 dark:text-slate-400">Loading GitHub repositories...</p>
                   </div>
                 ) : repoError ? (
-                  <div className="p-4 bg-red-50 border border-red-200 rounded-2xl space-y-2 text-center">
-                    <p className="text-xs text-red-700 font-bold">{repoError}</p>
+                  <div className="p-4 bg-red-50 dark:bg-red-950/40 border border-red-200 dark:border-red-900/50 rounded-2xl space-y-2 text-center">
+                    <p className="text-xs text-red-700 dark:text-red-400 font-bold">{repoError}</p>
                     {requiresReconnect && (
                       <button
                         type="button"
                         onClick={handleConnectGithubOAuth}
-                        className="px-4 py-1.5 bg-slate-900 text-white rounded-xl text-xs font-bold"
+                        className="px-4 py-1.5 bg-slate-900 dark:bg-[#1e222b] text-white rounded-xl text-xs font-bold border dark:border-[#282d37]"
                       >
                         Reconnect GitHub
                       </button>
                     )}
                   </div>
                 ) : (
-                  <div className="max-h-64 overflow-y-auto divide-y divide-slate-100 rounded-2xl border border-slate-200/80 bg-white/60">
+                  <div className="max-h-64 overflow-y-auto divide-y divide-slate-100 dark:divide-[#282d37] rounded-2xl border border-slate-200/80 dark:border-[#282d37] bg-white/60 dark:bg-[#12151a]/80">
                     {githubRepos
                       .filter((r) => r.fullName.toLowerCase().includes(searchRepoQuery.toLowerCase()))
                       .map((repo) => (
                         <div
                           key={repo.id}
-                          className="p-3.5 flex items-center justify-between hover:bg-white/80 transition-colors"
+                          className="p-3.5 flex items-center justify-between hover:bg-white/80 dark:hover:bg-[#1e222b]/80 transition-colors"
                         >
                           <div className="space-y-0.5 truncate max-w-sm">
-                            <span className="text-xs font-extrabold text-slate-900 block truncate">{repo.fullName}</span>
-                            <span className="text-[11px] text-slate-500 font-medium truncate block">
+                            <span className="text-xs font-extrabold text-slate-900 dark:text-[#f1f3f5] block truncate">{repo.fullName}</span>
+                            <span className="text-[11px] text-slate-500 dark:text-slate-400 font-medium truncate block">
                               {repo.description || 'No description provided'}
                             </span>
                           </div>
@@ -1301,9 +1224,9 @@ export default function Dashboard() {
               </>
             ) : (
               <div className="space-y-4">
-                <div className="bg-slate-50 border border-slate-200 rounded-2xl p-4 space-y-2">
+                <div className="bg-slate-50 dark:bg-[#12151a] border border-slate-200 dark:border-[#282d37] rounded-2xl p-4 space-y-2">
                   <div className="flex items-center justify-between">
-                    <span className="text-xs font-extrabold text-slate-900">{selectedRepo.fullName}</span>
+                    <span className="text-xs font-extrabold text-slate-900 dark:text-[#f1f3f5]">{selectedRepo.fullName}</span>
                     <button
                       type="button"
                       onClick={() => {
@@ -1311,33 +1234,33 @@ export default function Dashboard() {
                         setSelectedBranch('');
                         setBranches([]);
                       }}
-                      className="text-xs text-blue-600 font-bold hover:underline cursor-pointer"
+                      className="text-xs text-blue-600 dark:text-blue-400 font-bold hover:underline cursor-pointer"
                     >
                       Change Repo
                     </button>
                   </div>
-                  <p className="text-[11px] text-slate-600 font-medium">
+                  <p className="text-[11px] text-slate-600 dark:text-slate-400 font-medium">
                     {selectedRepo.description || 'No description provided.'}
                   </p>
                 </div>
 
                 <div className="space-y-1.5">
-                  <label className="block text-xs font-bold text-slate-700">
+                  <label className="block text-xs font-bold text-slate-700 dark:text-slate-300">
                     Select Target Branch
                   </label>
                   {loadingBranches ? (
-                    <div className="flex items-center gap-2 text-xs text-slate-500 p-2.5 bg-white border border-slate-200 rounded-xl">
-                      <RefreshCw className="w-3.5 h-3.5 animate-spin text-blue-600" /> Fetching branches...
+                    <div className="flex items-center gap-2 text-xs text-slate-500 dark:text-slate-400 p-2.5 bg-white dark:bg-[#12151a] border border-slate-200 dark:border-[#282d37] rounded-xl">
+                      <RefreshCw className="w-3.5 h-3.5 animate-spin text-blue-600 dark:text-blue-400" /> Fetching branches...
                     </div>
                   ) : branchError ? (
-                    <div className="p-3 bg-red-50 border border-red-200 rounded-xl text-xs text-red-700 font-bold">
+                    <div className="p-3 bg-red-50 dark:bg-red-950/40 border border-red-200 dark:border-red-900/50 rounded-xl text-xs text-red-700 dark:text-red-400 font-bold">
                       {branchError}
                     </div>
                   ) : (
                     <select
                       value={selectedBranch}
                       onChange={(e) => setSelectedBranch(e.target.value)}
-                      className="w-full bg-white border border-slate-200 focus:border-blue-500 rounded-xl px-3.5 py-2.5 text-xs font-semibold text-slate-900 outline-none cursor-pointer"
+                      className="w-full bg-white dark:bg-[#12151a] border border-slate-200 dark:border-[#282d37] focus:border-blue-500 rounded-xl px-3.5 py-2.5 text-xs font-semibold text-slate-900 dark:text-[#f1f3f5] outline-none cursor-pointer"
                     >
                       {branches.map((b) => (
                         <option key={b.name} value={b.name}>
@@ -1355,7 +1278,7 @@ export default function Dashboard() {
                       setSelectedRepo(null);
                       setSelectedBranch('');
                     }}
-                    className="px-4 py-2 text-xs font-bold text-slate-600 hover:text-slate-900 rounded-xl border border-slate-200 cursor-pointer"
+                    className="px-4 py-2 text-xs font-bold text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white rounded-xl border border-slate-200 dark:border-[#282d37] hover:bg-slate-100 dark:hover:bg-[#1e222b] cursor-pointer"
                   >
                     Back
                   </button>

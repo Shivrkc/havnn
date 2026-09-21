@@ -53,19 +53,19 @@ export default function VerifyEmail() {
   }, [searchParams]);
 
   return (
-    <main className="min-h-screen flex items-center justify-center bg-gradient-to-b from-sky-50 via-white to-sky-100 px-6">
-      <div className="w-full max-w-md rounded-3xl border border-white/80 bg-white/70 backdrop-blur-2xl shadow-2xl p-8 text-center">
+    <main className="min-h-screen flex items-center justify-center bg-[var(--color-background)] px-6 selection:bg-blue-600/30 selection:text-white">
+      <div className="w-full max-w-md rounded-3xl border border-white/80 dark:border-[#282d37] bg-white/70 dark:bg-[#16191f]/90 backdrop-blur-2xl shadow-2xl dark:shadow-black/60 p-8 text-center">
 
         {/* Loading */}
         {status === "loading" && (
           <>
-            <Loader2 className="w-12 h-12 mx-auto text-blue-600 animate-spin" />
+            <Loader2 className="w-12 h-12 mx-auto text-blue-600 dark:text-blue-400 animate-spin" />
 
-            <h1 className="mt-6 text-2xl font-extrabold text-slate-900">
+            <h1 className="mt-6 text-2xl font-extrabold text-slate-900 dark:text-[#f1f3f5]">
               Verifying your email
             </h1>
 
-            <p className="mt-3 text-sm text-slate-600">
+            <p className="mt-3 text-sm text-slate-600 dark:text-slate-400">
               Please wait while we verify your email address.
             </p>
           </>
@@ -74,20 +74,20 @@ export default function VerifyEmail() {
         {/* Success */}
         {status === "success" && (
           <>
-            <CheckCircle className="w-14 h-14 mx-auto text-green-600" />
+            <CheckCircle className="w-14 h-14 mx-auto text-emerald-500" />
 
-            <h1 className="mt-6 text-2xl font-extrabold text-slate-900">
+            <h1 className="mt-6 text-2xl font-extrabold text-slate-900 dark:text-[#f1f3f5]">
               Email verified!
             </h1>
 
-            <p className="mt-3 text-sm text-slate-600">
+            <p className="mt-3 text-sm text-slate-600 dark:text-slate-400">
               {message}
             </p>
 
             <button
               type="button"
               onClick={() => navigate(ROUTES.LOGIN)}
-              className="mt-7 w-full bg-gradient-to-r from-blue-600 to-indigo-600 text-white font-bold text-sm py-3 rounded-xl shadow-lg shadow-blue-600/30 hover:opacity-95 transition-all cursor-pointer"
+              className="mt-7 w-full bg-blue-600 hover:bg-blue-500 text-white font-bold text-sm py-3 rounded-xl shadow-lg shadow-blue-600/30 hover:shadow-xl hover:shadow-blue-600/40 transition-all cursor-pointer"
             >
               Go to Login
             </button>
@@ -99,18 +99,18 @@ export default function VerifyEmail() {
           <>
             <XCircle className="w-14 h-14 mx-auto text-red-500" />
 
-            <h1 className="mt-6 text-2xl font-extrabold text-slate-900">
+            <h1 className="mt-6 text-2xl font-extrabold text-slate-900 dark:text-[#f1f3f5]">
               Verification failed
             </h1>
 
-            <p className="mt-3 text-sm text-slate-600">
+            <p className="mt-3 text-sm text-slate-600 dark:text-slate-400">
               {message}
             </p>
 
             <button
               type="button"
               onClick={() => navigate(ROUTES.LOGIN)}
-              className="mt-7 w-full bg-slate-900 text-white font-bold text-sm py-3 rounded-xl hover:opacity-90 transition-all cursor-pointer"
+              className="mt-7 w-full bg-slate-900 dark:bg-[#1e222b] hover:bg-slate-800 dark:hover:bg-[#252a35] text-white font-bold text-sm py-3 rounded-xl border border-transparent dark:border-[#282d37] transition-all cursor-pointer"
             >
               Go to Login
             </button>

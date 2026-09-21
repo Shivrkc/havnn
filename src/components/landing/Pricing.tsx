@@ -3,6 +3,7 @@ import { Check, Info, Sparkles } from 'lucide-react';
 import { PRICING_PLANS } from '../../data/mockData';
 import { useNavigate } from 'react-router-dom';
 import { ROUTES } from '../../constants/routes';
+import { useTheme } from '../../context/ThemeContext';
 
 // Translucent Glass Pricing Card with Interactive Mouse Tilt
 function GlassPricingCard({
@@ -70,13 +71,13 @@ function GlassPricingCard({
       }}
       className={`relative backdrop-blur-xl rounded-3xl p-8 flex flex-col justify-between transition-all duration-300 cursor-pointer motion-safe:animate-fade-in-up ${
         isPopular
-          ? 'bg-white/60 border-2 border-blue-500 shadow-xl shadow-blue-600/15 md:-translate-y-2 overflow-visible'
-          : 'bg-white/40 hover:bg-white/60 border border-white/60 hover:border-white/90 shadow-lg shadow-sky-900/5 hover:shadow-xl hover:shadow-blue-600/10 overflow-hidden'
+          ? 'bg-white/60 dark:bg-[#16191f]/90 border-2 border-blue-500 shadow-xl shadow-blue-600/15 md:-translate-y-2 overflow-visible'
+          : 'bg-white/40 hover:bg-white/60 dark:bg-[#16191f]/80 dark:hover:bg-[#1e222b]/90 border border-white/60 hover:border-white/90 dark:border-[#282d37] dark:hover:border-[#374151] shadow-lg shadow-sky-900/5 dark:shadow-black/30 hover:shadow-xl hover:shadow-blue-600/10 overflow-hidden'
       }`}
     >
       {/* Light Reflection Glow Container */}
       <div className="absolute inset-0 rounded-3xl overflow-hidden pointer-events-none z-0">
-        <div className="absolute -top-20 -left-20 w-40 h-40 bg-white/40 blur-xl rounded-full group-hover:translate-x-10 group-hover:translate-y-10 transition-transform duration-700 ease-out" />
+        <div className="absolute -top-20 -left-20 w-40 h-40 bg-white/40 dark:bg-white/5 blur-xl rounded-full group-hover:translate-x-10 group-hover:translate-y-10 transition-transform duration-700 ease-out" />
       </div>
 
       {/* Refined & Unclipped Popular Badge */}
@@ -88,34 +89,34 @@ function GlassPricingCard({
 
       <div className="space-y-6 text-left relative z-10">
         <div className="space-y-2 pt-1">
-          <h3 className="text-2xl font-bold text-slate-900">{plan.name}</h3>
-          <p className="text-xs text-slate-600 leading-relaxed min-h-[40px] font-normal pr-4">
+          <h3 className="text-2xl font-bold text-slate-900 dark:text-white">{plan.name}</h3>
+          <p className="text-xs text-slate-600 dark:text-slate-300 leading-relaxed min-h-[40px] font-normal pr-4">
             {plan.description}
           </p>
         </div>
 
         {/* Pricing Display */}
-        <div className="flex items-baseline gap-1.5 py-4 border-b border-slate-200/60">
-          <span className="text-4xl sm:text-5xl font-black text-slate-900 tracking-tight">
+        <div className="flex items-baseline gap-1.5 py-4 border-b border-slate-200/60 dark:border-slate-800">
+          <span className="text-4xl sm:text-5xl font-black text-slate-900 dark:text-white tracking-tight">
             ₹{getPrice()}
           </span>
-          <span className="text-xs text-slate-500 font-semibold">/ month</span>
+          <span className="text-xs text-slate-500 dark:text-slate-400 font-semibold">/ month</span>
         </div>
 
         {/* Feature Checklist */}
-        <ul className="space-y-3.5 text-xs text-slate-700 font-medium">
+        <ul className="space-y-3.5 text-xs text-slate-700 dark:text-slate-300 font-medium">
           {plan.features.map((feature: string, idx: number) => (
             <li key={idx} className="flex items-start gap-3">
               <div
                 className={`p-0.5 rounded-full mt-0.5 flex-shrink-0 ${
                   isPopular
                     ? 'bg-blue-600 text-white'
-                    : 'bg-blue-600/10 text-blue-600 border border-blue-200'
+                    : 'bg-blue-600/10 dark:bg-blue-500/20 text-blue-600 dark:text-blue-400 border border-blue-200 dark:border-blue-800/60'
                 }`}
               >
                 <Check className="w-3.5 h-3.5" />
               </div>
-              <span className="leading-tight text-slate-700">{feature}</span>
+              <span className="leading-tight text-slate-700 dark:text-slate-300">{feature}</span>
             </li>
           ))}
         </ul>
@@ -128,12 +129,12 @@ function GlassPricingCard({
           className={`w-full py-3.5 px-4 rounded-xl font-bold text-sm transition-all duration-200 cursor-pointer ${
             isPopular
               ? 'bg-blue-600 hover:bg-blue-700 text-white shadow-md shadow-blue-600/20 active:scale-95'
-              : 'bg-white/60 border border-white/80 hover:bg-white/90 text-slate-900 shadow-2xs active:scale-95'
+              : 'bg-white/60 dark:bg-slate-800/80 border border-white/80 dark:border-slate-700 hover:bg-white/90 dark:hover:bg-slate-700 text-slate-900 dark:text-white shadow-2xs active:scale-95'
           }`}
         >
           {plan.cta}
         </button>
-        <p className="text-[10px] text-slate-500 font-mono text-center font-medium">
+        <p className="text-xs text-slate-500 dark:text-slate-400 text-center font-medium">
           {plan.id === 'hobby' ? 'No credit card required' : 'Cancel anytime, instantly'}
         </p>
       </div>
@@ -142,6 +143,7 @@ function GlassPricingCard({
 }
 
 export default function Pricing() {
+  const { theme } = useTheme();
   const navigate = useNavigate();
   const [billingCycle, setBillingCycle] = useState<'monthly' | 'annually'>('monthly');
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
@@ -187,15 +189,22 @@ export default function Pricing() {
     }));
 
     const speed = 0.0005;
+    const isDark = theme === 'dark';
 
     const render = () => {
       ctx.clearRect(0, 0, width, height);
 
       // Sky gradient continuation
       const skyGrad = ctx.createLinearGradient(0, 0, 0, height);
-      skyGrad.addColorStop(0, '#f0f9ff'); // Top transition matching bottom of Features
-      skyGrad.addColorStop(0.5, '#bae6fd');
-      skyGrad.addColorStop(1, '#e0f2fe');
+      if (isDark) {
+        skyGrad.addColorStop(0, '#0d0f12');
+        skyGrad.addColorStop(0.5, '#14171d');
+        skyGrad.addColorStop(1, '#0d0f12');
+      } else {
+        skyGrad.addColorStop(0, '#f0f9ff'); // Top transition matching bottom of Features
+        skyGrad.addColorStop(0.5, '#bae6fd');
+        skyGrad.addColorStop(1, '#e0f2fe');
+      }
       ctx.fillStyle = skyGrad;
       ctx.fillRect(0, 0, width, height);
 
@@ -224,9 +233,15 @@ export default function Pricing() {
           currentRadius
         );
 
-        cloudGlow.addColorStop(0, `rgba(255, 255, 255, ${currentOpacity})`);
-        cloudGlow.addColorStop(0.6, `rgba(241, 245, 249, ${currentOpacity * 0.8})`);
-        cloudGlow.addColorStop(1, 'rgba(203, 213, 225, 0)');
+        if (isDark) {
+          cloudGlow.addColorStop(0, `rgba(191, 196, 207, ${currentOpacity * 0.45})`);
+          cloudGlow.addColorStop(0.6, `rgba(35, 39, 48, ${currentOpacity * 0.3})`);
+          cloudGlow.addColorStop(1, 'rgba(13, 15, 18, 0)');
+        } else {
+          cloudGlow.addColorStop(0, `rgba(255, 255, 255, ${currentOpacity})`);
+          cloudGlow.addColorStop(0.6, `rgba(241, 245, 249, ${currentOpacity * 0.8})`);
+          cloudGlow.addColorStop(1, 'rgba(203, 213, 225, 0)');
+        }
 
         ctx.beginPath();
         ctx.fillStyle = cloudGlow;
@@ -243,10 +258,10 @@ export default function Pricing() {
       cancelAnimationFrame(animationFrameId);
       window.removeEventListener('resize', handleResize);
     };
-  }, []);
+  }, [theme]);
 
   return (
-    <section id="pricing" className="py-28 relative overflow-hidden text-slate-900 selection:bg-sky-200">
+    <section id="pricing" className="py-28 relative overflow-hidden text-slate-900 dark:text-white selection:bg-sky-200">
       
       {/* Background Canvas extending cloud environment */}
       <canvas
@@ -258,28 +273,28 @@ export default function Pricing() {
         
         {/* Header content block */}
         <div className="text-center max-w-3xl mx-auto space-y-4">
-          <div className="inline-flex items-center gap-2 backdrop-blur-md bg-white/50 border border-white/80 rounded-full px-4 py-1.5 text-xs text-blue-900 font-bold shadow-xs">
-            <Sparkles className="w-3.5 h-3.5 text-blue-600" />
+          <div className="inline-flex items-center gap-2 backdrop-blur-md bg-white/50 dark:bg-slate-900/60 border border-white/80 dark:border-white/15 rounded-full px-4 py-1.5 text-xs text-blue-900 dark:text-blue-300 font-bold shadow-xs">
+            <Sparkles className="w-3.5 h-3.5 text-blue-600 dark:text-blue-400" />
             <span>FLEXIBLE SCALE INFRASTRUCTURE</span>
           </div>
 
-          <h2 className="text-4xl sm:text-5xl font-extrabold text-slate-900 tracking-tight leading-tight">
+          <h2 className="text-4xl sm:text-5xl font-extrabold text-slate-900 dark:text-white tracking-tight leading-tight">
             Predictable resource bounds.
           </h2>
-          <p className="text-slate-600 text-base sm:text-lg leading-relaxed max-w-2xl mx-auto font-normal">
+          <p className="text-slate-600 dark:text-slate-300 text-base sm:text-lg leading-relaxed max-w-2xl mx-auto font-normal">
             From isolated testing hobby microenvironments to production global routing layers, lock down transparent cloud spending with zero surprise adjustments.
           </p>
           
           {/* Monthly / Annual Billing Selector */}
           <div className="pt-3 flex justify-center">
-            <div className="inline-flex items-center p-1.5 bg-white/40 border border-white/70 rounded-full backdrop-blur-xl shadow-xs">
+            <div className="inline-flex items-center p-1.5 bg-white/40 dark:bg-slate-900/60 border border-white/70 dark:border-white/15 rounded-full backdrop-blur-xl shadow-xs">
               <button
                 type="button"
                 onClick={() => setBillingCycle('monthly')}
                 className={`text-xs px-5 py-2 font-bold rounded-full transition-all duration-200 cursor-pointer ${
                   billingCycle === 'monthly' 
                     ? 'bg-blue-600 text-white shadow-md' 
-                    : 'text-slate-600 hover:text-slate-900'
+                    : 'text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white'
                 }`}
               >
                 Monthly billing
@@ -290,12 +305,12 @@ export default function Pricing() {
                 className={`text-xs px-5 py-2 font-bold rounded-full transition-all duration-200 flex items-center gap-2 cursor-pointer ${
                   billingCycle === 'annually' 
                     ? 'bg-blue-600 text-white shadow-md' 
-                    : 'text-slate-600 hover:text-slate-900'
+                    : 'text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white'
                 }`}
               >
-                <span>Annually save 20%</span>
-                <span className="bg-emerald-100 text-emerald-800 border border-emerald-200 text-[9px] px-1.5 py-0.5 rounded-full font-extrabold uppercase">
-                  Save
+                <span>Annually</span>
+                <span className="bg-emerald-100 dark:bg-emerald-950/60 text-emerald-800 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-800/60 text-[9px] px-1.5 py-0.5 rounded-full font-extrabold uppercase">
+                  Save 20%
                 </span>
               </button>
             </div>
@@ -316,11 +331,11 @@ export default function Pricing() {
         </div>
 
         {/* Enterprise Glass Banner */}
-        <div className="backdrop-blur-xl bg-white/40 border border-white/70 max-w-4xl mx-auto rounded-2xl p-5 flex items-start gap-4 shadow-lg shadow-sky-900/5">
-          <div className="p-2 rounded-xl bg-blue-600/10 border border-blue-200 text-blue-600 flex-shrink-0 mt-0.5">
+        <div className="backdrop-blur-xl bg-white/40 dark:bg-slate-900/50 border border-white/70 dark:border-white/15 max-w-4xl mx-auto rounded-2xl p-5 flex items-start gap-4 shadow-lg shadow-sky-900/5 dark:shadow-black/20">
+          <div className="p-2 rounded-xl bg-blue-600/10 dark:bg-blue-500/20 border border-blue-200 dark:border-blue-800/60 text-blue-600 dark:text-blue-400 flex-shrink-0 mt-0.5">
             <Info className="w-4 h-4" />
           </div>
-          <p className="text-xs text-slate-700 leading-relaxed text-left font-medium">
+          <p className="text-xs text-slate-700 dark:text-slate-300 leading-relaxed text-left font-medium">
             Need a custom deployment layout or looking to migrate a high-volume application? We offer customized micro-vms, dedicated VPC clusters, and custom data processing parameters.{' '}
             <a
               href="#contact"
@@ -328,7 +343,7 @@ export default function Pricing() {
                 e.preventDefault();
                 navigate(ROUTES.SIGNUP);
               }}
-              className="text-blue-600 hover:text-blue-700 font-bold underline underline-offset-4 decoration-blue-500/30 hover:decoration-blue-600 transition-colors"
+              className="text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 font-bold underline underline-offset-4 decoration-blue-500/30 hover:decoration-blue-600 transition-colors"
             >
               Contact Enterprise Sales
             </a>

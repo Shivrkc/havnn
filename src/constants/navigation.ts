@@ -4,8 +4,8 @@ export const NAVIGATION = [
       href: "#features",
     },
     {
-      label: "Pricing",
-      href: "#pricing",
+      label: "Why Choose Us",
+      href: "#why-choose-us",
     },
     {
       label: "FAQ",

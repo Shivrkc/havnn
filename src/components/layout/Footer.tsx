@@ -3,8 +3,10 @@ import { Github, Twitter, Disc as Discord } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { ROUTES } from '../../constants/routes';
 import Logo from '../ui/Logo';
+import { useTheme } from '../../context/ThemeContext';
 
 export default function Footer() {
+  const { theme } = useTheme();
   const navigate = useNavigate();
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
 
@@ -42,15 +44,22 @@ export default function Footer() {
     }));
 
     const speed = 0.0003;
+    const isDark = theme === 'dark';
 
     const render = () => {
       ctx.clearRect(0, 0, width, height);
 
       // Sky gradient continuation matching bottom of FAQ
       const skyGrad = ctx.createLinearGradient(0, 0, 0, height);
-      skyGrad.addColorStop(0, '#f0f9ff'); // Smooth sky transition
-      skyGrad.addColorStop(0.6, '#bae6fd');
-      skyGrad.addColorStop(1, '#e0f2fe');
+      if (isDark) {
+        skyGrad.addColorStop(0, '#0d0f12');
+        skyGrad.addColorStop(0.5, '#14171d');
+        skyGrad.addColorStop(1, '#0d0f12');
+      } else {
+        skyGrad.addColorStop(0, '#f0f9ff'); // Smooth sky transition
+        skyGrad.addColorStop(0.6, '#bae6fd');
+        skyGrad.addColorStop(1, '#e0f2fe');
+      }
       ctx.fillStyle = skyGrad;
       ctx.fillRect(0, 0, width, height);
 
@@ -79,9 +88,15 @@ export default function Footer() {
           currentRadius
         );
 
-        cloudGlow.addColorStop(0, `rgba(255, 255, 255, ${currentOpacity})`);
-        cloudGlow.addColorStop(0.6, `rgba(241, 245, 249, ${currentOpacity * 0.8})`);
-        cloudGlow.addColorStop(1, 'rgba(203, 213, 225, 0)');
+        if (isDark) {
+          cloudGlow.addColorStop(0, `rgba(191, 196, 207, ${currentOpacity * 0.45})`);
+          cloudGlow.addColorStop(0.6, `rgba(35, 39, 48, ${currentOpacity * 0.3})`);
+          cloudGlow.addColorStop(1, 'rgba(13, 15, 18, 0)');
+        } else {
+          cloudGlow.addColorStop(0, `rgba(255, 255, 255, ${currentOpacity})`);
+          cloudGlow.addColorStop(0.6, `rgba(241, 245, 249, ${currentOpacity * 0.8})`);
+          cloudGlow.addColorStop(1, 'rgba(203, 213, 225, 0)');
+        }
 
         ctx.beginPath();
         ctx.fillStyle = cloudGlow;
@@ -98,10 +113,10 @@ export default function Footer() {
       cancelAnimationFrame(animationFrameId);
       window.removeEventListener('resize', handleResize);
     };
-  }, []);
+  }, [theme]);
 
   return (
-    <footer className="pt-16 pb-12 text-slate-700 text-xs relative overflow-hidden font-sans border-t border-white/60 selection:bg-sky-200">
+    <footer className="relative pt-12 pb-16 overflow-hidden text-slate-700 dark:text-slate-300">
       
       {/* Background Canvas extending cloud environment */}
       <canvas
@@ -112,8 +127,8 @@ export default function Footer() {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10 space-y-10">
         
         {/* Main Footer Glass Card */}
-        <div className="backdrop-blur-xl bg-white/40 hover:bg-white/50 border border-white/70 rounded-3xl p-8 sm:p-12 shadow-xl shadow-sky-900/5 transition-colors duration-300 motion-safe:animate-fade-in-up">
-          <div className="grid grid-cols-1 md:grid-cols-5 gap-10 pb-10 border-b border-slate-200/60 text-left">
+        <div className="backdrop-blur-xl bg-white/40 hover:bg-white/50 dark:bg-[#16191f]/80 dark:hover:bg-[#1e222b]/90 border border-white/70 dark:border-[#282d37] rounded-3xl p-8 sm:p-12 shadow-xl shadow-sky-900/5 dark:shadow-black/30 transition-colors duration-300 motion-safe:animate-fade-in-up">
+          <div className="grid grid-cols-1 md:grid-cols-5 gap-10 pb-10 border-b border-slate-200/60 dark:border-slate-800 text-left">
             
             {/* Brand Info */}
             <div className="md:col-span-2 space-y-4">
@@ -123,7 +138,7 @@ export default function Footer() {
               >
                 <Logo />
               </div>
-              <p className="text-slate-600 max-w-sm text-xs leading-relaxed font-medium">
+              <p className="text-slate-600 dark:text-slate-300 max-w-sm text-xs leading-relaxed font-medium">
                 HAVN is the developer-centric platform to build, deploy, and scale modern web applications with zero ops friction.
               </p>
               
@@ -134,7 +149,7 @@ export default function Footer() {
                   target="_blank"
                   rel="noopener noreferrer"
                   aria-label="HAVN GitHub Repository"
-                  className="w-9 h-9 rounded-xl bg-white/60 hover:bg-white/90 border border-white/80 flex items-center justify-center text-slate-700 hover:text-blue-600 shadow-2xs hover:shadow-xs transition-all duration-200"
+                  className="w-9 h-9 rounded-xl bg-white/60 hover:bg-white/90 dark:bg-[#1e222b] dark:hover:bg-[#282d37] border border-white/80 dark:border-[#282d37] flex items-center justify-center text-slate-700 dark:text-slate-300 hover:text-blue-600 dark:hover:text-blue-400 shadow-2xs hover:shadow-xs transition-all duration-200"
                 >
                   <Github className="w-4 h-4" />
                 </a>
@@ -143,7 +158,7 @@ export default function Footer() {
                   target="_blank"
                   rel="noopener noreferrer"
                   aria-label="HAVN Twitter Profile"
-                  className="w-9 h-9 rounded-xl bg-white/60 hover:bg-white/90 border border-white/80 flex items-center justify-center text-slate-700 hover:text-blue-600 shadow-2xs hover:shadow-xs transition-all duration-200"
+                  className="w-9 h-9 rounded-xl bg-white/60 hover:bg-white/90 dark:bg-[#1e222b] dark:hover:bg-[#282d37] border border-white/80 dark:border-[#282d37] flex items-center justify-center text-slate-700 dark:text-slate-300 hover:text-blue-600 dark:hover:text-blue-400 shadow-2xs hover:shadow-xs transition-all duration-200"
                 >
                   <Twitter className="w-4 h-4" />
                 </a>
@@ -152,7 +167,7 @@ export default function Footer() {
                   target="_blank"
                   rel="noopener noreferrer"
                   aria-label="HAVN Discord Server"
-                  className="w-9 h-9 rounded-xl bg-white/60 hover:bg-white/90 border border-white/80 flex items-center justify-center text-slate-700 hover:text-blue-600 shadow-2xs hover:shadow-xs transition-all duration-200"
+                  className="w-9 h-9 rounded-xl bg-white/60 hover:bg-white/90 dark:bg-[#1e222b] dark:hover:bg-[#282d37] border border-white/80 dark:border-[#282d37] flex items-center justify-center text-slate-700 dark:text-slate-300 hover:text-blue-600 dark:hover:text-blue-400 shadow-2xs hover:shadow-xs transition-all duration-200"
                 >
                   <Discord className="w-4 h-4" />
                 </a>
@@ -161,21 +176,21 @@ export default function Footer() {
 
             {/* Nav Links Column 1: Product */}
             <div className="space-y-3">
-              <h4 className="text-xs font-bold text-slate-900 uppercase tracking-wider">Product</h4>
+              <h4 className="text-xs font-bold text-slate-900 dark:text-white uppercase tracking-wider">Product</h4>
               <ul className="space-y-2.5 font-medium">
                 <li>
-                  <a href="#features" className="hover:text-blue-600 transition-colors">Features</a>
+                  <a href="#features" className="text-slate-600 dark:text-slate-300 hover:text-blue-600 dark:hover:text-blue-400 transition-colors">Features</a>
                 </li>
                 <li>
-                  <a href="#pricing" className="hover:text-blue-600 transition-colors">Pricing</a>
+                  <a href="#why-choose-us" className="text-slate-600 dark:text-slate-300 hover:text-blue-600 dark:hover:text-blue-400 transition-colors">Why Choose Us</a>
                 </li>
                 <li>
-                  <a href="#faq" className="hover:text-blue-600 transition-colors">FAQ</a>
+                  <a href="#faq" className="text-slate-600 dark:text-slate-300 hover:text-blue-600 dark:hover:text-blue-400 transition-colors">FAQ</a>
                 </li>
                 <li>
                   <button 
                     onClick={() => navigate(ROUTES.DASHBOARD)} 
-                    className="hover:text-blue-600 transition-colors text-left cursor-pointer"
+                    className="text-slate-600 dark:text-slate-300 hover:text-blue-600 dark:hover:text-blue-400 transition-colors text-left cursor-pointer"
                   >
                     Dashboard
                   </button>
@@ -185,20 +200,20 @@ export default function Footer() {
 
             {/* Nav Links Column 2: Resources */}
             <div className="space-y-3">
-              <h4 className="text-xs font-bold text-slate-900 uppercase tracking-wider">Resources</h4>
+              <h4 className="text-xs font-bold text-slate-900 dark:text-white uppercase tracking-wider">Resources</h4>
               <ul className="space-y-2.5 font-medium">
                 <li>
-                  <a href="https://github.com/Shivrkc/cloudforge" target="_blank" rel="noopener noreferrer" className="hover:text-blue-600 transition-colors">
+                  <a href="https://github.com/Shivrkc/cloudforge" target="_blank" rel="noopener noreferrer" className="text-slate-600 dark:text-slate-300 hover:text-blue-600 dark:hover:text-blue-400 transition-colors">
                     Documentation
                   </a>
                 </li>
                 <li>
-                  <a href="https://github.com/Shivrkc/cloudforge" target="_blank" rel="noopener noreferrer" className="hover:text-blue-600 transition-colors">
+                  <a href="https://github.com/Shivrkc/cloudforge" target="_blank" rel="noopener noreferrer" className="text-slate-600 dark:text-slate-300 hover:text-blue-600 dark:hover:text-blue-400 transition-colors">
                     API Reference
                   </a>
                 </li>
                 <li>
-                  <a href="https://github.com/Shivrkc/cloudforge" target="_blank" rel="noopener noreferrer" className="hover:text-blue-600 transition-colors">
+                  <a href="https://github.com/Shivrkc/cloudforge" target="_blank" rel="noopener noreferrer" className="text-slate-600 dark:text-slate-300 hover:text-blue-600 dark:hover:text-blue-400 transition-colors">
                     Status
                   </a>
                 </li>
@@ -207,25 +222,25 @@ export default function Footer() {
 
             {/* Nav Links Column 3: Company */}
             <div className="space-y-3">
-              <h4 className="text-xs font-bold text-slate-900 uppercase tracking-wider">Company</h4>
+              <h4 className="text-xs font-bold text-slate-900 dark:text-white uppercase tracking-wider">Company</h4>
               <ul className="space-y-2.5 font-medium">
                 <li>
-                  <a href="https://github.com/Shivrkc/cloudforge" target="_blank" rel="noopener noreferrer" className="hover:text-blue-600 transition-colors">
+                  <a href="https://github.com/Shivrkc/cloudforge" target="_blank" rel="noopener noreferrer" className="text-slate-600 dark:text-slate-300 hover:text-blue-600 dark:hover:text-blue-400 transition-colors">
                     About Us
                   </a>
                 </li>
                 <li>
-                  <a href="https://github.com/Shivrkc/cloudforge" target="_blank" rel="noopener noreferrer" className="hover:text-blue-600 transition-colors">
+                  <a href="https://github.com/Shivrkc/cloudforge" target="_blank" rel="noopener noreferrer" className="text-slate-600 dark:text-slate-300 hover:text-blue-600 dark:hover:text-blue-400 transition-colors">
                     Blog
                   </a>
                 </li>
                 <li>
-                  <a href="https://github.com/Shivrkc/cloudforge" target="_blank" rel="noopener noreferrer" className="hover:text-blue-600 transition-colors">
+                  <a href="https://github.com/Shivrkc/cloudforge" target="_blank" rel="noopener noreferrer" className="text-slate-600 dark:text-slate-300 hover:text-blue-600 dark:hover:text-blue-400 transition-colors">
                     Privacy Policy
                   </a>
                 </li>
                 <li>
-                  <a href="https://github.com/Shivrkc/cloudforge" target="_blank" rel="noopener noreferrer" className="hover:text-blue-600 transition-colors">
+                  <a href="https://github.com/Shivrkc/cloudforge" target="_blank" rel="noopener noreferrer" className="text-slate-600 dark:text-slate-300 hover:text-blue-600 dark:hover:text-blue-400 transition-colors">
                     Terms of Service
                   </a>
                 </li>
@@ -235,9 +250,9 @@ export default function Footer() {
           </div>
 
           {/* Bottom Bar */}
-          <div className="pt-8 flex flex-col sm:flex-row items-center justify-between gap-4 font-medium text-slate-600">
+          <div className="pt-8 flex flex-col sm:flex-row items-center justify-between gap-4 font-medium text-slate-600 dark:text-slate-400">
             <p>© {new Date().getFullYear()} HAVN Inc. All rights reserved.</p>
-            <p className="text-slate-500">Designed for developers. Built for speed.</p>
+            <p className="text-slate-500 dark:text-slate-400">Designed for developers. Built for speed.</p>
           </div>
         </div>
 

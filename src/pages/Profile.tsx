@@ -13,6 +13,7 @@ import {
   disconnectGithub, 
   GithubStatus 
 } from '../services/github.service';
+import { useCanvasSky } from '../utils/useCanvasSky';
 
 interface UserProfile {
   id: string;
@@ -116,123 +117,7 @@ export default function Profile() {
     }
   }, [searchParams, navigate]);
 
-  // Animated Sky Background Canvas (Preserves HAVN visual theme)
-  useEffect(() => {
-    const canvas = canvasRef.current;
-    if (!canvas) return;
-    const ctx = canvas.getContext('2d');
-    if (!ctx) return;
-
-    let animationFrameId: number;
-    let width = (canvas.width = window.innerWidth);
-    let height = (canvas.height = window.innerHeight);
-    const reduceMotion = typeof window !== 'undefined' && window.matchMedia 
-      ? window.matchMedia('(prefers-reduced-motion: reduce)').matches 
-      : false;
-
-    const handleResize = () => {
-      if (!canvas) return;
-      width = canvas.width = window.innerWidth;
-      height = canvas.height = window.innerHeight;
-      if (reduceMotion) {
-        render();
-      }
-    };
-    window.addEventListener('resize', handleResize);
-
-    const cloudCount = 28;
-    interface CloudPuff {
-      x: number;
-      y: number;
-      z: number;
-      radius: number;
-      opacity: number;
-      driftSpeed: number;
-    }
-
-    const clouds: CloudPuff[] = Array.from({ length: cloudCount }, () => ({
-      x: Math.random() * width,
-      y: height * 0.1 + Math.random() * (height * 0.8),
-      z: Math.random(),
-      radius: 140 + Math.random() * 220,
-      opacity: 0.25 + Math.random() * 0.35,
-      driftSpeed: 0.15 + Math.random() * 0.25,
-    }));
-
-    const render = () => {
-      ctx.clearRect(0, 0, width, height);
-
-      const skyGrad = ctx.createLinearGradient(0, 0, 0, height);
-      skyGrad.addColorStop(0, '#0284c7');
-      skyGrad.addColorStop(0.32, '#38bdf8');
-      skyGrad.addColorStop(0.68, '#7dd3fc');
-      skyGrad.addColorStop(0.9, '#bae6fd');
-      skyGrad.addColorStop(1, '#e0f2fe');
-      ctx.fillStyle = skyGrad;
-      ctx.fillRect(0, 0, width, height);
-
-      const sunGlow = ctx.createRadialGradient(
-        width * 0.5,
-        height * 0.15,
-        10,
-        width * 0.5,
-        height * 0.15,
-        width * 0.65
-      );
-      sunGlow.addColorStop(0, 'rgba(255, 255, 255, 0.65)');
-      sunGlow.addColorStop(0.4, 'rgba(224, 242, 254, 0.3)');
-      sunGlow.addColorStop(0.85, 'rgba(125, 211, 252, 0.1)');
-      sunGlow.addColorStop(1, 'rgba(255, 255, 255, 0)');
-      ctx.fillStyle = sunGlow;
-      ctx.fillRect(0, 0, width, height);
-
-      clouds.sort((a, b) => a.z - b.z);
-
-      clouds.forEach((cloud) => {
-        cloud.x += cloud.driftSpeed * (0.6 + cloud.z * 0.4);
-        if (cloud.x - cloud.radius > width) {
-          cloud.x = -cloud.radius;
-          cloud.y = height * 0.1 + Math.random() * (height * 0.8);
-        }
-
-        const scale = 0.5 + cloud.z * 0.8;
-        const currentRadius = cloud.radius * scale;
-        const currentOpacity = cloud.opacity;
-
-        const cloudGlow = ctx.createRadialGradient(
-          cloud.x - currentRadius * 0.2,
-          cloud.y - currentRadius * 0.25,
-          currentRadius * 0.05,
-          cloud.x,
-          cloud.y,
-          currentRadius
-        );
-
-        cloudGlow.addColorStop(0, `rgba(255, 255, 255, ${currentOpacity * 0.95})`);
-        cloudGlow.addColorStop(0.5, `rgba(248, 250, 252, ${currentOpacity * 0.75})`);
-        cloudGlow.addColorStop(0.85, `rgba(226, 232, 240, ${currentOpacity * 0.2})`);
-        cloudGlow.addColorStop(1, 'rgba(203, 213, 225, 0)');
-
-        ctx.beginPath();
-        ctx.fillStyle = cloudGlow;
-        ctx.arc(cloud.x, cloud.y, currentRadius, 0, Math.PI * 2);
-        ctx.fill();
-      });
-
-      if (!reduceMotion) {
-        animationFrameId = requestAnimationFrame(render);
-      }
-    };
-
-    render();
-
-    return () => {
-      if (animationFrameId) {
-        cancelAnimationFrame(animationFrameId);
-      }
-      window.removeEventListener('resize', handleResize);
-    };
-  }, []);
+  useCanvasSky(canvasRef, { cloudCount: 24, baseSpeed: 0.7 });
 
   const handleLogout = () => {
     logout();
@@ -250,7 +135,7 @@ export default function Profile() {
     if (email) {
       return email.substring(0, 2).toUpperCase();
     }
-    return 'CF';
+    return 'HV';
   };
 
   // Connect GitHub OAuth flow
@@ -334,7 +219,7 @@ export default function Profile() {
   };
 
   return (
-    <div id="profile-account-center" className="min-h-screen flex flex-col relative overflow-x-hidden font-sans selection:bg-sky-200">
+    <div id="profile-account-center" className="min-h-screen flex flex-col relative overflow-x-hidden font-sans selection:bg-sky-200 dark:selection:bg-slate-700">
       
       {/* Dynamic Animated Sky Canvas */}
       <canvas
@@ -349,29 +234,29 @@ export default function Profile() {
           <button
             type="button"
             onClick={() => navigate(ROUTES.DASHBOARD)}
-            className="flex items-center gap-2 text-xs font-bold text-slate-700 hover:text-slate-900 bg-white/60 hover:bg-white/80 border border-white/80 px-3 py-1.5 rounded-xl transition-all shadow-sm cursor-pointer"
+            className="flex items-center gap-2 text-xs font-bold text-slate-700 hover:text-slate-900 dark:text-slate-300 dark:hover:text-white bg-white/60 hover:bg-white/80 dark:bg-[#16191f]/80 dark:hover:bg-[#1e222b] border border-white/80 dark:border-[#282d37] px-3 py-1.5 rounded-xl transition-all shadow-sm cursor-pointer"
           >
             <ArrowLeft className="w-4 h-4" /> Back to Dashboard
           </button>
-          <span className="text-xs font-bold text-slate-700 bg-white/40 px-3 py-1 rounded-lg border border-white/60">
+          <span className="text-xs font-bold text-slate-700 dark:text-slate-400 bg-white/40 dark:bg-[#16191f]/60 px-3 py-1 rounded-lg border border-white/60 dark:border-[#282d37]">
             Account Center
           </span>
         </div>
 
         {loading ? (
-          <div className="text-center py-24 backdrop-blur-2xl bg-white/60 border border-white/90 rounded-3xl p-8 space-y-4 shadow-xl shadow-sky-950/10">
-            <RefreshCw className="w-8 h-8 text-blue-600 animate-spin mx-auto" />
-            <p className="text-sm font-bold text-slate-800">Loading authenticated account profile...</p>
+          <div className="text-center py-24 backdrop-blur-2xl bg-white/60 dark:bg-[#16191f]/80 border border-white/90 dark:border-[#282d37] rounded-3xl p-8 space-y-4 shadow-xl shadow-sky-950/10 dark:shadow-none">
+            <RefreshCw className="w-8 h-8 text-blue-600 dark:text-blue-400 animate-spin mx-auto" />
+            <p className="text-sm font-bold text-slate-800 dark:text-slate-200">Loading authenticated account profile...</p>
           </div>
         ) : error ? (
-          <div className="text-center py-20 backdrop-blur-2xl bg-red-50/90 border border-red-200 rounded-3xl p-8 space-y-3 shadow-xl">
-            <AlertTriangle className="w-10 h-10 text-red-500 mx-auto" />
-            <h2 className="text-base font-extrabold text-slate-900">Failed to load profile</h2>
-            <p className="text-xs text-red-600 font-semibold">{error}</p>
+          <div className="text-center py-20 backdrop-blur-2xl bg-red-50/90 dark:bg-red-950/40 border border-red-200 dark:border-red-900/50 rounded-3xl p-8 space-y-3 shadow-xl dark:shadow-none">
+            <AlertTriangle className="w-10 h-10 text-red-500 dark:text-red-400 mx-auto" />
+            <h2 className="text-base font-extrabold text-slate-900 dark:text-[#f1f3f5]">Failed to load profile</h2>
+            <p className="text-xs text-red-600 dark:text-red-400 font-semibold">{error}</p>
             <button
               type="button"
               onClick={fetchProfileAndGithub}
-              className="mt-4 px-4 py-2 bg-slate-900 hover:bg-black text-white rounded-xl text-xs font-bold transition-all cursor-pointer inline-flex items-center gap-1.5 shadow-md"
+              className="mt-4 px-4 py-2 bg-slate-900 hover:bg-black dark:bg-[#1e222b] dark:hover:bg-[#282d37] dark:border dark:border-[#282d37] text-white rounded-xl text-xs font-bold transition-all cursor-pointer inline-flex items-center gap-1.5 shadow-md"
             >
               <RefreshCw className="w-3.5 h-3.5" /> Try Again
             </button>
@@ -379,7 +264,7 @@ export default function Profile() {
         ) : user ? (
           <div className="space-y-6">
             {/* Main Profile Header Card */}
-            <div className="backdrop-blur-2xl bg-white/60 hover:bg-white/65 border border-white/90 rounded-3xl p-6 sm:p-8 shadow-xl shadow-sky-950/10 transition-all duration-300 relative overflow-hidden">
+            <div className="backdrop-blur-2xl bg-white/60 hover:bg-white/65 dark:bg-[#16191f]/80 dark:hover:bg-[#16191f]/90 border border-white/90 dark:border-[#282d37] rounded-3xl p-6 sm:p-8 shadow-xl shadow-sky-950/10 dark:shadow-none transition-all duration-300 relative overflow-hidden">
               <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-6">
                 <div className="flex items-center gap-5">
                   {user.avatar && !avatarError ? (
@@ -387,30 +272,30 @@ export default function Profile() {
                       src={user.avatar}
                       alt={user.name || 'User Avatar'}
                       onError={() => setAvatarError(true)}
-                      className="w-20 h-20 rounded-2xl object-cover border-2 border-white/90 shadow-md shadow-blue-600/30"
+                      className="w-20 h-20 rounded-2xl object-cover border-2 border-white/90 dark:border-[#282d37] shadow-md shadow-blue-600/30"
                     />
                   ) : (
-                    <div className="w-20 h-20 rounded-2xl bg-gradient-to-br from-blue-600 to-indigo-600 text-white font-extrabold flex items-center justify-center text-2xl border-2 border-white/90 shadow-md shadow-blue-600/30">
+                    <div className="w-20 h-20 rounded-2xl bg-gradient-to-br from-blue-600 to-indigo-600 text-white font-extrabold flex items-center justify-center text-2xl border-2 border-white/90 dark:border-[#282d37] shadow-md shadow-blue-600/30">
                       {getInitials(user.name, user.email)}
                     </div>
                   )}
 
                   <div className="space-y-1.5">
                     <div className="flex flex-wrap items-center gap-2.5">
-                      <h1 className="text-2xl font-extrabold text-slate-900 tracking-tight">
+                      <h1 className="text-2xl font-extrabold text-slate-900 dark:text-[#f1f3f5] tracking-tight">
                         {user.name || (user.email ? user.email.split('@')[0] : 'dev-master')}
                       </h1>
-                      <span className="text-[11px] bg-blue-100/90 text-blue-900 border border-blue-200 px-2.5 py-0.5 rounded-full font-bold shadow-2xs capitalize">
+                      <span className="text-[11px] bg-blue-100/90 dark:bg-blue-950/50 text-blue-900 dark:text-blue-300 border border-blue-200 dark:border-blue-800/60 px-2.5 py-0.5 rounded-full font-bold shadow-2xs capitalize">
                         {user.provider ? `${user.provider} account` : 'Hobby Plan'}
                       </span>
                       {user.emailVerified && (
-                        <span className="flex items-center gap-1 text-[11px] bg-emerald-100/90 text-emerald-800 border border-emerald-200 px-2.5 py-0.5 rounded-full font-bold shadow-2xs">
-                          <CheckCircle2 className="w-3 h-3 text-emerald-600" /> Verified Email
+                        <span className="flex items-center gap-1 text-[11px] bg-emerald-100/90 dark:bg-emerald-950/50 text-emerald-800 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-800/60 px-2.5 py-0.5 rounded-full font-bold shadow-2xs">
+                          <CheckCircle2 className="w-3 h-3 text-emerald-600 dark:text-emerald-400" /> Verified Email
                         </span>
                       )}
                     </div>
-                    <p className="text-xs text-slate-700 font-semibold flex items-center gap-1.5">
-                      <Mail className="w-3.5 h-3.5 text-slate-500" /> {user.email}
+                    <p className="text-xs text-slate-700 dark:text-slate-400 font-semibold flex items-center gap-1.5">
+                      <Mail className="w-3.5 h-3.5 text-slate-500 dark:text-slate-400" /> {user.email}
                     </p>
                   </div>
                 </div>
@@ -418,9 +303,9 @@ export default function Profile() {
                 <button
                   type="button"
                   onClick={handleLogout}
-                  className="w-full sm:w-auto px-5 py-2.5 bg-red-50 hover:bg-red-100 border border-red-200 text-red-700 font-bold text-xs rounded-xl transition-all shadow-sm flex items-center justify-center gap-2 cursor-pointer active:scale-95"
+                  className="w-full sm:w-auto px-5 py-2.5 bg-red-50 hover:bg-red-100 dark:bg-red-950/40 dark:hover:bg-red-900/50 border border-red-200 dark:border-red-900/50 text-red-700 dark:text-red-400 font-bold text-xs rounded-xl transition-all shadow-sm flex items-center justify-center gap-2 cursor-pointer active:scale-95"
                 >
-                  <LogOut className="w-4 h-4 text-red-600" />
+                  <LogOut className="w-4 h-4 text-red-600 dark:text-red-400" />
                   Sign Out
                 </button>
               </div>
@@ -430,33 +315,33 @@ export default function Profile() {
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               
               {/* PERSONAL IDENTITY DETAILS */}
-              <div className="backdrop-blur-2xl bg-white/60 hover:bg-white/65 border border-white/90 rounded-3xl p-6 space-y-4 shadow-xl shadow-sky-950/10 flex flex-col justify-between">
+              <div className="backdrop-blur-2xl bg-white/60 hover:bg-white/65 dark:bg-[#16191f]/80 dark:hover:bg-[#16191f]/90 border border-white/90 dark:border-[#282d37] rounded-3xl p-6 space-y-4 shadow-xl shadow-sky-950/10 dark:shadow-none flex flex-col justify-between">
                 <div className="space-y-4">
-                  <div className="flex items-center justify-between border-b border-slate-200/80 pb-3">
-                    <h2 className="text-sm font-extrabold text-slate-900 flex items-center gap-2">
-                      <User className="w-4 h-4 text-blue-600" /> Personal Identity
+                  <div className="flex items-center justify-between border-b border-slate-200/80 dark:border-[#282d37] pb-3">
+                    <h2 className="text-sm font-extrabold text-slate-900 dark:text-[#f1f3f5] flex items-center gap-2">
+                      <User className="w-4 h-4 text-blue-600 dark:text-blue-400" /> Personal Identity
                     </h2>
-                    <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">Account</span>
+                    <span className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Account</span>
                   </div>
 
                   <div className="space-y-3.5 text-xs">
                     <div>
-                      <span className="text-slate-600 font-bold block mb-1">Full Name</span>
-                      <p className="text-slate-900 font-bold bg-white/80 border border-white/90 px-3.5 py-2.5 rounded-xl shadow-xs">
+                      <span className="text-slate-600 dark:text-slate-400 font-bold block mb-1">Full Name</span>
+                      <p className="text-slate-900 dark:text-[#f1f3f5] font-bold bg-white/80 dark:bg-[#12151a] border border-white/90 dark:border-[#282d37] px-3.5 py-2.5 rounded-xl shadow-xs">
                         {user.name || 'Not provided'}
                       </p>
                     </div>
 
                     <div>
-                      <span className="text-slate-600 font-bold block mb-1">Email Address</span>
-                      <div className="flex items-center justify-between bg-white/80 border border-white/90 px-3.5 py-2.5 rounded-xl shadow-xs">
-                        <span className="text-slate-900 font-bold truncate mr-2">{user.email}</span>
+                      <span className="text-slate-600 dark:text-slate-400 font-bold block mb-1">Email Address</span>
+                      <div className="flex items-center justify-between bg-white/80 dark:bg-[#12151a] border border-white/90 dark:border-[#282d37] px-3.5 py-2.5 rounded-xl shadow-xs">
+                        <span className="text-slate-900 dark:text-[#f1f3f5] font-bold truncate mr-2">{user.email}</span>
                         {user.emailVerified ? (
-                          <span className="inline-flex items-center gap-1 text-[10px] bg-emerald-100 text-emerald-800 border border-emerald-200 px-2 py-0.5 rounded-full font-bold flex-shrink-0">
-                            <CheckCircle2 className="w-3 h-3 text-emerald-600" /> Verified
+                          <span className="inline-flex items-center gap-1 text-[10px] bg-emerald-100 dark:bg-emerald-950/50 text-emerald-800 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-800/60 px-2 py-0.5 rounded-full font-bold flex-shrink-0">
+                            <CheckCircle2 className="w-3 h-3 text-emerald-600 dark:text-emerald-400" /> Verified
                           </span>
                         ) : (
-                          <span className="inline-flex items-center gap-1 text-[10px] bg-amber-100 text-amber-800 border border-amber-200 px-2 py-0.5 rounded-full font-bold flex-shrink-0">
+                          <span className="inline-flex items-center gap-1 text-[10px] bg-amber-100 dark:bg-amber-950/50 text-amber-800 dark:text-amber-400 border border-amber-200 dark:border-amber-800/60 px-2 py-0.5 rounded-full font-bold flex-shrink-0">
                             Unverified
                           </span>
                         )}
@@ -464,9 +349,9 @@ export default function Profile() {
                     </div>
 
                     <div>
-                      <span className="text-slate-600 font-bold block mb-1">Member Since</span>
-                      <p className="text-slate-800 font-semibold bg-white/80 border border-white/90 px-3.5 py-2 rounded-xl shadow-xs flex items-center gap-2">
-                        <Calendar className="w-3.5 h-3.5 text-slate-500" />
+                      <span className="text-slate-600 dark:text-slate-400 font-bold block mb-1">Member Since</span>
+                      <p className="text-slate-800 dark:text-slate-200 font-semibold bg-white/80 dark:bg-[#12151a] border border-white/90 dark:border-[#282d37] px-3.5 py-2 rounded-xl shadow-xs flex items-center gap-2">
+                        <Calendar className="w-3.5 h-3.5 text-slate-500 dark:text-slate-400" />
                         {user.createdAt ? new Date(user.createdAt).toLocaleDateString(undefined, {
                           year: 'numeric',
                           month: 'long',
@@ -477,26 +362,26 @@ export default function Profile() {
                   </div>
                 </div>
 
-                <div className="pt-2 text-[11px] text-slate-500 font-medium border-t border-slate-200/60 mt-4">
+                <div className="pt-2 text-[11px] text-slate-500 dark:text-slate-400 font-medium border-t border-slate-200/60 dark:border-[#282d37] mt-4">
                   Profile information is shared across your workspace and deployments.
                 </div>
               </div>
 
               {/* CONNECTED ACCOUNTS SECTION */}
-              <div className="backdrop-blur-2xl bg-white/60 hover:bg-white/65 border border-white/90 rounded-3xl p-6 space-y-4 shadow-xl shadow-sky-950/10 flex flex-col justify-between">
+              <div className="backdrop-blur-2xl bg-white/60 hover:bg-white/65 dark:bg-[#16191f]/80 dark:hover:bg-[#16191f]/90 border border-white/90 dark:border-[#282d37] rounded-3xl p-6 space-y-4 shadow-xl shadow-sky-950/10 dark:shadow-none flex flex-col justify-between">
                 <div className="space-y-4">
-                  <div className="flex items-center justify-between border-b border-slate-200/80 pb-3">
-                    <h2 className="text-sm font-extrabold text-slate-900 flex items-center gap-2">
-                      <Link2 className="w-4 h-4 text-blue-600" /> Connected Accounts
+                  <div className="flex items-center justify-between border-b border-slate-200/80 dark:border-[#282d37] pb-3">
+                    <h2 className="text-sm font-extrabold text-slate-900 dark:text-[#f1f3f5] flex items-center gap-2">
+                      <Link2 className="w-4 h-4 text-blue-600 dark:text-blue-400" /> Connected Accounts
                     </h2>
-                    <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">Integrations</span>
+                    <span className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Integrations</span>
                   </div>
 
                   {githubMessage && (
                     <div className={`p-3 rounded-xl text-xs font-semibold flex items-center gap-2 ${
                       githubMessage.type === 'success'
-                        ? 'bg-emerald-50 text-emerald-800 border border-emerald-200'
-                        : 'bg-amber-50 text-amber-900 border border-amber-200'
+                        ? 'bg-emerald-50 dark:bg-emerald-950/40 text-emerald-800 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800/60'
+                        : 'bg-amber-50 dark:bg-amber-950/40 text-amber-900 dark:text-amber-300 border border-amber-200 dark:border-amber-800/60'
                     }`}>
                       {githubMessage.type === 'success' ? (
                         <CheckCircle2 className="w-4 h-4 text-emerald-600 flex-shrink-0" />
@@ -508,28 +393,28 @@ export default function Profile() {
                   )}
 
                   {/* GitHub Item */}
-                  <div className="bg-white/70 border border-white/90 rounded-2xl p-4 space-y-3">
+                  <div className="bg-white/70 dark:bg-[#12151a] border border-white/90 dark:border-[#282d37] rounded-2xl p-4 space-y-3">
                     <div className="flex items-center justify-between">
                       <div className="flex items-center gap-3">
-                        <div className="w-10 h-10 rounded-xl bg-slate-900 text-white flex items-center justify-center shadow-md">
+                        <div className="w-10 h-10 rounded-xl bg-slate-900 dark:bg-[#1e222b] text-white flex items-center justify-center shadow-md border dark:border-[#282d37]">
                           <Github className="w-5 h-5" />
                         </div>
                         <div>
                           <div className="flex items-center gap-2">
-                            <p className="text-xs font-bold text-slate-900">GitHub</p>
+                            <p className="text-xs font-bold text-slate-900 dark:text-[#f1f3f5]">GitHub</p>
                             {loadingGithub ? (
-                              <span className="text-[10px] text-slate-500 font-semibold">Checking...</span>
+                              <span className="text-[10px] text-slate-500 dark:text-slate-400 font-semibold">Checking...</span>
                             ) : githubStatus?.connected ? (
-                              <span className="text-[10px] bg-emerald-100 text-emerald-800 border border-emerald-200 px-2 py-0.5 rounded-full font-bold">
+                              <span className="text-[10px] bg-emerald-100 dark:bg-emerald-950/50 text-emerald-800 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-800/60 px-2 py-0.5 rounded-full font-bold">
                                 Connected
                               </span>
                             ) : (
-                              <span className="text-[10px] bg-slate-100 text-slate-600 border border-slate-200 px-2 py-0.5 rounded-full font-bold">
+                              <span className="text-[10px] bg-slate-100 dark:bg-[#1e222b] text-slate-600 dark:text-slate-400 border border-slate-200 dark:border-[#282d37] px-2 py-0.5 rounded-full font-bold">
                                 Not Connected
                               </span>
                             )}
                           </div>
-                          <p className="text-[11px] text-slate-500 font-medium">
+                          <p className="text-[11px] text-slate-500 dark:text-slate-400 font-medium">
                             {githubStatus?.connected && githubStatus.github
                               ? `@${githubStatus.github.username}`
                               : 'Link your repositories for deployments'}
@@ -544,7 +429,7 @@ export default function Profile() {
                               type="button"
                               onClick={() => setShowDisconnectConfirm(true)}
                               disabled={githubActionLoading}
-                              className="px-3.5 py-1.5 text-xs font-bold text-red-600 hover:text-red-700 bg-red-50 hover:bg-red-100 border border-red-200 rounded-xl transition-all flex items-center gap-1.5 cursor-pointer disabled:opacity-50"
+                              className="px-3.5 py-1.5 text-xs font-bold text-red-600 dark:text-red-400 hover:text-red-700 dark:hover:text-red-300 bg-red-50 hover:bg-red-100 dark:bg-red-950/40 dark:hover:bg-red-900/50 border border-red-200 dark:border-red-900/50 rounded-xl transition-all flex items-center gap-1.5 cursor-pointer disabled:opacity-50"
                             >
                               <Unlink className="w-3.5 h-3.5" /> Disconnect
                             </button>
@@ -553,7 +438,7 @@ export default function Profile() {
                               type="button"
                               onClick={handleConnectGithub}
                               disabled={githubActionLoading}
-                              className="px-3.5 py-1.5 text-xs font-bold text-white bg-slate-900 hover:bg-black rounded-xl transition-all shadow flex items-center gap-1.5 cursor-pointer disabled:opacity-50"
+                              className="px-3.5 py-1.5 text-xs font-bold text-white bg-slate-900 hover:bg-black dark:bg-[#1e222b] dark:hover:bg-[#282d37] dark:border dark:border-[#282d37] rounded-xl transition-all shadow flex items-center gap-1.5 cursor-pointer disabled:opacity-50"
                             >
                               {githubActionLoading ? (
                                 <RefreshCw className="w-3.5 h-3.5 animate-spin" />
@@ -569,10 +454,10 @@ export default function Profile() {
 
                     {/* Disconnect Confirmation Prompt */}
                     {showDisconnectConfirm && (
-                      <div className="pt-3 border-t border-slate-200/80 space-y-2.5 animate-fadeIn">
-                        <div className="p-3 bg-red-50/90 border border-red-200 rounded-xl text-xs space-y-2">
-                          <p className="font-bold text-red-900">Disconnect GitHub Account?</p>
-                          <p className="text-red-700 text-[11px] leading-relaxed">
+                      <div className="pt-3 border-t border-slate-200/80 dark:border-[#282d37] space-y-2.5 animate-fadeIn">
+                        <div className="p-3 bg-red-50/90 dark:bg-red-950/40 border border-red-200 dark:border-red-900/50 rounded-xl text-xs space-y-2">
+                          <p className="font-bold text-red-900 dark:text-red-300">Disconnect GitHub Account?</p>
+                          <p className="text-red-700 dark:text-red-400 text-[11px] leading-relaxed">
                             This will unlink <strong>@{githubStatus?.github?.username}</strong> from your HAVN workspace. You can connect a different account anytime.
                           </p>
                           <div className="flex items-center gap-2 pt-1">
@@ -589,7 +474,7 @@ export default function Profile() {
                               type="button"
                               onClick={() => setShowDisconnectConfirm(false)}
                               disabled={githubActionLoading}
-                              className="px-3 py-1.5 bg-white hover:bg-slate-100 text-slate-700 border border-slate-300 rounded-lg font-semibold text-xs transition-all cursor-pointer"
+                              className="px-3 py-1.5 bg-white hover:bg-slate-100 dark:bg-[#1e222b] dark:hover:bg-[#282d37] text-slate-700 dark:text-slate-300 border border-slate-300 dark:border-[#282d37] rounded-lg font-semibold text-xs transition-all cursor-pointer"
                             >
                               Cancel
                             </button>
@@ -600,28 +485,28 @@ export default function Profile() {
                   </div>
                 </div>
 
-                <div className="pt-2 text-[11px] text-slate-600 leading-relaxed font-medium border-t border-slate-200/60 mt-4">
+                <div className="pt-2 text-[11px] text-slate-600 dark:text-slate-400 leading-relaxed font-medium border-t border-slate-200/60 dark:border-[#282d37] mt-4">
                   A GitHub account is tied exclusively to one HAVN workspace. To link another GitHub identity, disconnect first.
                 </div>
               </div>
             </div>
 
             {/* SECURITY & SIGN-IN SECTION */}
-            <div className="backdrop-blur-2xl bg-white/60 hover:bg-white/65 border border-white/90 rounded-3xl p-6 sm:p-8 space-y-6 shadow-xl shadow-sky-950/10">
-              <div className="flex items-center justify-between border-b border-slate-200/80 pb-4">
+            <div className="backdrop-blur-2xl bg-white/60 hover:bg-white/65 dark:bg-[#16191f]/80 dark:hover:bg-[#16191f]/90 border border-white/90 dark:border-[#282d37] rounded-3xl p-6 sm:p-8 space-y-6 shadow-xl shadow-sky-950/10 dark:shadow-none">
+              <div className="flex items-center justify-between border-b border-slate-200/80 dark:border-[#282d37] pb-4">
                 <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-2xl bg-indigo-50 border border-indigo-200 flex items-center justify-center">
-                    <Shield className="w-5 h-5 text-indigo-600" />
+                  <div className="w-10 h-10 rounded-2xl bg-indigo-50 dark:bg-indigo-950/40 border border-indigo-200 dark:border-indigo-900/50 flex items-center justify-center">
+                    <Shield className="w-5 h-5 text-indigo-600 dark:text-indigo-400" />
                   </div>
                   <div>
-                    <h2 className="text-base font-extrabold text-slate-900">Security & Sign-in</h2>
-                    <p className="text-xs text-slate-600 font-medium">Manage authentication credentials and sign-in methods</p>
+                    <h2 className="text-base font-extrabold text-slate-900 dark:text-[#f1f3f5]">Security & Sign-in</h2>
+                    <p className="text-xs text-slate-600 dark:text-slate-400 font-medium">Manage authentication credentials and sign-in methods</p>
                   </div>
                 </div>
-                <div className="flex items-center gap-2 text-xs font-bold text-slate-800 bg-white/80 border border-white/90 px-3 py-1.5 rounded-xl capitalize shadow-xs">
+                <div className="flex items-center gap-2 text-xs font-bold text-slate-800 dark:text-slate-200 bg-white/80 dark:bg-[#12151a] border border-white/90 dark:border-[#282d37] px-3 py-1.5 rounded-xl capitalize shadow-xs">
                   {user.provider === 'github' ? (
                     <>
-                      <Github className="w-4 h-4 text-slate-900" /> GitHub OAuth
+                      <Github className="w-4 h-4 text-slate-900 dark:text-white" /> GitHub OAuth
                     </>
                   ) : user.provider === 'google' ? (
                     <>
@@ -629,7 +514,7 @@ export default function Profile() {
                     </>
                   ) : (
                     <>
-                      <KeyRound className="w-4 h-4 text-blue-600" /> Password Credentials
+                      <KeyRound className="w-4 h-4 text-blue-600 dark:text-blue-400" /> Password Credentials
                     </>
                   )}
                 </div>
@@ -639,15 +524,15 @@ export default function Profile() {
               {user.provider === 'credentials' ? (
                 <div className="space-y-4">
                   <div className="flex items-center gap-2">
-                    <Lock className="w-4 h-4 text-slate-700" />
-                    <h3 className="text-xs font-extrabold text-slate-900 uppercase tracking-wider">Change Password</h3>
+                    <Lock className="w-4 h-4 text-slate-700 dark:text-slate-300" />
+                    <h3 className="text-xs font-extrabold text-slate-900 dark:text-[#f1f3f5] uppercase tracking-wider">Change Password</h3>
                   </div>
 
                   {passwordMessage && (
                     <div className={`p-3.5 rounded-2xl text-xs font-semibold flex items-center gap-2.5 ${
                       passwordMessage.type === 'success'
-                        ? 'bg-emerald-50 text-emerald-800 border border-emerald-200'
-                        : 'bg-amber-50 text-amber-900 border border-amber-200'
+                        ? 'bg-emerald-50 dark:bg-emerald-950/40 text-emerald-800 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800/60'
+                        : 'bg-amber-50 dark:bg-amber-950/40 text-amber-900 dark:text-amber-300 border border-amber-200 dark:border-amber-800/60'
                     }`}>
                       {passwordMessage.type === 'success' ? (
                         <CheckCircle2 className="w-4 h-4 text-emerald-600 flex-shrink-0" />
@@ -660,7 +545,7 @@ export default function Profile() {
 
                   <form onSubmit={handleChangePassword} className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                     <div>
-                      <label htmlFor="current-password" className="text-[11px] font-bold text-slate-700 block mb-1">Current Password</label>
+                      <label htmlFor="current-password" className="text-[11px] font-bold text-slate-700 dark:text-slate-300 block mb-1">Current Password</label>
                       <div className="relative">
                         <input
                           id="current-password"
@@ -671,12 +556,12 @@ export default function Profile() {
                           onChange={(e) => setCurrentPassword(e.target.value)}
                           placeholder="••••••••"
                           required
-                          className="w-full text-xs font-medium bg-white/80 border border-slate-200 focus:border-blue-500 rounded-xl px-3 py-2.5 pr-8 text-slate-900 outline-none transition-all shadow-xs"
+                          className="w-full text-xs font-medium bg-white/80 dark:bg-[#12151a] border border-slate-200 dark:border-[#282d37] focus:border-blue-500 dark:focus:border-blue-500 rounded-xl px-3 py-2.5 pr-8 text-slate-900 dark:text-[#f1f3f5] placeholder:text-slate-400 dark:placeholder:text-slate-500 outline-none transition-all shadow-xs"
                         />
                         <button
                           type="button"
                           onClick={() => setShowCurrentPassword((v) => !v)}
-                          className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 cursor-pointer"
+                          className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 cursor-pointer"
                         >
                           {showCurrentPassword ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}
                         </button>
@@ -684,7 +569,7 @@ export default function Profile() {
                     </div>
 
                     <div>
-                      <label htmlFor="new-password" className="text-[11px] font-bold text-slate-700 block mb-1">New Password (8+ chars)</label>
+                      <label htmlFor="new-password" className="text-[11px] font-bold text-slate-700 dark:text-slate-300 block mb-1">New Password (8+ chars)</label>
                       <div className="relative">
                         <input
                           id="new-password"
@@ -696,12 +581,12 @@ export default function Profile() {
                           placeholder="••••••••"
                           required
                           minLength={8}
-                          className="w-full text-xs font-medium bg-white/80 border border-slate-200 focus:border-blue-500 rounded-xl px-3 py-2.5 pr-8 text-slate-900 outline-none transition-all shadow-xs"
+                          className="w-full text-xs font-medium bg-white/80 dark:bg-[#12151a] border border-slate-200 dark:border-[#282d37] focus:border-blue-500 dark:focus:border-blue-500 rounded-xl px-3 py-2.5 pr-8 text-slate-900 dark:text-[#f1f3f5] placeholder:text-slate-400 dark:placeholder:text-slate-500 outline-none transition-all shadow-xs"
                         />
                         <button
                           type="button"
                           onClick={() => setShowNewPassword((v) => !v)}
-                          className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 cursor-pointer"
+                          className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 cursor-pointer"
                         >
                           {showNewPassword ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}
                         </button>
@@ -709,7 +594,7 @@ export default function Profile() {
                     </div>
 
                     <div>
-                      <label htmlFor="confirm-password" className="text-[11px] font-bold text-slate-700 block mb-1">Confirm New Password</label>
+                      <label htmlFor="confirm-password" className="text-[11px] font-bold text-slate-700 dark:text-slate-300 block mb-1">Confirm New Password</label>
                       <div className="flex items-center gap-2">
                         <input
                           id="confirm-password"
@@ -720,7 +605,7 @@ export default function Profile() {
                           onChange={(e) => setConfirmPassword(e.target.value)}
                           placeholder="••••••••"
                           required
-                          className="w-full text-xs font-medium bg-white/80 border border-slate-200 focus:border-blue-500 rounded-xl px-3 py-2.5 text-slate-900 outline-none transition-all shadow-xs"
+                          className="w-full text-xs font-medium bg-white/80 dark:bg-[#12151a] border border-slate-200 dark:border-[#282d37] focus:border-blue-500 dark:focus:border-blue-500 rounded-xl px-3 py-2.5 text-slate-900 dark:text-[#f1f3f5] outline-none transition-all shadow-xs"
                         />
                         <button
                           type="submit"
@@ -735,13 +620,13 @@ export default function Profile() {
                   </form>
                 </div>
               ) : (
-                <div className="bg-white/70 border border-white/90 rounded-2xl p-4 flex items-start gap-3">
-                  <div className="w-8 h-8 rounded-xl bg-blue-50 border border-blue-200 text-blue-600 flex items-center justify-center flex-shrink-0 mt-0.5">
+                <div className="bg-white/70 dark:bg-[#12151a] border border-white/90 dark:border-[#282d37] rounded-2xl p-4 flex items-start gap-3">
+                  <div className="w-8 h-8 rounded-xl bg-blue-50 dark:bg-blue-950/40 border border-blue-200 dark:border-blue-900/50 text-blue-600 dark:text-blue-400 flex items-center justify-center flex-shrink-0 mt-0.5">
                     <Shield className="w-4 h-4" />
                   </div>
                   <div>
-                    <p className="text-xs font-bold text-slate-900">Managed by External Identity Provider</p>
-                    <p className="text-[11px] text-slate-600 font-medium mt-0.5 leading-relaxed">
+                    <p className="text-xs font-bold text-slate-900 dark:text-[#f1f3f5]">Managed by External Identity Provider</p>
+                    <p className="text-[11px] text-slate-600 dark:text-slate-400 font-medium mt-0.5 leading-relaxed">
                       You are signed in using <strong>{user.provider === 'github' ? 'GitHub' : 'Google'} OAuth</strong>. Your password and authentication security are managed directly through your {user.provider === 'github' ? 'GitHub' : 'Google'} account settings.
                     </p>
                   </div>

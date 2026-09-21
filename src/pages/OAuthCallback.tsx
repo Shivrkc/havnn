@@ -54,10 +54,11 @@ const OAuthCallback = () => {
   }, [navigate, searchParams]);
 
   return (
-    <div className="min-h-screen flex items-center justify-center">
-      <div className="text-center">
-        <p className="text-lg font-medium">
-          Signing you in...
+    <div className="min-h-screen flex items-center justify-center bg-[var(--color-background)] text-[var(--color-foreground)]">
+      <div className="text-center space-y-3">
+        <div className="w-8 h-8 border-2 border-blue-500 border-t-transparent rounded-full animate-spin mx-auto" />
+        <p className="text-sm font-semibold text-slate-700 dark:text-slate-300">
+          Authenticating with HAVN...
         </p>
       </div>
     </div>

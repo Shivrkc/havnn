@@ -270,14 +270,14 @@ export const BuildLogModal: React.FC<BuildLogModalProps> = ({
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-md animate-fade-in">
-      <div className="bg-slate-900 border border-slate-700/80 rounded-3xl w-full max-w-4xl overflow-hidden shadow-2xl shadow-sky-950/30 flex flex-col h-[88vh] max-h-[850px] min-h-[520px] motion-safe:animate-fade-in-up">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-md animate-fade-in">
+      <div className="bg-[#0d0f12] border border-[#282d37] rounded-3xl w-full max-w-4xl overflow-hidden shadow-2xl flex flex-col h-[88vh] max-h-[850px] min-h-[520px] motion-safe:animate-fade-in-up">
         {/* Header */}
-        <div className="p-5 sm:px-6 border-b border-slate-800 flex items-center justify-between bg-slate-950/50 shrink-0">
+        <div className="p-5 sm:px-6 border-b border-[#282d37] flex items-center justify-between bg-[#12151a] shrink-0">
           <div className="space-y-1">
             <div className="flex items-center gap-2.5">
               <Terminal className="w-4 h-4 text-blue-400" />
-              <h3 className="text-sm font-bold text-white tracking-wide">
+              <h3 className="text-sm font-bold text-[#f1f3f5] tracking-wide">
                 Build & Deployment Console
               </h3>
               {/* Status Badge */}
@@ -301,7 +301,7 @@ export const BuildLogModal: React.FC<BuildLogModalProps> = ({
             <p className="text-xs text-slate-400 flex items-center gap-2">
               <span className="font-semibold text-slate-300">{projectName || deployment?.repositoryName || 'Deployment'}</span>
               {deployment?.branch && (
-                <span className="flex items-center gap-1 font-mono text-[11px] text-blue-400 bg-blue-950/60 px-2 py-0.5 rounded">
+                <span className="flex items-center gap-1 font-mono text-[11px] text-blue-400 bg-blue-950/60 px-2 py-0.5 rounded border border-blue-900/40">
                   <GitBranch className="w-3 h-3" /> {deployment.branch}
                 </span>
               )}
@@ -328,7 +328,7 @@ export const BuildLogModal: React.FC<BuildLogModalProps> = ({
             <button
               type="button"
               onClick={onClose}
-              className="p-1.5 text-slate-400 hover:text-white rounded-xl hover:bg-slate-800 transition-colors cursor-pointer"
+              className="p-1.5 text-slate-400 hover:text-white rounded-xl hover:bg-[#1e222b] transition-colors cursor-pointer"
               title="Close Console"
             >
               <X className="w-4 h-4" />
@@ -337,15 +337,15 @@ export const BuildLogModal: React.FC<BuildLogModalProps> = ({
         </div>
 
         {/* Modal Navigation Tabs: Terminal Console vs HAVN AI Assistant */}
-        <div className="flex items-center justify-between px-6 py-2 bg-slate-950/90 border-b border-slate-800 shrink-0">
+        <div className="flex items-center justify-between px-6 py-2 bg-[#0f1115] border-b border-[#282d37] shrink-0">
           <div className="flex items-center gap-1.5">
             <button
               type="button"
               onClick={() => setActiveModalTab('console')}
               className={`px-3 py-1.5 rounded-xl font-bold text-xs flex items-center gap-1.5 transition-all cursor-pointer ${
                 activeModalTab === 'console'
-                  ? 'bg-slate-800 text-white shadow-xs'
-                  : 'text-slate-400 hover:text-slate-200 hover:bg-slate-900'
+                  ? 'bg-[#1e222b] text-white border border-[#282d37] shadow-xs'
+                  : 'text-slate-400 hover:text-slate-200 hover:bg-[#16191f]'
               }`}
             >
               <Terminal className="w-3.5 h-3.5 text-blue-400" />
@@ -356,11 +356,11 @@ export const BuildLogModal: React.FC<BuildLogModalProps> = ({
               onClick={() => setActiveModalTab('ai')}
               className={`px-3 py-1.5 rounded-xl font-bold text-xs flex items-center gap-1.5 transition-all cursor-pointer ${
                 activeModalTab === 'ai'
-                  ? 'bg-sky-600 text-white shadow-xs shadow-sky-500/20'
-                  : 'text-slate-400 hover:text-slate-200 hover:bg-slate-900'
+                  ? 'bg-blue-600 text-white shadow-xs shadow-blue-500/20'
+                  : 'text-slate-400 hover:text-slate-200 hover:bg-[#16191f]'
               }`}
             >
-              <Sparkles className="w-3.5 h-3.5 text-sky-400" />
+              <Sparkles className="w-3.5 h-3.5 text-blue-300" />
               HAVN AI Assistant
             </button>
           </div>
@@ -369,10 +369,10 @@ export const BuildLogModal: React.FC<BuildLogModalProps> = ({
             <button
               type="button"
               onClick={() => setActiveModalTab('ai')}
-              className="px-2.5 py-1 bg-sky-950/60 hover:bg-sky-900/80 text-sky-300 hover:text-white rounded-xl border border-sky-800/80 font-bold flex items-center gap-1.5 transition-all cursor-pointer text-xs"
+              className="px-2.5 py-1 bg-blue-950/40 hover:bg-blue-900/60 text-blue-300 hover:text-white rounded-xl border border-blue-800/60 font-bold flex items-center gap-1.5 transition-all cursor-pointer text-xs"
               title="Open HAVN AI diagnostic assistant"
             >
-              <Sparkles className="w-3.5 h-3.5 text-sky-400" />
+              <Sparkles className="w-3.5 h-3.5 text-blue-400" />
               <span>Ask HAVN AI</span>
             </button>
           )}
@@ -395,7 +395,7 @@ export const BuildLogModal: React.FC<BuildLogModalProps> = ({
         <div className={`flex-1 min-h-0 flex flex-col ${activeModalTab === 'console' ? '' : 'hidden'}`}>
           {/* Metadata Banner */}
             {deployment && (
-              <div className="px-6 py-2 bg-slate-950/80 border-b border-slate-800/80 flex flex-wrap items-center justify-between gap-2 text-[11px] font-mono text-slate-400">
+              <div className="px-6 py-2 bg-[#0f1115] border-b border-[#282d37] flex flex-wrap items-center justify-between gap-2 text-[11px] font-mono text-slate-400">
                 <div className="flex items-center gap-4">
                   {deployment.commitMsg && (
                     <span className="truncate max-w-sm text-slate-300 italic">
@@ -417,9 +417,9 @@ export const BuildLogModal: React.FC<BuildLogModalProps> = ({
             )}
 
             {/* Console Controls: Search, Stream Filters, Copy, Download */}
-            <div className="px-6 py-2.5 bg-slate-900/90 border-b border-slate-800 flex flex-wrap items-center justify-between gap-3 text-xs">
+            <div className="px-6 py-2.5 bg-[#12151a] border-b border-[#282d37] flex flex-wrap items-center justify-between gap-3 text-xs">
               {/* Stream Filter Buttons */}
-              <div className="flex items-center gap-1.5 bg-slate-950/80 p-1 rounded-xl border border-slate-800">
+              <div className="flex items-center gap-1.5 bg-[#0d0f12] p-1 rounded-xl border border-[#282d37]">
             {(['ALL', 'SYSTEM', 'STDOUT', 'STDERR'] as const).map((s) => (
               <button
                 key={s}
@@ -428,7 +428,7 @@ export const BuildLogModal: React.FC<BuildLogModalProps> = ({
                 className={`px-2.5 py-1 rounded-lg font-bold text-[11px] transition-all cursor-pointer ${
                   filterStream === s
                     ? 'bg-blue-600 text-white shadow-xs'
-                    : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800/60'
+                    : 'text-slate-400 hover:text-slate-200 hover:bg-[#1e222b]'
                 }`}
               >
                 {s === 'ALL' ? 'All Logs' : s === 'SYSTEM' ? 'System' : s === 'STDOUT' ? 'Stdout' : 'Stderr'}
@@ -445,7 +445,7 @@ export const BuildLogModal: React.FC<BuildLogModalProps> = ({
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 placeholder="Search console..."
-                className="w-full bg-slate-950/80 border border-slate-800 focus:border-blue-500 rounded-xl pl-8 pr-7 py-1 text-xs text-slate-200 placeholder:text-slate-500 outline-none focus:ring-1 focus:ring-blue-500 font-mono"
+                className="w-full bg-[#0a0c0e] border border-[#282d37] focus:border-blue-500 rounded-xl pl-8 pr-7 py-1 text-xs text-slate-200 placeholder:text-slate-500 outline-none focus:ring-1 focus:ring-blue-500 font-mono"
               />
               {searchQuery && (
                 <button
@@ -463,7 +463,7 @@ export const BuildLogModal: React.FC<BuildLogModalProps> = ({
               type="button"
               onClick={handleCopyLogs}
               disabled={filteredLogs.length === 0}
-              className="px-2.5 py-1 bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white rounded-xl border border-slate-700 font-semibold flex items-center gap-1.5 transition-all cursor-pointer disabled:opacity-40"
+              className="px-2.5 py-1 bg-[#1e222b] hover:bg-[#252a35] text-slate-300 hover:text-white rounded-xl border border-[#282d37] font-semibold flex items-center gap-1.5 transition-all cursor-pointer disabled:opacity-40"
               title="Copy visible logs to clipboard"
             >
               {copied ? <Check className="w-3.5 h-3.5 text-emerald-400" /> : <Copy className="w-3.5 h-3.5" />}
@@ -475,7 +475,7 @@ export const BuildLogModal: React.FC<BuildLogModalProps> = ({
               type="button"
               onClick={handleDownloadLogs}
               disabled={isDownloading || logs.length === 0}
-              className="px-2.5 py-1 bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white rounded-xl border border-slate-700 font-semibold flex items-center gap-1.5 transition-all cursor-pointer disabled:opacity-40"
+              className="px-2.5 py-1 bg-[#1e222b] hover:bg-[#252a35] text-slate-300 hover:text-white rounded-xl border border-[#282d37] font-semibold flex items-center gap-1.5 transition-all cursor-pointer disabled:opacity-40"
               title="Download full raw log file"
             >
               {isDownloading ? <RefreshCw className="w-3.5 h-3.5 animate-spin" /> : <Download className="w-3.5 h-3.5" />}
@@ -505,7 +505,7 @@ export const BuildLogModal: React.FC<BuildLogModalProps> = ({
         <div className="relative flex-1 flex flex-col min-h-0">
           {/* Large Log Banner */}
           {isCapped && (
-            <div className="bg-blue-950/70 border-b border-blue-800/80 px-4 py-1.5 text-[11px] font-mono text-blue-300 flex items-center justify-between">
+            <div className="bg-blue-950/50 border-b border-blue-900/50 px-4 py-1.5 text-[11px] font-mono text-blue-300 flex items-center justify-between">
               <span>
                 Displaying latest {MAX_RENDER_LINES.toLocaleString()} of {filteredLogs.length.toLocaleString()} lines. Full history preserved.
               </span>
@@ -522,7 +522,7 @@ export const BuildLogModal: React.FC<BuildLogModalProps> = ({
           <div
             ref={logContainerRef}
             onScroll={handleScroll}
-            className="p-5 bg-slate-950 font-mono text-xs text-slate-300 overflow-y-auto flex-1 min-h-0 space-y-1 selection:bg-blue-600 selection:text-white"
+            className="p-5 bg-[#0a0c0e] font-mono text-xs text-slate-300 overflow-y-auto flex-1 min-h-0 space-y-1 selection:bg-blue-600 selection:text-white"
           >
             {logs.length === 0 ? (
               <div className="h-full flex flex-col items-center justify-center py-16 text-slate-500 space-y-2">
@@ -549,22 +549,29 @@ export const BuildLogModal: React.FC<BuildLogModalProps> = ({
                 const isStderr = log.stream === 'STDERR';
                 const isSuccess = log.line.includes('SUCCESS') || log.line.includes('built and verified') || log.line.includes('completed successfully');
                 const isError = isStderr || log.line.includes('ERROR') || log.line.includes('Failed') || log.line.includes('exited with failure');
+                const isWarning = log.line.includes('WARN') || log.line.includes('warning');
+
+                const glyph = isSuccess ? '✓' : isError ? '✕' : isWarning ? '⚠' : isSystem ? 'ℹ' : '→';
+                const glyphColor = isSuccess ? 'text-emerald-400' : isError ? 'text-rose-400' : isWarning ? 'text-amber-400' : isSystem ? 'text-blue-400' : 'text-slate-500';
 
                 return (
                   <div
                     key={log.id}
-                    className={`leading-relaxed whitespace-pre-wrap break-all ${
+                    className={`leading-relaxed whitespace-pre-wrap break-all flex items-start gap-2 ${
                       isSystem
-                        ? 'text-blue-300 font-semibold'
+                        ? 'text-blue-300'
                         : isSuccess
-                        ? 'text-emerald-400 font-semibold'
+                        ? 'text-emerald-300'
                         : isError
-                        ? 'text-rose-400 font-semibold'
+                        ? 'text-rose-300'
+                        : isWarning
+                        ? 'text-amber-300'
                         : 'text-slate-300'
                     }`}
                   >
-                    <span className="text-slate-600 select-none mr-2">[{log.sequence}]</span>
-                    {log.line}
+                    <span className="text-slate-600 select-none shrink-0 text-[11px] font-mono">[{log.sequence}]</span>
+                    <span className={`select-none shrink-0 font-bold ${glyphColor}`}>{glyph}</span>
+                    <span className="flex-1">{log.line}</span>
                   </div>
                 );
               })
@@ -586,7 +593,7 @@ export const BuildLogModal: React.FC<BuildLogModalProps> = ({
         </div>
 
         {/* Footer */}
-        <div className="p-4 px-6 border-t border-slate-800 bg-slate-950/50 flex items-center justify-between text-xs text-slate-400 shrink-0">
+        <div className="p-4 px-6 border-t border-[#282d37] bg-[#12151a] flex items-center justify-between text-xs text-slate-400 shrink-0">
           <div className="flex items-center gap-3">
             <span className="flex items-center gap-1.5">
               <span
@@ -605,7 +612,7 @@ export const BuildLogModal: React.FC<BuildLogModalProps> = ({
           <button
             type="button"
             onClick={onClose}
-            className="px-4 py-2 bg-slate-800 hover:bg-slate-700 text-white font-bold rounded-xl transition-all cursor-pointer"
+            className="px-4 py-2 bg-[#1e222b] hover:bg-[#252a35] text-white font-bold rounded-xl border border-[#282d37] transition-all cursor-pointer"
           >
             {isTerminal ? 'Close' : 'Minimize'}
           </button>

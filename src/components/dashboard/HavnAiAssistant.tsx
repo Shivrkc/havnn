@@ -368,27 +368,27 @@ export const HavnAiAssistant: React.FC<HavnAiAssistantProps> = ({
   };
 
   return (
-    <div className="flex flex-col flex-1 min-h-0 bg-slate-950 text-slate-200">
+    <div className="flex flex-col flex-1 min-h-0 bg-[#0a0c0e] text-slate-200">
       {/* AI Controls Header: Mode Switcher & Quick Actions */}
-      <div className="p-4 sm:px-6 bg-slate-900/95 border-b border-slate-800 space-y-3 shrink-0">
+      <div className="p-4 sm:px-6 bg-[#12151a] border-b border-[#282d37] space-y-3 shrink-0">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
           {/* Title & Mode Switcher */}
           <div className="flex items-center gap-3">
             <div className="flex items-center gap-1.5">
-              <Sparkles className="w-4 h-4 text-sky-400" />
-              <span className="text-xs font-bold text-white uppercase tracking-wider">
+              <Sparkles className="w-4 h-4 text-blue-400" />
+              <span className="text-xs font-bold text-[#f1f3f5] uppercase tracking-wider">
                 HAVN AI Diagnostics
               </span>
             </div>
 
             {/* Beginner / Expert Mode Toggle */}
-            <div className="flex items-center bg-slate-950 p-0.5 rounded-xl border border-slate-800">
+            <div className="flex items-center bg-[#0d0f12] p-0.5 rounded-xl border border-[#282d37]">
               <button
                 type="button"
                 onClick={() => setMode('beginner')}
                 className={`px-2.5 py-1 text-[11px] font-bold rounded-lg transition-all cursor-pointer ${
                   mode === 'beginner'
-                    ? 'bg-sky-600 text-white shadow-xs'
+                    ? 'bg-blue-600 text-white shadow-xs'
                     : 'text-slate-400 hover:text-slate-200'
                 }`}
                 title="Beginner Mode: Plain-English, step-by-step guidance without confusing jargon"
@@ -426,7 +426,7 @@ export const HavnAiAssistant: React.FC<HavnAiAssistantProps> = ({
               e.stopPropagation();
               handleActionClick('summary');
             }}
-            className="px-3 py-1 bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white rounded-xl border border-slate-700/80 text-xs font-semibold flex items-center gap-1.5 transition-all cursor-pointer disabled:opacity-50"
+            className="px-3 py-1 bg-[#1e222b] hover:bg-[#252a35] text-slate-300 hover:text-white rounded-xl border border-[#282d37] text-xs font-semibold flex items-center gap-1.5 transition-all cursor-pointer disabled:opacity-50"
           >
             <FileText className="w-3.5 h-3.5 text-blue-400" />
             Summary
@@ -440,7 +440,7 @@ export const HavnAiAssistant: React.FC<HavnAiAssistantProps> = ({
               e.stopPropagation();
               handleActionClick('analysis');
             }}
-            className="px-3 py-1 bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white rounded-xl border border-slate-700/80 text-xs font-semibold flex items-center gap-1.5 transition-all cursor-pointer disabled:opacity-50"
+            className="px-3 py-1 bg-[#1e222b] hover:bg-[#252a35] text-slate-300 hover:text-white rounded-xl border border-[#282d37] text-xs font-semibold flex items-center gap-1.5 transition-all cursor-pointer disabled:opacity-50"
           >
             <Zap className="w-3.5 h-3.5 text-amber-400" />
             Analysis
@@ -454,7 +454,7 @@ export const HavnAiAssistant: React.FC<HavnAiAssistantProps> = ({
               e.stopPropagation();
               handleActionClick('optimization');
             }}
-            className="px-3 py-1 bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white rounded-xl border border-slate-700/80 text-xs font-semibold flex items-center gap-1.5 transition-all cursor-pointer disabled:opacity-50"
+            className="px-3 py-1 bg-[#1e222b] hover:bg-[#252a35] text-slate-300 hover:text-white rounded-xl border border-[#282d37] text-xs font-semibold flex items-center gap-1.5 transition-all cursor-pointer disabled:opacity-50"
           >
             <Compass className="w-3.5 h-3.5 text-emerald-400" />
             Optimization
@@ -468,7 +468,7 @@ export const HavnAiAssistant: React.FC<HavnAiAssistantProps> = ({
               e.stopPropagation();
               handleActionClick('learn');
             }}
-            className="px-3 py-1 bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white rounded-xl border border-slate-700/80 text-xs font-semibold flex items-center gap-1.5 transition-all cursor-pointer disabled:opacity-50"
+            className="px-3 py-1 bg-[#1e222b] hover:bg-[#252a35] text-slate-300 hover:text-white rounded-xl border border-[#282d37] text-xs font-semibold flex items-center gap-1.5 transition-all cursor-pointer disabled:opacity-50"
           >
             <BookOpen className="w-3.5 h-3.5 text-purple-400" />
             Learn
@@ -503,7 +503,7 @@ export const HavnAiAssistant: React.FC<HavnAiAssistantProps> = ({
                   e.stopPropagation();
                   handleActionClick('analysis');
                 }}
-                className="text-xs bg-slate-900 hover:bg-slate-800 border border-slate-800 text-slate-400 hover:text-slate-200 px-3 py-1.5 rounded-xl transition-colors cursor-pointer"
+                className="text-xs bg-[#16191f] hover:bg-[#1e222b] border border-[#282d37] text-slate-300 hover:text-white px-3 py-1.5 rounded-xl transition-colors cursor-pointer"
               >
                 Why did my build {deploymentStatus === 'FAILED' ? 'fail' : 'complete'}?
               </button>
@@ -514,7 +514,7 @@ export const HavnAiAssistant: React.FC<HavnAiAssistantProps> = ({
                   e.stopPropagation();
                   handleActionClick('optimization');
                 }}
-                className="text-xs bg-slate-900 hover:bg-slate-800 border border-slate-800 text-slate-400 hover:text-slate-200 px-3 py-1.5 rounded-xl transition-colors cursor-pointer"
+                className="text-xs bg-[#16191f] hover:bg-[#1e222b] border border-[#282d37] text-slate-300 hover:text-white px-3 py-1.5 rounded-xl transition-colors cursor-pointer"
               >
                 How can I optimize this Dockerfile?
               </button>
@@ -536,17 +536,17 @@ export const HavnAiAssistant: React.FC<HavnAiAssistantProps> = ({
                 {msg.text}
               </div>
             ) : (
-              <div className="bg-slate-900/90 border border-slate-800 rounded-2xl rounded-tl-xs p-5 max-w-2xl w-full shadow-lg space-y-2">
-                <div className="flex items-center justify-between border-b border-slate-800/80 pb-2">
+              <div className="bg-[#16191f] border border-[#282d37] rounded-2xl rounded-tl-xs p-5 max-w-2xl w-full shadow-lg space-y-2">
+                <div className="flex items-center justify-between border-b border-[#282d37] pb-2">
                   <div className="flex items-center gap-2">
-                    <Sparkles className="w-3.5 h-3.5 text-sky-400" />
+                    <Sparkles className="w-3.5 h-3.5 text-blue-400" />
                     <span className="text-xs font-bold text-white">HAVN AI Diagnosis</span>
-                    <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-slate-800 text-slate-400 uppercase font-bold">
+                    <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-[#1e222b] text-slate-400 uppercase font-bold border border-[#282d37]">
                       {msg.mode}
                     </span>
                   </div>
                   {msg.citedSequences && msg.citedSequences.length > 0 && (
-                    <div className="text-[11px] text-slate-500 font-mono">
+                    <div className="text-[11px] text-slate-400 font-mono">
                       Citations: {msg.citedSequences.map((s) => `#${s}`).join(', ')}
                     </div>
                   )}
@@ -563,8 +563,8 @@ export const HavnAiAssistant: React.FC<HavnAiAssistantProps> = ({
         {/* Loading Spinner Indicator */}
         {isLoading && (
           <div className="flex items-start">
-            <div className="bg-slate-900/90 border border-slate-800 rounded-2xl rounded-tl-xs p-5 max-w-md shadow-lg flex items-center gap-3 text-xs text-slate-400">
-              <RefreshCw className="w-4 h-4 animate-spin text-sky-400" />
+            <div className="bg-[#16191f] border border-[#282d37] rounded-2xl rounded-tl-xs p-5 max-w-md shadow-lg flex items-center gap-3 text-xs text-slate-400">
+              <RefreshCw className="w-4 h-4 animate-spin text-blue-400" />
               <span>Analyzing deployment context & BuildLogs...</span>
             </div>
           </div>
@@ -625,7 +625,7 @@ export const HavnAiAssistant: React.FC<HavnAiAssistantProps> = ({
       {/* Query Input Bar */}
       <form
         onSubmit={handleCustomSubmit}
-        className="p-4 sm:px-6 bg-slate-900/95 border-t border-slate-800 shrink-0"
+        className="p-4 sm:px-6 bg-[#12151a] border-t border-[#282d37] shrink-0"
       >
         <div className="flex items-center gap-2">
           <input
@@ -634,12 +634,12 @@ export const HavnAiAssistant: React.FC<HavnAiAssistantProps> = ({
             onChange={(e) => setCustomQuestion(e.target.value)}
             disabled={isLoading}
             placeholder={`Ask anything about this deployment (${mode} mode)...`}
-            className="flex-1 bg-slate-950 border border-slate-800 focus:border-sky-500 rounded-xl px-4 py-2.5 text-xs text-slate-200 placeholder:text-slate-500 outline-none focus:ring-1 focus:ring-sky-500 font-medium transition-all"
+            className="flex-1 bg-[#0a0c0e] border border-[#282d37] focus:border-blue-500 rounded-xl px-4 py-2.5 text-xs text-slate-200 placeholder:text-slate-500 outline-none focus:ring-1 focus:ring-blue-500 font-medium transition-all"
           />
           <button
             type="submit"
             disabled={isLoading || !customQuestion.trim()}
-            className="px-4 py-2.5 bg-sky-600 hover:bg-sky-500 text-white text-xs font-bold rounded-xl transition-all cursor-pointer flex items-center gap-1.5 disabled:opacity-40 disabled:cursor-not-allowed"
+            className="px-4 py-2.5 bg-blue-600 hover:bg-blue-500 text-white text-xs font-bold rounded-xl transition-all cursor-pointer flex items-center gap-1.5 disabled:opacity-40 disabled:cursor-not-allowed"
           >
             {isLoading ? <RefreshCw className="w-3.5 h-3.5 animate-spin" /> : <Send className="w-3.5 h-3.5" />}
             <span>Ask</span>
@@ -649,8 +649,8 @@ export const HavnAiAssistant: React.FC<HavnAiAssistantProps> = ({
 
       {/* Voluntary ₹20 Support Prompt Modal */}
       {showSupportModal && (
-        <div className="fixed inset-0 z-60 flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-md animate-fade-in">
-          <div className="bg-slate-900 border border-slate-700 rounded-3xl w-full max-w-sm overflow-hidden shadow-2xl p-6 text-center space-y-4 motion-safe:animate-fade-in-up">
+        <div className="fixed inset-0 z-60 flex items-center justify-center p-4 bg-black/70 backdrop-blur-md animate-fade-in">
+          <div className="bg-[#16191f] border border-[#282d37] rounded-3xl w-full max-w-sm overflow-hidden shadow-2xl p-6 text-center space-y-4 motion-safe:animate-fade-in-up">
             <div className="space-y-1">
               <h3 className="text-base font-extrabold text-white tracking-wide">
                 ₹20 do, phir bataunga 😄
@@ -686,7 +686,7 @@ export const HavnAiAssistant: React.FC<HavnAiAssistantProps> = ({
               <button
                 type="button"
                 onClick={handleSupportModalContinue}
-                className="flex-1 py-2.5 bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white font-bold text-xs rounded-xl transition-all border border-slate-700 cursor-pointer"
+                className="flex-1 py-2.5 bg-[#1e222b] hover:bg-[#252a35] text-slate-300 hover:text-white font-bold text-xs rounded-xl transition-all border border-[#282d37] cursor-pointer"
               >
                 Skip
               </button>

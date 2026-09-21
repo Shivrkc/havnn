@@ -7,7 +7,7 @@ import Footer from "./components/layout/Footer";
 
 import Hero from "./components/landing/Hero";
 import Features from "./components/landing/Features";
-import Pricing from "./components/landing/Pricing";
+import WhyChooseUs from "./components/landing/WhyChooseUs";
 import Faq from "./components/landing/Faq";
 
 import Login from "./pages/Login";
@@ -30,16 +30,26 @@ export default function App() {
     }
   };
 
-  // Reset scroll position on view transitions
+  // Scroll to hash target or reset scroll position on view transitions
   useEffect(() => {
+    if (location.hash) {
+      const targetId = location.hash.replace('#', '');
+      const timer = setTimeout(() => {
+        const element = document.getElementById(targetId);
+        if (element) {
+          element.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }
+      }, 100);
+      return () => clearTimeout(timer);
+    }
     window.scrollTo(0, 0);
-  }, [location.pathname]);
+  }, [location.pathname, location.hash]);
 
   return (
-    <div className="min-h-screen bg-brand-dark text-gray-100 flex flex-col relative overflow-hidden selection:bg-blue-600/30 selection:text-white">
+    <div className="min-h-screen bg-[var(--color-background)] text-[var(--color-foreground)] flex flex-col relative overflow-hidden selection:bg-blue-600/30 selection:text-white transition-colors duration-300">
       {/* Decorative Background Glows */}
-      <div className="absolute top-[-200px] left-[-200px] w-[600px] h-[600px] bg-blue-600/10 rounded-full blur-[120px] pointer-events-none z-0"></div>
-      <div className="absolute bottom-[-200px] right-[-200px] w-[600px] h-[600px] bg-purple-600/10 rounded-full blur-[120px] pointer-events-none z-0"></div>
+      <div className="absolute top-[-200px] left-[-200px] w-[600px] h-[600px] bg-blue-500/10 dark:bg-blue-600/5 rounded-full blur-[120px] pointer-events-none z-0"></div>
+      <div className="absolute bottom-[-200px] right-[-200px] w-[600px] h-[600px] bg-sky-500/10 dark:bg-slate-800/15 rounded-full blur-[120px] pointer-events-none z-0"></div>
 
       {/* Universal Responsive Navbar */}
       <Navbar scrollToSection={scrollToSection} />
@@ -52,7 +62,7 @@ export default function App() {
             <div className="flex flex-col">
               <Hero />
               <Features />
-              <Pricing />
+              <WhyChooseUs />
               <Faq />
               <Footer />
             </div>

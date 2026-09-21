@@ -16,9 +16,9 @@ export default function Logo({
       aria-label="HAVN Home"
     >
       {/* Cloud Logo */}
-      <div className="relative flex h-10 w-10 items-center justify-center rounded-xl bg-white/20 border border-white/30 shadow-[0_4px_16px_rgba(255,255,255,0.15)] backdrop-blur-md transition-all duration-300 group-hover:bg-white/25 group-hover:scale-105">
+      <div className="relative flex h-10 w-10 items-center justify-center rounded-xl bg-blue-600/10 dark:bg-white/20 border border-blue-600/20 dark:border-white/30 shadow-[0_4px_16px_rgba(0,0,0,0.06)] dark:shadow-[0_4px_16px_rgba(255,255,255,0.15)] backdrop-blur-md transition-all duration-300 group-hover:scale-105">
         <svg
-          className="h-6 w-6 text-white"
+          className="h-6 w-6 text-blue-600 dark:text-white"
           viewBox="0 0 24 24"
           fill="currentColor"
           xmlns="http://www.w3.org/2000/svg"
@@ -31,12 +31,12 @@ export default function Logo({
       {/* Brand */}
       <div className="flex flex-col leading-none">
         <div className="flex items-center gap-2">
-          <span className="text-[28px] font-medium tracking-tight text-white">
+          <span className="text-[28px] font-medium tracking-tight text-slate-900 dark:text-white">
             havn
           </span>
 
           {showVersion && (
-            <span className="rounded-md border border-white/20 bg-white/10 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wider text-white/80">
+            <span className="rounded-md border border-slate-300 dark:border-white/20 bg-slate-100 dark:bg-white/10 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wider text-slate-700 dark:text-white/80">
               v1.0
             </span>
           )}
