@@ -1,9 +1,10 @@
 import { useState, FormEvent, useRef } from 'react';
-import { Mail, Lock, Eye, EyeOff, Github, Chrome, User, Rocket, Bot, BarChart3, ShieldCheck } from 'lucide-react';
+import { Mail, Lock, Eye, EyeOff, Github, Chrome, User } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { ROUTES } from '../constants/routes';
 import { register, getOAuthUrl } from "../services/auth.service";
 import { useCanvasSky } from '../utils/useCanvasSky';
+import HavnMascot, { MascotFieldFocus } from '../components/auth/HavnMascot';
 
 export default function Signup() {
   const navigate = useNavigate();
@@ -18,6 +19,7 @@ export default function Signup() {
   const [error, setError] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [registrationComplete, setRegistrationComplete] = useState(false);
+  const [focusedField, setFocusedField] = useState<MascotFieldFocus>('idle');
 
   // Dynamic Theme-Aware 2D Canvas Atmosphere
   useCanvasSky(canvasRef);
@@ -79,7 +81,7 @@ export default function Signup() {
     return (
       <main
         id="signup-container"
-        className="min-h-screen flex flex-col justify-between relative overflow-x-hidden font-sans selection:bg-sky-200"
+        className="min-h-screen flex flex-col justify-between relative overflow-x-hidden font-sans selection:bg-sky-200 pt-[var(--navbar-offset-mobile)] sm:pt-[var(--navbar-offset-desktop)]"
       >
         {/* Background Animated Sky Canvas */}
         <canvas
@@ -89,8 +91,8 @@ export default function Signup() {
         />
 
         {/* Success Message Card */}
-        <div className="flex-1 flex items-center justify-center pt-24 sm:pt-28 pb-10 px-4 sm:px-6 lg:px-8 relative z-20">
-          <div className="max-w-md w-full backdrop-blur-2xl bg-white/60 hover:bg-white/65 dark:bg-[#16191f]/85 dark:hover:bg-[#16191f]/90 border border-white/90 dark:border-[#282d37] rounded-3xl p-6 sm:p-10 shadow-2xl shadow-sky-950/20 dark:shadow-black/60 text-center relative transition-all duration-300 animate-fade-in-up space-y-6">
+        <div className="flex-1 flex flex-col items-center justify-center py-4 sm:py-6 px-4 sm:px-6 lg:px-8 relative z-20">
+          <div className="max-w-md w-full my-auto backdrop-blur-2xl bg-white/60 hover:bg-white/65 dark:bg-[#16191f]/85 dark:hover:bg-[#16191f]/90 border border-white/90 dark:border-[#282d37] rounded-3xl p-6 sm:p-10 shadow-2xl shadow-sky-950/20 dark:shadow-black/60 text-center relative transition-all duration-300 animate-fade-in-up space-y-6">
             <div className="w-12 h-12 rounded-2xl bg-blue-100/90 dark:bg-blue-950/60 border border-blue-200 dark:border-blue-800/80 flex items-center justify-center mx-auto text-blue-600 dark:text-blue-400 shadow-2xs">
               <Mail className="w-6 h-6" />
             </div>
@@ -127,7 +129,7 @@ export default function Signup() {
   return (
     <main
       id="signup-container"
-      className="min-h-screen flex flex-col justify-between relative overflow-x-hidden font-sans selection:bg-blue-600/30 selection:text-white"
+      className="min-h-screen flex flex-col justify-between relative overflow-x-hidden font-sans selection:bg-blue-600/30 selection:text-white pt-[var(--navbar-offset-mobile)] sm:pt-[var(--navbar-offset-desktop)]"
     >
       {/* Background Animated Sky Canvas */}
       <canvas
@@ -137,30 +139,19 @@ export default function Signup() {
       />
 
       {/* Main Floating Translucent Glass Signup Interface */}
-      <div className="flex-1 flex items-center justify-center pt-24 sm:pt-28 pb-10 px-4 sm:px-6 lg:px-8 relative z-20">
-        <div className="max-w-4xl w-full grid grid-cols-1 md:grid-cols-2 gap-8 items-center backdrop-blur-2xl bg-white/60 hover:bg-white/65 dark:bg-[#16191f]/85 dark:hover:bg-[#16191f]/90 border border-white/90 dark:border-[#282d37] rounded-3xl p-6 sm:p-10 shadow-2xl shadow-sky-950/20 dark:shadow-black/60 relative transition-all duration-300 animate-fade-in-up">
+      <div className="flex-1 flex flex-col items-center justify-center py-4 sm:py-6 px-4 sm:px-6 lg:px-8 relative z-20">
+        <div className="max-w-[760px] w-full my-auto grid grid-cols-1 md:grid-cols-2 gap-6 md:gap-7 items-stretch backdrop-blur-2xl bg-white/70 hover:bg-white/75 dark:bg-[#16191f]/85 dark:hover:bg-[#16191f]/90 border border-white/90 dark:border-[#282d37] rounded-3xl p-5 sm:p-6 md:p-7 shadow-2xl shadow-sky-950/15 dark:shadow-black/60 relative transition-all duration-300 animate-fade-in-up">
 
-          {/* Left Side Content - Form Panel */}
-          <div className="space-y-6 w-full">
-            <div className="space-y-2">
-              <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-blue-100/90 dark:bg-blue-950/60 border border-blue-200 dark:border-blue-800/80 text-blue-900 dark:text-blue-300 text-[11px] font-bold shadow-2xs">
-                <ShieldCheck className="w-3.5 h-3.5 text-blue-600 dark:text-blue-400" />
-                CREATE ACCOUNT
-              </div>
-              <h2 className="text-2xl sm:text-3xl font-sans font-extrabold text-slate-900 dark:text-[#f1f3f5] tracking-tight">Get started with HAVN</h2>
-              <p className="text-xs text-slate-700 dark:text-slate-400 font-sans font-semibold">
-                Create an account to start deploying your projects.
-              </p>
-            </div>
-
+          {/* Left Side Content - Focused Authentication Form Panel */}
+          <div className="flex flex-col justify-center w-full my-auto">
             {error && (
-              <div className="p-3 bg-red-500/10 dark:bg-red-950/40 border border-red-300/80 dark:border-red-800/80 rounded-xl text-xs text-red-800 dark:text-red-300 font-semibold flex items-center gap-2 backdrop-blur-sm animate-shake">
+              <div className="p-2.5 bg-red-500/10 dark:bg-red-950/40 border border-red-300/80 dark:border-red-800/80 rounded-xl text-xs text-red-800 dark:text-red-300 font-semibold flex items-center gap-2 backdrop-blur-sm animate-shake mb-3">
                 ⚠️ {error}
               </div>
             )}
 
-            <form onSubmit={handleSubmit} className="space-y-3.5" autoComplete="off">
-              <div className="space-y-1.5">
+            <form onSubmit={handleSubmit} className="space-y-3" autoComplete="off">
+              <div className="space-y-1">
                 <label htmlFor="signup-name" className="text-[11px] font-bold text-slate-800 dark:text-slate-300 uppercase tracking-wider block">Full Name</label>
                 <div className="relative">
                   <User className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 dark:text-slate-500" />
@@ -171,13 +162,15 @@ export default function Signup() {
                     autoComplete="off"
                     value={name}
                     onChange={(e) => setName(e.target.value)}
+                    onFocus={() => setFocusedField('name')}
+                    onBlur={() => setFocusedField('idle')}
                     placeholder="Jane Doe"
-                    className="w-full pl-10 pr-4 py-2.5 bg-white/75 dark:bg-[#12151a] focus:bg-white dark:focus:bg-[#16191f] border border-white/90 dark:border-[#282d37] focus:border-blue-500 dark:focus:border-blue-500 rounded-xl text-xs text-slate-900 dark:text-[#f1f3f5] placeholder:text-slate-400 dark:placeholder:text-slate-500 outline-none transition-all duration-200 shadow-2xs focus:ring-2 focus:ring-blue-500/20 font-semibold"
+                    className="w-full pl-10 pr-4 py-2 bg-white/75 dark:bg-[#12151a] focus:bg-white dark:focus:bg-[#16191f] border border-white/90 dark:border-[#282d37] focus:border-blue-500 dark:focus:border-blue-500 rounded-xl text-xs text-slate-900 dark:text-[#f1f3f5] placeholder:text-slate-400 dark:placeholder:text-slate-500 outline-none transition-all duration-200 shadow-2xs focus:ring-2 focus:ring-blue-500/20 font-semibold"
                   />
                 </div>
               </div>
 
-              <div className="space-y-1.5">
+              <div className="space-y-1">
                 <label htmlFor="signup-email" className="text-[11px] font-bold text-slate-800 dark:text-slate-300 uppercase tracking-wider block">Email</label>
                 <div className="relative">
                   <Mail className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 dark:text-slate-500" />
@@ -188,14 +181,16 @@ export default function Signup() {
                     autoComplete="off"
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
+                    onFocus={() => setFocusedField('email')}
+                    onBlur={() => setFocusedField('idle')}
                     placeholder="you@example.com"
-                    className="w-full pl-10 pr-4 py-2.5 bg-white/75 dark:bg-[#12151a] focus:bg-white dark:focus:bg-[#16191f] border border-white/90 dark:border-[#282d37] focus:border-blue-500 dark:focus:border-blue-500 rounded-xl text-xs text-slate-900 dark:text-[#f1f3f5] placeholder:text-slate-400 dark:placeholder:text-slate-500 outline-none transition-all duration-200 shadow-2xs focus:ring-2 focus:ring-blue-500/20 font-semibold"
+                    className="w-full pl-10 pr-4 py-2 bg-white/75 dark:bg-[#12151a] focus:bg-white dark:focus:bg-[#16191f] border border-white/90 dark:border-[#282d37] focus:border-blue-500 dark:focus:border-blue-500 rounded-xl text-xs text-slate-900 dark:text-[#f1f3f5] placeholder:text-slate-400 dark:placeholder:text-slate-500 outline-none transition-all duration-200 shadow-2xs focus:ring-2 focus:ring-blue-500/20 font-semibold"
                   />
                 </div>
               </div>
 
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
-                <div className="space-y-1.5">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+                <div className="space-y-1">
                   <label htmlFor="signup-password" className="text-[11px] font-bold text-slate-800 dark:text-slate-300 uppercase tracking-wider block">Password</label>
                   <div className="relative">
                     <Lock className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 dark:text-slate-500" />
@@ -206,8 +201,10 @@ export default function Signup() {
                       autoComplete="new-password"
                       value={password}
                       onChange={(e) => setPassword(e.target.value)}
-                      placeholder="Create a password"
-                      className="w-full pl-10 pr-10 py-2.5 bg-white/75 dark:bg-[#12151a] focus:bg-white dark:focus:bg-[#16191f] border border-white/90 dark:border-[#282d37] focus:border-blue-500 dark:focus:border-blue-500 rounded-xl text-xs text-slate-900 dark:text-[#f1f3f5] placeholder:text-slate-400 dark:placeholder:text-slate-500 outline-none transition-all duration-200 shadow-2xs focus:ring-2 focus:ring-blue-500/20 font-mono"
+                      onFocus={() => setFocusedField('password')}
+                      onBlur={() => setFocusedField('idle')}
+                      placeholder="Create password"
+                      className="w-full pl-10 pr-10 py-2 bg-white/75 dark:bg-[#12151a] focus:bg-white dark:focus:bg-[#16191f] border border-white/90 dark:border-[#282d37] focus:border-blue-500 dark:focus:border-blue-500 rounded-xl text-xs text-slate-900 dark:text-[#f1f3f5] placeholder:text-slate-400 dark:placeholder:text-slate-500 outline-none transition-all duration-200 shadow-2xs focus:ring-2 focus:ring-blue-500/20 font-mono"
                     />
                     <button
                       type="button"
@@ -219,8 +216,8 @@ export default function Signup() {
                   </div>
                 </div>
 
-                <div className="space-y-1.5">
-                  <label htmlFor="signup-confirm-password" className="text-[11px] font-bold text-slate-800 dark:text-slate-300 uppercase tracking-wider block">Confirm Password</label>
+                <div className="space-y-1">
+                  <label htmlFor="signup-confirm-password" className="text-[11px] font-bold text-slate-800 dark:text-slate-300 uppercase tracking-wider block">Confirm</label>
                   <div className="relative">
                     <Lock className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 dark:text-slate-500" />
                     <input
@@ -230,33 +227,35 @@ export default function Signup() {
                       autoComplete="new-password"
                       value={confirmPassword}
                       onChange={(e) => setConfirmPassword(e.target.value)}
+                      onFocus={() => setFocusedField('confirmPassword')}
+                      onBlur={() => setFocusedField('idle')}
                       placeholder="Confirm password"
-                      className="w-full pl-10 pr-4 py-2.5 bg-white/75 dark:bg-[#12151a] focus:bg-white dark:focus:bg-[#16191f] border border-white/90 dark:border-[#282d37] focus:border-blue-500 dark:focus:border-blue-500 rounded-xl text-xs text-slate-900 dark:text-[#f1f3f5] placeholder:text-slate-400 dark:placeholder:text-slate-500 outline-none transition-all duration-200 shadow-2xs focus:ring-2 focus:ring-blue-500/20 font-mono"
+                      className="w-full pl-10 pr-4 py-2 bg-white/75 dark:bg-[#12151a] focus:bg-white dark:focus:bg-[#16191f] border border-white/90 dark:border-[#282d37] focus:border-blue-500 dark:focus:border-blue-500 rounded-xl text-xs text-slate-900 dark:text-[#f1f3f5] placeholder:text-slate-400 dark:placeholder:text-slate-500 outline-none transition-all duration-200 shadow-2xs focus:ring-2 focus:ring-blue-500/20 font-mono"
                     />
                   </div>
                 </div>
               </div>
 
-              <div className="flex items-center justify-between pt-1">
-                <label className="flex items-start gap-2.5 text-xs text-slate-800 dark:text-slate-300 font-semibold select-none cursor-pointer leading-normal group">
+              <div className="flex items-center justify-between pt-0.5">
+                <label className="flex items-start gap-2.5 text-[11px] text-slate-800 dark:text-slate-300 font-semibold select-none cursor-pointer leading-normal group">
                   <input
                     type="checkbox"
                     checked={agreeTerms}
                     onChange={(e) => setAgreeTerms(e.target.checked)}
-                    className="w-4 h-4 rounded border-slate-300 dark:border-slate-700 bg-white dark:bg-[#12151a] text-blue-600 focus:ring-blue-500 accent-blue-600 cursor-pointer mt-0.5"
+                    className="w-3.5 h-3.5 rounded border-slate-300 dark:border-slate-700 bg-white dark:bg-[#12151a] text-blue-600 focus:ring-blue-500 accent-blue-600 cursor-pointer mt-0.5"
                   />
-                  <span className="group-hover:text-slate-900 dark:group-hover:text-[#f1f3f5] transition-colors">I agree to the Terms of Service and Privacy Policy.</span>
+                  <span className="group-hover:text-slate-900 dark:group-hover:text-[#f1f3f5] transition-colors">I agree to Terms & Privacy.</span>
                 </label>
               </div>
 
               <button
                 type="submit"
                 disabled={isLoading}
-                className="w-full bg-blue-600 hover:bg-blue-500 dark:bg-blue-600 dark:hover:bg-blue-500 disabled:opacity-70 text-white font-bold text-xs py-3 rounded-xl flex items-center justify-center gap-2 shadow-lg shadow-blue-600/30 hover:shadow-xl hover:shadow-blue-600/40 transition-all active:scale-[0.98] mt-2 cursor-pointer"
+                className="w-full bg-slate-900 hover:bg-slate-800 dark:bg-white dark:hover:bg-slate-100 disabled:opacity-70 text-white dark:text-slate-900 font-bold text-xs py-2.5 rounded-xl flex items-center justify-center gap-2 shadow-md transition-all active:scale-[0.98] mt-1 cursor-pointer"
               >
                 {isLoading ? (
                   <span className="inline-flex items-center gap-2">
-                    <svg className="animate-spin h-4 w-4 text-white" viewBox="0 0 24 24" fill="none">
+                    <svg className="animate-spin h-4 w-4 text-white dark:text-slate-900" viewBox="0 0 24 24" fill="none">
                       <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
                       <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
                     </svg>
@@ -268,25 +267,25 @@ export default function Signup() {
               </button>
             </form>
 
-            <div className="relative my-6 text-center">
+            <div className="relative my-3.5 text-center">
               <span className="absolute inset-x-0 top-1/2 h-px bg-slate-300/80 dark:bg-[#282d37] -translate-y-1/2"></span>
               <span className="relative bg-white/90 dark:bg-[#16191f] px-3 text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest rounded-full">
                 or integrate with
               </span>
             </div>
 
-            <div className="grid grid-cols-2 gap-3">
+            <div className="grid grid-cols-2 gap-2.5">
               <button
                 type="button"
                 onClick={() => handleOAuthSignup("github")}
-                className="flex items-center justify-center gap-2 py-2.5 border border-white/90 dark:border-[#282d37] hover:border-blue-300 dark:hover:border-blue-500 bg-white/75 hover:bg-white dark:bg-[#1e222b] dark:hover:bg-[#252a35] text-xs text-slate-800 dark:text-[#f1f3f5] font-bold rounded-xl transition-all shadow-2xs hover:shadow-xs active:scale-[0.98] cursor-pointer"
+                className="flex items-center justify-center gap-2 py-2 border border-slate-200/90 dark:border-[#282d37] hover:border-slate-400 dark:hover:border-slate-500 bg-white/75 hover:bg-white dark:bg-[#1e222b] dark:hover:bg-[#252a35] text-xs text-slate-800 dark:text-[#f1f3f5] font-bold rounded-xl transition-all shadow-2xs hover:shadow-xs active:scale-[0.98] cursor-pointer"
               >
                 <Github className="w-4 h-4 text-slate-800 dark:text-[#f1f3f5]" /> GitHub
               </button>
               <button
                 type="button"
                 onClick={() => handleOAuthSignup("google")}
-                className="flex items-center justify-center gap-2 py-2.5 border border-white/90 dark:border-[#282d37] hover:border-blue-300 dark:hover:border-blue-500 bg-white/75 hover:bg-white dark:bg-[#1e222b] dark:hover:bg-[#252a35] text-xs text-slate-800 dark:text-[#f1f3f5] font-bold rounded-xl transition-all shadow-2xs hover:shadow-xs active:scale-[0.98] cursor-pointer"
+                className="flex items-center justify-center gap-2 py-2 border border-slate-200/90 dark:border-[#282d37] hover:border-slate-400 dark:hover:border-slate-500 bg-white/75 hover:bg-white dark:bg-[#1e222b] dark:hover:bg-[#252a35] text-xs text-slate-800 dark:text-[#f1f3f5] font-bold rounded-xl transition-all shadow-2xs hover:shadow-xs active:scale-[0.98] cursor-pointer"
               >
                 <Chrome className="w-4 h-4 text-blue-600 dark:text-blue-400" /> Google
               </button>
@@ -298,69 +297,23 @@ export default function Signup() {
             </p>
           </div>
 
-          {/* Right Side Content - Translucent Glass Marketing Info Panel */}
-          <div className="hidden md:flex flex-col justify-center h-full backdrop-blur-xl bg-white/40 dark:bg-[#12151a]/60 border border-white/80 dark:border-[#282d37] rounded-2xl p-7 space-y-7 shadow-2xs">
+          {/* Right Side Content - Compact Welcome Panel with Yeti & Bold Typographic Statement */}
+          <div className="hidden md:flex flex-col justify-between items-center text-center h-full backdrop-blur-xl bg-gradient-to-b from-sky-400/10 via-blue-500/5 to-sky-400/15 dark:from-sky-500/10 dark:via-[#12151a]/50 dark:to-blue-600/10 border border-white/80 dark:border-[#282d37] rounded-2xl p-5 lg:p-6 shadow-2xs relative overflow-hidden select-none">
+            {/* Ambient Soft Sky Glow Behind Yeti */}
+            <div className="absolute inset-0 bg-radial from-sky-400/15 via-transparent to-transparent pointer-events-none" />
 
-            {/* Deploy with confidence */}
-            <div className="flex items-start gap-4">
-              <div className="w-10 h-10 rounded-xl bg-blue-100/90 dark:bg-blue-950/60 border border-blue-200 dark:border-blue-800/80 flex items-center justify-center flex-shrink-0 shadow-2xs">
-                <Rocket className="w-5 h-5 text-blue-600 dark:text-blue-400" />
-              </div>
-
-              <div>
-                <h3 className="text-base font-extrabold text-slate-900 dark:text-[#f1f3f5]">
-                  Deploy with confidence
-                </h3>
-
-                <p className="mt-1.5 text-xs text-slate-700 dark:text-slate-400 leading-relaxed font-semibold">
-                  Deploy directly from your Git repository with a clean, guided
-                  workflow. Build, monitor, and manage your applications from one
-                  place.
-                </p>
-              </div>
+            {/* Yeti Mascot Section - Centerpiece */}
+            <div className="flex-1 flex flex-col items-center justify-center relative z-10 w-full py-1">
+              <HavnMascot focusedField={focusedField} isSubmitting={isLoading} hasError={!!error} />
             </div>
 
-            <div className="border-t border-slate-200/80 dark:border-[#282d37]"></div>
-
-            {/* AI Assistant */}
-            <div className="flex items-start gap-4">
-              <div className="w-10 h-10 rounded-xl bg-blue-100/90 dark:bg-blue-950/60 border border-blue-200 dark:border-blue-800/80 flex items-center justify-center flex-shrink-0 shadow-2xs">
-                <Bot className="w-5 h-5 text-blue-600 dark:text-blue-400" />
-              </div>
-
-              <div>
-                <h3 className="text-base font-extrabold text-slate-900 dark:text-[#f1f3f5]">
-                  AI that helps, not confuses
-                </h3>
-
-                <p className="mt-1.5 text-xs text-slate-700 dark:text-slate-400 leading-relaxed font-semibold">
-                  HAVN explains deployment errors in plain English, suggests fixes,
-                  and helps you move faster whether you're just starting or already
-                  experienced.
-                </p>
-              </div>
+            {/* Minimalist Typographic Statement (Pinterest-Style) */}
+            <div className="relative z-10 pt-2 pb-1 w-full text-left px-2">
+              <h3 className="font-display text-2xl lg:text-[26px] font-black tracking-tight text-slate-900 dark:text-[#f1f3f5] leading-[1.05] uppercase">
+                BUILD.<br />
+                RUN. DEPLOY.
+              </h3>
             </div>
-
-            <div className="border-t border-slate-200/80 dark:border-[#282d37]"></div>
-
-            {/* Build & Grow */}
-            <div className="flex items-start gap-4">
-              <div className="w-10 h-10 rounded-xl bg-blue-100/90 dark:bg-blue-950/60 border border-blue-200 dark:border-blue-800/80 flex items-center justify-center flex-shrink-0 shadow-2xs">
-                <BarChart3 className="w-5 h-5 text-blue-600 dark:text-blue-400" />
-              </div>
-
-              <div>
-                <h3 className="text-base font-extrabold text-slate-900 dark:text-[#f1f3f5]">
-                  Build and grow
-                </h3>
-
-                <p className="mt-1.5 text-xs text-slate-700 dark:text-slate-400 leading-relaxed font-semibold">
-                  Track deployments, monitor project history, and keep every release
-                  organized as your applications evolve.
-                </p>
-              </div>
-            </div>
-
           </div>
 
         </div>

@@ -1,0 +1,371 @@
+/* HAVN Interactive Yeti Mascot Styles */
+
+@keyframes yetiBreathe {
+  0%, 100% {
+    transform: translateY(0px) scale(1);
+  }
+  50% {
+    transform: translateY(-3px) scale(1.008);
+  }
+}
+
+@keyframes yetiChestBreathe {
+  0%, 100% {
+    transform: scale(1);
+  }
+  50% {
+    transform: scale(1.02);
+  }
+}
+
+@keyframes yetiBlink {
+  0%, 93%, 97%, 100% {
+    transform: scaleY(1);
+  }
+  95% {
+    transform: scaleY(0.08);
+  }
+}
+
+@keyframes yetiEarsWiggle {
+  0%, 88%, 100% {
+    transform: rotate(0deg);
+  }
+  91% {
+    transform: rotate(2.5deg);
+  }
+  94% {
+    transform: rotate(-2deg);
+  }
+}
+
+@keyframes yetiCelebrateBounce {
+  0%, 100% {
+    transform: translateY(0px) scale(1);
+  }
+  30% {
+    transform: translateY(-10px) scale(1.03);
+  }
+  60% {
+    transform: translateY(-3px) scale(0.98);
+  }
+}
+
+.yeti-breathe {
+  animation: yetiBreathe 4.5s ease-in-out infinite;
+  transform-origin: 180px 355px;
+}
+
+.yeti-chest-breathe {
+  animation: yetiChestBreathe 4.5s ease-in-out infinite;
+  transform-origin: 180px 285px;
+}
+
+.yeti-blink {
+  animation: yetiBlink 4.8s ease-in-out infinite;
+  transform-origin: 180px 155px;
+}
+
+.yeti-ears {
+  animation: yetiEarsWiggle 6.2s ease-in-out infinite;
+  transform-origin: 180px 108px;
+}
+
+.yeti-celebrate {
+  animation: yetiCelebrateBounce 0.9s cubic-bezier(0.34, 1.56, 0.64, 1) infinite;
+  transform-origin: center bottom;
+}
+
+/* Layered Transform Smooth Transitions */
+.yeti-layer {
+  will-change: transform;
+}
+
+.yeti-pupils-layer {
+  will-change: transform;
+}
+
+.yeti-arm-layer {
+  will-change: transform;
+  transition: transform 0.38s cubic-bezier(0.34, 1.35, 0.64, 1);
+}
+
+/* ==================================================
+   YETI ENTRANCE / WELCOME ANIMATION (1.5s Full Body)
+   Sequence: Anticipation -> Jump Up -> Floating Wave -> Landing Squash -> Rebound -> Idle
+   ================================================== */
+
+@keyframes yetiEntranceJump {
+  0% {
+    transform: translateY(0px);
+  }
+  10% {
+    transform: translateY(6px);
+  }
+  26% {
+    transform: translateY(-34px);
+  }
+  35% {
+    transform: translateY(-36px);
+  }
+  45% {
+    transform: translateY(-35px);
+  }
+  55% {
+    transform: translateY(-36px);
+  }
+  65% {
+    transform: translateY(-34px);
+  }
+  74% {
+    transform: translateY(-16px);
+  }
+  80% {
+    transform: translateY(0px);
+  }
+  86% {
+    transform: translateY(5px);
+  }
+  93% {
+    transform: translateY(-3px);
+  }
+  100% {
+    transform: translateY(0px);
+  }
+}
+
+@keyframes yetiEntranceBody {
+  0% {
+    transform: scale(1, 1);
+  }
+  10% {
+    transform: scale(1.05, 0.93);
+  }
+  26% {
+    transform: scale(0.96, 1.06);
+  }
+  35%, 65% {
+    transform: scale(1, 1);
+  }
+  74% {
+    transform: scale(0.98, 1.03);
+  }
+  80% {
+    transform: scale(1.02, 0.98);
+  }
+  86% {
+    transform: scale(1.06, 0.93);
+  }
+  93% {
+    transform: scale(0.99, 1.01);
+  }
+  100% {
+    transform: scale(1, 1);
+  }
+}
+
+@keyframes yetiEntranceHead {
+  0% {
+    transform: translateY(0px) rotate(0deg);
+  }
+  10% {
+    transform: translateY(4px) rotate(-1deg);
+  }
+  26% {
+    transform: translateY(-3px) rotate(1deg);
+  }
+  35% {
+    transform: translateY(-5px) rotate(3deg);
+  }
+  45% {
+    transform: translateY(-4px) rotate(4deg);
+  }
+  55% {
+    transform: translateY(-5px) rotate(2deg);
+  }
+  65% {
+    transform: translateY(-4px) rotate(3.5deg);
+  }
+  74% {
+    transform: translateY(-2px) rotate(1deg);
+  }
+  80% {
+    transform: translateY(1px) rotate(0deg);
+  }
+  86% {
+    transform: translateY(4px) rotate(-1deg);
+  }
+  93% {
+    transform: translateY(-2px) rotate(0.5deg);
+  }
+  100% {
+    transform: translateY(0px) rotate(0deg);
+  }
+}
+
+@keyframes yetiEntranceShadow {
+  0% {
+    transform: scale(1);
+    opacity: 0.18;
+  }
+  10% {
+    transform: scale(1.06);
+    opacity: 0.22;
+  }
+  26% {
+    transform: scale(0.72);
+    opacity: 0.08;
+  }
+  35% {
+    transform: scale(0.68);
+    opacity: 0.07;
+  }
+  45%, 65% {
+    transform: scale(0.7);
+    opacity: 0.08;
+  }
+  74% {
+    transform: scale(0.88);
+    opacity: 0.13;
+  }
+  80% {
+    transform: scale(1);
+    opacity: 0.18;
+  }
+  86% {
+    transform: scale(1.08);
+    opacity: 0.22;
+  }
+  93% {
+    transform: scale(0.97);
+    opacity: 0.16;
+  }
+  100% {
+    transform: scale(1);
+    opacity: 0.18;
+  }
+}
+
+@keyframes yetiEntranceWaveArm {
+  0% {
+    transform: rotate(0deg);
+  }
+  10% {
+    transform: rotate(10deg);
+  }
+  26% {
+    transform: rotate(-110deg);
+  }
+  35% {
+    transform: rotate(-185deg);
+  }
+  44% {
+    transform: rotate(-162deg);
+  }
+  52% {
+    transform: rotate(-195deg);
+  }
+  60% {
+    transform: rotate(-162deg);
+  }
+  68% {
+    transform: rotate(-195deg);
+  }
+  76% {
+    transform: rotate(-90deg);
+  }
+  84% {
+    transform: rotate(8deg);
+  }
+  92% {
+    transform: rotate(-3deg);
+  }
+  100% {
+    transform: rotate(0deg);
+  }
+}
+
+@keyframes yetiEntranceBalanceArm {
+  0% {
+    transform: rotate(0deg);
+  }
+  10% {
+    transform: rotate(-8deg);
+  }
+  26% {
+    transform: rotate(12deg);
+  }
+  35%, 68% {
+    transform: rotate(8deg);
+  }
+  76% {
+    transform: rotate(4deg);
+  }
+  84% {
+    transform: rotate(-8deg);
+  }
+  92% {
+    transform: rotate(2deg);
+  }
+  100% {
+    transform: rotate(0deg);
+  }
+}
+
+@keyframes yetiEntranceEars {
+  0%, 30% {
+    transform: rotate(0deg);
+  }
+  38% {
+    transform: rotate(4deg);
+  }
+  46% {
+    transform: rotate(-3deg);
+  }
+  56% {
+    transform: rotate(3deg);
+  }
+  66% {
+    transform: rotate(-2deg);
+  }
+  75%, 100% {
+    transform: rotate(0deg);
+  }
+}
+
+.yeti-entrance-jump {
+  animation: yetiEntranceJump 1.5s cubic-bezier(0.25, 1, 0.5, 1) forwards;
+  will-change: transform;
+}
+
+.yeti-entrance-body {
+  animation: yetiEntranceBody 1.5s cubic-bezier(0.25, 1, 0.5, 1) forwards;
+  will-change: transform;
+}
+
+.yeti-entrance-head {
+  animation: yetiEntranceHead 1.5s cubic-bezier(0.25, 1, 0.5, 1) forwards;
+  will-change: transform;
+}
+
+.yeti-entrance-shadow {
+  animation: yetiEntranceShadow 1.5s cubic-bezier(0.25, 1, 0.5, 1) forwards;
+  will-change: transform, opacity;
+}
+
+.yeti-entrance-wave-arm {
+  animation: yetiEntranceWaveArm 1.5s cubic-bezier(0.25, 1, 0.5, 1) forwards !important;
+  will-change: transform;
+  transition: none !important;
+}
+
+.yeti-entrance-balance-arm {
+  animation: yetiEntranceBalanceArm 1.5s cubic-bezier(0.25, 1, 0.5, 1) forwards !important;
+  will-change: transform;
+  transition: none !important;
+}
+
+.yeti-entrance-ears {
+  animation: yetiEntranceEars 1.5s ease-in-out forwards;
+}
+

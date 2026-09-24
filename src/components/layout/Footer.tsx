@@ -4,11 +4,14 @@ import { useNavigate } from 'react-router-dom';
 import { ROUTES } from '../../constants/routes';
 import Logo from '../ui/Logo';
 import { useTheme } from '../../context/ThemeContext';
+import { motion, useReducedMotion } from 'motion/react';
+import { VIEWPORT_SECTION, fadeUpVariants } from '../landing/motionSystem';
 
 export default function Footer() {
   const { theme } = useTheme();
   const navigate = useNavigate();
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
+  const shouldReduceMotion = useReducedMotion();
 
   // Continuous Dynamic Sky + Cloud Ocean Canvas
   useEffect(() => {
@@ -127,7 +130,13 @@ export default function Footer() {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10 space-y-10">
         
         {/* Main Footer Glass Card */}
-        <div className="backdrop-blur-xl bg-white/40 hover:bg-white/50 dark:bg-[#16191f]/80 dark:hover:bg-[#1e222b]/90 border border-white/70 dark:border-[#282d37] rounded-3xl p-8 sm:p-12 shadow-xl shadow-sky-900/5 dark:shadow-black/30 transition-colors duration-300 motion-safe:animate-fade-in-up">
+        <motion.div 
+          variants={shouldReduceMotion ? undefined : fadeUpVariants}
+          initial="hidden"
+          whileInView="visible"
+          viewport={VIEWPORT_SECTION}
+          className="backdrop-blur-xl bg-white/40 hover:bg-white/50 dark:bg-[#16191f]/80 dark:hover:bg-[#1e222b]/90 border border-white/70 dark:border-[#282d37] rounded-3xl p-8 sm:p-12 shadow-xl shadow-sky-900/5 dark:shadow-black/30 transition-colors duration-300"
+        >
           <div className="grid grid-cols-1 md:grid-cols-5 gap-10 pb-10 border-b border-slate-200/60 dark:border-slate-800 text-left">
             
             {/* Brand Info */}
@@ -254,7 +263,7 @@ export default function Footer() {
             <p>© {new Date().getFullYear()} HAVN Inc. All rights reserved.</p>
             <p className="text-slate-500 dark:text-slate-400">Designed for developers. Built for speed.</p>
           </div>
-        </div>
+        </motion.div>
 
       </div>
 

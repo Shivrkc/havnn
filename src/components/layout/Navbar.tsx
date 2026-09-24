@@ -104,16 +104,17 @@ export default function Navbar({ scrollToSection }: NavbarProps) {
         )}
 
         {/* RIGHT: Actions & CTAs */}
-        <div className="hidden md:flex items-center gap-2.5">
+        <div className="hidden md:flex items-center gap-2">
           {/* Light / Dark Theme Toggle Button */}
           <ThemeToggle />
 
+          {/* GitHub: secondary / utility action (subtle / ghost with icon) */}
           <a
             href="https://github.com/Shivrkc/cloudforge"
             target="_blank"
             rel="noopener noreferrer"
             aria-label="GitHub Repository"
-            className="flex items-center gap-2 px-3.5 py-1.5 text-xs font-medium text-slate-800 dark:text-white/90 hover:text-blue-600 dark:hover:text-white bg-white/40 dark:bg-white/10 hover:bg-white/60 dark:hover:bg-white/20 border border-white/60 dark:border-white/20 rounded-xl transition-all duration-200 backdrop-blur-md active:scale-95 shadow-2xs"
+            className="inline-flex items-center justify-center gap-1.5 h-8 px-3.5 text-xs font-medium text-slate-700 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white border border-transparent hover:border-slate-200/60 dark:hover:border-white/10 hover:bg-white/60 dark:hover:bg-white/10 rounded-xl transition-all duration-200 ease-out active:scale-95 cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500/50 focus-visible:ring-offset-1"
           >
             <Github className="w-3.5 h-3.5" />
             <span>GitHub</span>
@@ -121,24 +122,22 @@ export default function Navbar({ scrollToSection }: NavbarProps) {
 
           {!isAuthApp && (
             <>
+              {/* Login: secondary action (subtle / ghost) */}
               <button 
                 onClick={() => navigate(ROUTES.LOGIN)}
-                className={`text-xs font-medium px-4 py-1.5 rounded-xl transition-all duration-200 backdrop-blur-md active:scale-95 cursor-pointer shadow-2xs ${
+                className={`inline-flex items-center justify-center h-8 px-3.5 text-xs font-medium rounded-xl border transition-all duration-200 ease-out active:scale-95 cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500/50 focus-visible:ring-offset-1 ${
                   isLogin 
-                    ? "text-blue-600 dark:text-white bg-blue-50 dark:bg-white/20 border border-blue-200 dark:border-white/30" 
-                    : "text-slate-800 dark:text-white/90 hover:text-blue-600 dark:hover:text-white bg-white/40 dark:bg-white/10 hover:bg-white/60 dark:hover:bg-white/20 border border-white/60 dark:border-white/20"
+                    ? "text-blue-600 dark:text-white bg-white/60 dark:bg-white/10 border-slate-200/60 dark:border-white/10 font-semibold" 
+                    : "text-slate-700 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white border-transparent hover:border-slate-200/60 dark:hover:border-white/10 hover:bg-white/60 dark:hover:bg-white/10"
                 }`}
               >
                 Login
               </button>
 
+              {/* Sign Up: primary action (dark/filled pill with high contrast) */}
               <button 
                 onClick={() => navigate(ROUTES.SIGNUP)}
-                className={`text-xs font-medium px-4 py-1.5 rounded-xl transition-all duration-200 backdrop-blur-md active:scale-95 cursor-pointer shadow-2xs ${
-                  isSignup 
-                    ? "text-blue-600 dark:text-white bg-blue-50 dark:bg-white/20 border border-blue-200 dark:border-white/30" 
-                    : "text-slate-800 dark:text-white/90 hover:text-blue-600 dark:hover:text-white bg-white/40 dark:bg-white/10 hover:bg-white/60 dark:hover:bg-white/20 border border-white/60 dark:border-white/20"
-                }`}
+                className="inline-flex items-center justify-center h-8 px-3.5 text-xs font-semibold rounded-xl border border-slate-900 dark:border-[#f1f3f5] bg-slate-900 text-white dark:bg-[#f1f3f5] dark:text-[#0d0f12] hover:bg-slate-800 dark:hover:bg-white hover:border-slate-800 dark:hover:border-white shadow-xs hover:shadow-sm transition-all duration-200 ease-out active:scale-95 cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500/50 focus-visible:ring-offset-1"
               >
                 Sign Up
               </button>
@@ -193,9 +192,9 @@ export default function Navbar({ scrollToSection }: NavbarProps) {
               href="https://github.com/Shivrkc/cloudforge"
               target="_blank"
               rel="noopener noreferrer"
-              className="flex items-center justify-center gap-2 w-full py-2.5 text-xs font-medium text-slate-800 dark:text-[#f1f3f5] border border-slate-200 dark:border-[#282d37] bg-slate-100/70 dark:bg-[#1e222b] hover:bg-white dark:hover:bg-[#252a35] rounded-xl transition-colors"
+              className="inline-flex items-center justify-center gap-2 w-full h-9 text-xs font-medium text-slate-700 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white border border-slate-200/80 dark:border-[#282d37] bg-white/40 dark:bg-[#1e222b] hover:bg-white/70 dark:hover:bg-[#252a35] rounded-xl transition-all duration-200 ease-out active:scale-[0.99] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500/50"
             >
-              <Github className="w-4 h-4" />
+              <Github className="w-3.5 h-3.5" />
               <span>GitHub</span>
             </a>
 
@@ -206,10 +205,10 @@ export default function Navbar({ scrollToSection }: NavbarProps) {
                     setIsMobileMenuOpen(false);
                     navigate(ROUTES.LOGIN);
                   }}
-                  className={`w-full py-2.5 text-xs font-medium transition-colors rounded-xl border ${
+                  className={`inline-flex items-center justify-center w-full h-9 text-xs font-medium transition-all duration-200 ease-out rounded-xl border active:scale-[0.99] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500/50 ${
                     isLogin 
-                      ? "text-blue-600 dark:text-white bg-blue-50 dark:bg-white/20 border-blue-200 dark:border-white/30"
-                      : "text-slate-700 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white border-slate-200 dark:border-[#282d37] bg-slate-100/70 dark:bg-[#1e222b] hover:bg-white dark:hover:bg-[#252a35]"
+                      ? "text-blue-600 dark:text-white bg-white/60 dark:bg-white/10 border-slate-200/80 dark:border-white/10 font-semibold"
+                      : "text-slate-700 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white border-slate-200/80 dark:border-[#282d37] bg-white/40 dark:bg-[#1e222b] hover:bg-white/70 dark:hover:bg-[#252a35]"
                   }`}
                 >
                   Login
@@ -220,11 +219,7 @@ export default function Navbar({ scrollToSection }: NavbarProps) {
                     setIsMobileMenuOpen(false);
                     navigate(ROUTES.SIGNUP);
                   }}
-                  className={`w-full py-2.5 text-xs font-medium transition-colors rounded-xl border ${
-                    isSignup 
-                      ? "text-blue-600 dark:text-white bg-blue-50 dark:bg-white/20 border-blue-200 dark:border-white/30"
-                      : "text-slate-700 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white border-slate-200 dark:border-[#282d37] bg-slate-100/70 dark:bg-[#1e222b] hover:bg-white dark:hover:bg-[#252a35]"
-                  }`}
+                  className="inline-flex items-center justify-center w-full h-9 text-xs font-semibold transition-all duration-200 ease-out rounded-xl bg-slate-900 text-white dark:bg-[#f1f3f5] dark:text-[#0d0f12] hover:bg-slate-800 dark:hover:bg-white border border-slate-900 dark:border-[#f1f3f5] shadow-xs active:scale-[0.99] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500/50"
                 >
                   Sign Up
                 </button>
