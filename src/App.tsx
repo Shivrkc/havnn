@@ -3,12 +3,8 @@ import { Routes, Route, useLocation } from "react-router-dom";
 import { ROUTES } from "./constants/routes";
 
 import Navbar from "./components/layout/Navbar";
-import Footer from "./components/layout/Footer";
 
-import Hero from "./components/landing/Hero";
-import Features from "./components/landing/Features";
-import WhyChooseUs from "./components/landing/WhyChooseUs";
-import Faq from "./components/landing/Faq";
+import CinematicLanding from "./components/landing/CinematicLanding";
 
 import Login from "./pages/Login";
 import Signup from "./pages/Signup";
@@ -46,10 +42,12 @@ export default function App() {
   }, [location.pathname, location.hash]);
 
   return (
-    <div className="min-h-screen bg-[var(--color-background)] text-[var(--color-foreground)] flex flex-col relative overflow-hidden selection:bg-blue-600/30 selection:text-white transition-colors duration-300">
+    <div className="min-h-screen bg-[var(--color-background)] text-[var(--color-foreground)] flex flex-col relative overflow-x-clip selection:bg-blue-600/30 selection:text-white transition-colors duration-300">
       {/* Decorative Background Glows */}
-      <div className="absolute top-[-200px] left-[-200px] w-[600px] h-[600px] bg-blue-500/10 dark:bg-blue-600/5 rounded-full blur-[120px] pointer-events-none z-0"></div>
-      <div className="absolute bottom-[-200px] right-[-200px] w-[600px] h-[600px] bg-sky-500/10 dark:bg-slate-800/15 rounded-full blur-[120px] pointer-events-none z-0"></div>
+      <div className="absolute inset-0 overflow-hidden pointer-events-none z-0">
+        <div className="absolute top-[-200px] left-[-200px] w-[600px] h-[600px] bg-blue-500/10 dark:bg-blue-600/5 rounded-full blur-[120px]"></div>
+        <div className="absolute bottom-[-200px] right-[-200px] w-[600px] h-[600px] bg-sky-500/10 dark:bg-slate-800/15 rounded-full blur-[120px]"></div>
+      </div>
 
       {/* Universal Responsive Navbar */}
       <Navbar scrollToSection={scrollToSection} />
@@ -58,15 +56,7 @@ export default function App() {
       <Routes>
         <Route
           path={ROUTES.HOME}
-          element={
-            <div className="flex flex-col">
-              <Hero />
-              <Features />
-              <WhyChooseUs />
-              <Faq />
-              <Footer />
-            </div>
-          }
+          element={<CinematicLanding />}
         />
 
         <Route

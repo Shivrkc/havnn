@@ -244,7 +244,7 @@ export const SIMULATED_BUILD_STEPS: BuildLog[] = [
   { timestamp: '14:22:30', type: 'info', message: 'Optimizing static asset compressions with Gzip and Brotli...' },
   { timestamp: '14:22:32', type: 'info', message: 'Uploading 14 static assets to global Edge CDN nodes...' },
   { timestamp: '14:22:33', type: 'success', message: 'Edge CDN distribution synced successfully (108 nodes).' },
-  { timestamp: '14:22:34', type: 'info', message: 'Provisioning automated SSL wildcard credentials for storyteller.cloudforge.app...' },
+  { timestamp: '14:22:34', type: 'info', message: 'Provisioning automated SSL wildcard credentials for storyteller.havn.app...' },
   { timestamp: '14:22:36', type: 'success', message: 'SSL certificate active.' },
-  { timestamp: '14:22:37', type: 'success', message: 'Deployment SUCCESSFUL! Application is LIVE at storyteller.cloudforge.app 🎉' }
+  { timestamp: '14:22:37', type: 'success', message: 'Deployment SUCCESSFUL! Application is LIVE at storyteller.havn.app 🎉' }
 ];

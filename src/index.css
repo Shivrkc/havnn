@@ -1,9 +1,11 @@
+@import url('https://api.fontshare.com/v2/css?f[]=clash-display@500,600,700&display=swap');
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;700&display=swap');
 @import "tailwindcss";
 
 @custom-variant dark (&:where(.dark, .dark *));
 
 @theme {
+  --font-display: "Clash Display", ui-sans-serif, system-ui, sans-serif;
   --font-sans: "Inter", ui-sans-serif, system-ui, -apple-system, sans-serif;
   --font-mono: "JetBrains Mono", ui-monospace, SFMono-Regular, monospace;
   
@@ -50,6 +52,15 @@
   --color-navbar-scrolled: rgba(255, 255, 255, 0.95);
   --color-navbar-border: #e2e8f0;
   --color-navbar-text: #0f172a;
+
+  /* Navbar geometric layout tokens */
+  --navbar-height-desktop: 4.875rem; /* 78px rendered navbar bottom (16px top margin + 62px pill) */
+  --navbar-height-mobile: 4.625rem;  /* 74px rendered navbar bottom (12px top margin + 62px pill) */
+  --navbar-spacing-desktop: 2.125rem; /* 34px intentional breathing room */
+  --navbar-spacing-mobile: 1.375rem;  /* 22px intentional breathing room */
+  --navbar-offset-desktop: calc(var(--navbar-height-desktop) + var(--navbar-spacing-desktop)); /* 7rem = 112px */
+  --navbar-offset-mobile: calc(var(--navbar-height-mobile) + var(--navbar-spacing-mobile));   /* 6rem = 96px */
+
   --color-scrollbar-track: #e2e8f0;
   --color-scrollbar-thumb: #94a3b8;
   --color-scrollbar-thumb-hover: #64748b;
@@ -81,6 +92,10 @@
   --color-scrollbar-track: #0d0f12;
   --color-scrollbar-thumb: #282d37;
   --color-scrollbar-thumb-hover: #374151;
+}
+
+.font-display {
+  font-family: var(--font-display);
 }
 
 /* Base resets & styling */
@@ -154,5 +169,40 @@ body {
 
 .animate-pulse-slow {
   animation: pulse-slow 8s infinite ease-in-out;
+}
+
+/* Continuous Tech Logo Marquee */
+@keyframes techMarquee {
+  0% {
+    transform: translate3d(0, 0, 0);
+  }
+  100% {
+    transform: translate3d(-50%, 0, 0);
+  }
+}
+
+.animate-tech-marquee {
+  display: flex;
+  width: max-content;
+  will-change: transform;
+  animation: techMarquee 32s linear infinite;
+}
+
+.animate-tech-marquee:hover,
+.group:hover .animate-tech-marquee {
+  animation-play-state: paused;
+}
+
+/* Card Glass Optimization: Bypass blur during active scroll motion for 120Hz/60Hz compositor fluidity, restore full glass when settled */
+.motion-card-glass {
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+}
+
+[data-deck-settled="true"] .motion-card-glass,
+[data-why-settled="true"] .motion-card-glass,
+[data-trust-settled="true"] .motion-card-glass {
+  backdrop-filter: blur(24px);
+  -webkit-backdrop-filter: blur(24px);
 }
 
