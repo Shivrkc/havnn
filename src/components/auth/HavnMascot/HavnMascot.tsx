@@ -32,7 +32,7 @@ export default function HavnMascot({
     setIsEntering(true);
     const timer = setTimeout(() => {
       setIsEntering(false);
-    }, 1500);
+    }, 1600);
 
     return () => clearTimeout(timer);
   }, [shouldReduceMotion]);

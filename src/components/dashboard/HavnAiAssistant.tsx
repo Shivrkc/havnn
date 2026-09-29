@@ -6,6 +6,7 @@ import {
 } from 'lucide-react';
 import { queryDeploymentAi, AiAction, AiMode } from '../../services/ai.service';
 import havnUpiQr from '../../assets/havn-upi-qr.jpeg';
+import HavnMascot from '../auth/HavnMascot';
 
 const SUPPORT_PROMPT_STORAGE_KEY = 'havn-ai-support-prompt-seen';
 
@@ -15,7 +16,13 @@ interface Message {
   text: string;
   mode?: AiMode;
   action?: AiAction;
+  question?: string;
   citedSequences?: number[];
+  invalidCitations?: number[];
+  citationsValidated?: boolean;
+  cached?: boolean;
+  cachedAt?: string;
+  warning?: string;
   timestamp: Date;
 }
 
@@ -24,6 +31,8 @@ interface HavnAiAssistantProps {
   deploymentStatus: string;
   projectName?: string;
   onSelectSequence?: (sequence: number) => void;
+  isFullscreen?: boolean;
+  isActive?: boolean;
 }
 
 export const HavnAiAssistant: React.FC<HavnAiAssistantProps> = ({
@@ -31,15 +40,53 @@ export const HavnAiAssistant: React.FC<HavnAiAssistantProps> = ({
   deploymentStatus,
   projectName,
   onSelectSequence,
+  isFullscreen = false,
+  isActive = true,
 }) => {
   const [mode, setMode] = useState<AiMode>('beginner');
   const [messages, setMessages] = useState<Message[]>([]);
   const [customQuestion, setCustomQuestion] = useState<string>('');
   const [isLoading, setIsLoading] = useState<boolean>(false);
+  const [cooldownSeconds, setCooldownSeconds] = useState<number>(0);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [retryAfterSeconds, setRetryAfterSeconds] = useState<number | null>(null);
   const [lastAction, setLastAction] = useState<{ action: AiAction; question?: string; mode: AiMode } | null>(null);
   const isSubmittingRef = useRef<boolean>(false);
+
+  // Entrance cycle key to cleanly replay entrance animation when switching to AI tab
+  const [entranceCycle, setEntranceCycle] = useState<number>(0);
+
+  // Yeti greeting speech bubble state ("👋 Hi, I'm Hakka!")
+  const [showGreeting, setShowGreeting] = useState<boolean>(false);
+
+  // Re-trigger entrance animation when entering empty AI state or switching tabs to AI
+  useEffect(() => {
+    if (isActive && messages.length === 0 && !isLoading) {
+      setEntranceCycle((c) => c + 1);
+    }
+  }, [isActive, messages.length, isLoading]);
+
+  useEffect(() => {
+    if (isActive && messages.length === 0 && !isLoading) {
+      setShowGreeting(false);
+      // Show greeting bubble during wave (~450ms after entrance starts)
+      const showTimer = setTimeout(() => {
+        setShowGreeting(true);
+      }, 450);
+
+      // Fade out smoothly after wave settles (~2800ms after entrance)
+      const hideTimer = setTimeout(() => {
+        setShowGreeting(false);
+      }, 2800);
+
+      return () => {
+        clearTimeout(showTimer);
+        clearTimeout(hideTimer);
+      };
+    } else {
+      setShowGreeting(false);
+    }
+  }, [isActive, entranceCycle, messages.length, isLoading]);
 
   // Voluntary ₹20 support prompt state
   const [showSupportModal, setShowSupportModal] = useState<boolean>(false);
@@ -80,6 +127,15 @@ export const HavnAiAssistant: React.FC<HavnAiAssistantProps> = ({
     }
   }, [messages, isLoading, scrollToBottom]);
 
+  // 3-second button cooldown timer
+  useEffect(() => {
+    if (cooldownSeconds <= 0) return;
+    const timer = setTimeout(() => {
+      setCooldownSeconds((prev) => Math.max(0, prev - 1));
+    }, 1000);
+    return () => clearTimeout(timer);
+  }, [cooldownSeconds]);
+
   /**
    * Executes the actual AI query.
    */
@@ -89,9 +145,10 @@ export const HavnAiAssistant: React.FC<HavnAiAssistantProps> = ({
     queryMode: AiMode = mode,
     isRetry: boolean = false
   ) => {
-    if (isLoading || isSubmittingRef.current) return; // Prevent duplicate submissions
+    if (isLoading || isSubmittingRef.current || (cooldownSeconds > 0 && !isRetry)) return; // Prevent duplicate submissions
     isSubmittingRef.current = true;
     setIsLoading(true);
+    setCooldownSeconds(3);
     setErrorMessage(null);
     setRetryAfterSeconds(null);
     setLastAction({ action, question, mode: queryMode });
@@ -128,6 +185,7 @@ export const HavnAiAssistant: React.FC<HavnAiAssistantProps> = ({
         text: userPromptLabel,
         mode: queryMode,
         action,
+        question: action === 'custom' ? question : undefined,
         timestamp: new Date(),
       };
 
@@ -139,6 +197,7 @@ export const HavnAiAssistant: React.FC<HavnAiAssistantProps> = ({
         mode: queryMode,
         action,
         question: action === 'custom' ? question : undefined,
+        bypassCache: isRetry,
       });
 
       const aiMessage: Message = {
@@ -147,7 +206,13 @@ export const HavnAiAssistant: React.FC<HavnAiAssistantProps> = ({
         text: result.answer,
         mode: result.mode,
         action: result.action,
+        question: result.question || (action === 'custom' ? question : undefined),
         citedSequences: result.citedSequences,
+        invalidCitations: result.invalidCitations,
+        citationsValidated: result.citationsValidated,
+        cached: result.cached,
+        cachedAt: result.cachedAt,
+        warning: result.warning,
         timestamp: new Date(),
       };
 
@@ -233,7 +298,7 @@ export const HavnAiAssistant: React.FC<HavnAiAssistantProps> = ({
    * Intercepts action triggers to show voluntary support prompt on user's FIRST request.
    */
   const handleActionClick = (action: AiAction, question?: string) => {
-    if (isLoading || isSubmittingRef.current) return;
+    if (isLoading || isSubmittingRef.current || cooldownSeconds > 0) return;
     const hasSeenPrompt = localStorage.getItem(SUPPORT_PROMPT_STORAGE_KEY);
 
     if (!hasSeenPrompt) {
@@ -261,7 +326,7 @@ export const HavnAiAssistant: React.FC<HavnAiAssistantProps> = ({
       e.preventDefault();
       e.stopPropagation();
     }
-    if (isLoading || isSubmittingRef.current) return;
+    if (isLoading || isSubmittingRef.current || cooldownSeconds > 0) return;
     const trimmed = customQuestion.trim();
     if (!trimmed) return;
 
@@ -285,8 +350,8 @@ export const HavnAiAssistant: React.FC<HavnAiAssistantProps> = ({
       if (line.startsWith('### ')) {
         const title = line.replace('### ', '').trim();
         return (
-          <h4 key={idx} className="text-sm font-bold text-blue-300 mt-3 mb-1.5 flex items-center gap-1.5">
-            <span className="w-1.5 h-1.5 rounded-full bg-blue-400"></span>
+          <h4 key={idx} className="text-sm font-bold text-blue-700 dark:text-blue-400 mt-3 mb-1.5 flex items-center gap-1.5">
+            <span className="w-1.5 h-1.5 rounded-full bg-blue-600 dark:bg-blue-400"></span>
             {title}
           </h4>
         );
@@ -296,7 +361,7 @@ export const HavnAiAssistant: React.FC<HavnAiAssistantProps> = ({
       if (line.startsWith('## ')) {
         const title = line.replace('## ', '').trim();
         return (
-          <h3 key={idx} className="text-sm font-extrabold text-white mt-4 mb-2 pb-1 border-b border-slate-800">
+          <h3 key={idx} className="text-sm font-extrabold text-slate-900 dark:text-white mt-4 mb-2 pb-1 border-b border-slate-200 dark:border-[#282d37]">
             {title}
           </h3>
         );
@@ -311,7 +376,7 @@ export const HavnAiAssistant: React.FC<HavnAiAssistantProps> = ({
       if (line.trim().startsWith('- ') || line.trim().startsWith('* ')) {
         const itemContent = line.trim().substring(2);
         return (
-          <li key={idx} className="text-xs text-slate-300 ml-4 list-disc leading-relaxed my-0.5">
+          <li key={idx} className="text-xs text-slate-700 dark:text-slate-300 ml-4 list-disc leading-relaxed my-0.5">
             {renderLineWithBadges(itemContent)}
           </li>
         );
@@ -321,8 +386,8 @@ export const HavnAiAssistant: React.FC<HavnAiAssistantProps> = ({
       const stepMatch = line.trim().match(/^(\d+)\.\s+(.*)$/);
       if (stepMatch) {
         return (
-          <div key={idx} className="text-xs text-slate-300 flex items-start gap-2 my-1">
-            <span className="text-blue-400 font-bold shrink-0">{stepMatch[1]}.</span>
+          <div key={idx} className="text-xs text-slate-700 dark:text-slate-300 flex items-start gap-2 my-1">
+            <span className="text-blue-600 dark:text-blue-400 font-bold shrink-0">{stepMatch[1]}.</span>
             <span className="leading-relaxed">{renderLineWithBadges(stepMatch[2])}</span>
           </div>
         );
@@ -335,7 +400,7 @@ export const HavnAiAssistant: React.FC<HavnAiAssistantProps> = ({
 
       // Standard text line
       return (
-        <p key={idx} className="text-xs text-slate-300 leading-relaxed my-1">
+        <p key={idx} className="text-xs text-slate-700 dark:text-slate-300 leading-relaxed my-1">
           {renderLineWithBadges(line)}
         </p>
       );
@@ -356,7 +421,7 @@ export const HavnAiAssistant: React.FC<HavnAiAssistantProps> = ({
             key={i}
             type="button"
             onClick={() => onSelectSequence && onSelectSequence(seqNum)}
-            className="inline-flex items-center gap-1 font-mono text-[10px] font-bold bg-blue-950/80 hover:bg-blue-900 text-blue-300 border border-blue-800/80 px-1.5 py-0.2 rounded-md mx-0.5 transition-colors cursor-pointer"
+            className="inline-flex items-center gap-1 font-mono text-[10px] font-bold bg-blue-50 dark:bg-blue-950/60 hover:bg-blue-100 dark:hover:bg-blue-900/60 text-blue-700 dark:text-blue-300 border border-blue-200 dark:border-blue-800/60 px-1.5 py-0.2 rounded-md mx-0.5 transition-colors cursor-pointer"
             title={`Jump to Log Sequence #${seqNum}`}
           >
             Seq #{seqNum}
@@ -368,111 +433,117 @@ export const HavnAiAssistant: React.FC<HavnAiAssistantProps> = ({
   };
 
   return (
-    <div className="flex flex-col flex-1 min-h-0 bg-[#0a0c0e] text-slate-200">
-      {/* AI Controls Header: Mode Switcher & Quick Actions */}
-      <div className="p-4 sm:px-6 bg-[#12151a] border-b border-[#282d37] space-y-3 shrink-0">
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+    <div className="flex flex-col flex-1 min-h-0 bg-white/75 dark:bg-[#0d0f12]/85 backdrop-blur-md text-slate-800 dark:text-slate-100 transition-colors duration-200">
+      {/* AI Controls Header: Single Compact Row on Desktop */}
+      <div className={`px-4 ${isFullscreen ? 'sm:px-8 lg:px-10' : 'sm:px-6'} py-2 bg-white/80 dark:bg-[#16191f]/80 backdrop-blur-lg border-b border-sky-200/60 dark:border-[#282d37] flex flex-wrap items-center justify-between gap-2.5 shrink-0`}>
+        <div className="flex flex-wrap items-center gap-2.5 sm:gap-3">
           {/* Title & Mode Switcher */}
-          <div className="flex items-center gap-3">
-            <div className="flex items-center gap-1.5">
-              <Sparkles className="w-4 h-4 text-blue-400" />
-              <span className="text-xs font-bold text-[#f1f3f5] uppercase tracking-wider">
-                HAVN AI Diagnostics
-              </span>
-            </div>
-
-            {/* Beginner / Expert Mode Toggle */}
-            <div className="flex items-center bg-[#0d0f12] p-0.5 rounded-xl border border-[#282d37]">
-              <button
-                type="button"
-                onClick={() => setMode('beginner')}
-                className={`px-2.5 py-1 text-[11px] font-bold rounded-lg transition-all cursor-pointer ${
-                  mode === 'beginner'
-                    ? 'bg-blue-600 text-white shadow-xs'
-                    : 'text-slate-400 hover:text-slate-200'
-                }`}
-                title="Beginner Mode: Plain-English, step-by-step guidance without confusing jargon"
-              >
-                Beginner
-              </button>
-              <button
-                type="button"
-                onClick={() => setMode('expert')}
-                className={`px-2.5 py-1 text-[11px] font-bold rounded-lg transition-all cursor-pointer ${
-                  mode === 'expert'
-                    ? 'bg-blue-600 text-white shadow-xs'
-                    : 'text-slate-400 hover:text-slate-200'
-                }`}
-                title="Expert Mode: Root cause analysis, exact sequence citations, and shell commands"
-              >
-                Expert
-              </button>
-            </div>
+          <div className="flex items-center gap-1.5">
+            <Sparkles className="w-3.5 h-3.5 text-blue-600 dark:text-blue-400" />
+            <span className="text-[11px] sm:text-xs font-bold text-slate-900 dark:text-white uppercase tracking-wider">
+              HAVN AI Diagnostics
+            </span>
           </div>
 
-          <div className="text-[11px] text-slate-500 font-mono flex items-center gap-1.5">
-            <span className="w-1.5 h-1.5 rounded-full bg-emerald-400"></span>
-            Grounded on BuildLogs
+          {/* Beginner / Expert Mode Toggle */}
+          <div className="flex items-center bg-slate-100 dark:bg-[#1e222b] p-0.5 rounded-lg border border-slate-200 dark:border-[#282d37]">
+            <button
+              type="button"
+              onClick={() => setMode('beginner')}
+              className={`px-2 py-0.5 text-[10px] sm:text-[11px] font-bold rounded transition-all cursor-pointer ${
+                mode === 'beginner'
+                  ? 'bg-blue-600 text-white shadow-xs'
+                  : 'text-slate-500 hover:text-slate-800 dark:text-slate-400 dark:hover:text-slate-200'
+              }`}
+              title="Beginner Mode: Plain-English, step-by-step guidance without confusing jargon"
+            >
+              Beginner
+            </button>
+            <button
+              type="button"
+              onClick={() => setMode('expert')}
+              className={`px-2 py-0.5 text-[10px] sm:text-[11px] font-bold rounded transition-all cursor-pointer ${
+                mode === 'expert'
+                  ? 'bg-blue-600 text-white shadow-xs'
+                  : 'text-slate-500 hover:text-slate-800 dark:text-slate-400 dark:hover:text-slate-200'
+              }`}
+              title="Expert Mode: Root cause analysis, exact sequence citations, and shell commands"
+            >
+              Expert
+            </button>
+          </div>
+
+          {/* Quick Action Pills */}
+          <div className="flex items-center gap-1.5 flex-wrap">
+            <button
+              type="button"
+              disabled={isLoading || cooldownSeconds > 0}
+              onClick={(e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                handleActionClick('summary');
+              }}
+              className="px-2.5 py-1 bg-white/90 hover:bg-sky-50 text-slate-700 hover:text-blue-700 dark:bg-[#1e222b] dark:hover:bg-[#252a35] dark:text-slate-300 dark:hover:text-white rounded-lg border border-slate-200 dark:border-[#282d37] text-[11px] font-semibold flex items-center gap-1 transition-all cursor-pointer disabled:opacity-50 shadow-2xs"
+            >
+              <FileText className="w-3 h-3 text-blue-600 dark:text-blue-400" />
+              <span>Summary</span>
+            </button>
+
+            <button
+              type="button"
+              disabled={isLoading || cooldownSeconds > 0}
+              onClick={(e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                handleActionClick('analysis');
+              }}
+              className="px-2.5 py-1 bg-white/90 hover:bg-sky-50 text-slate-700 hover:text-blue-700 dark:bg-[#1e222b] dark:hover:bg-[#252a35] dark:text-slate-300 dark:hover:text-white rounded-lg border border-slate-200 dark:border-[#282d37] text-[11px] font-semibold flex items-center gap-1 transition-all cursor-pointer disabled:opacity-50 shadow-2xs"
+            >
+              <Zap className="w-3 h-3 text-amber-500" />
+              <span>Analysis</span>
+            </button>
+
+            <button
+              type="button"
+              disabled={isLoading || cooldownSeconds > 0}
+              onClick={(e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                handleActionClick('optimization');
+              }}
+              className="px-2.5 py-1 bg-white/90 hover:bg-sky-50 text-slate-700 hover:text-blue-700 dark:bg-[#1e222b] dark:hover:bg-[#252a35] dark:text-slate-300 dark:hover:text-white rounded-lg border border-slate-200 dark:border-[#282d37] text-[11px] font-semibold flex items-center gap-1 transition-all cursor-pointer disabled:opacity-50 shadow-2xs"
+            >
+              <Compass className="w-3 h-3 text-emerald-600 dark:text-emerald-400" />
+              <span>Optimization</span>
+            </button>
+
+            <button
+              type="button"
+              disabled={isLoading || cooldownSeconds > 0}
+              onClick={(e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                handleActionClick('learn');
+              }}
+              className="px-2.5 py-1 bg-white/90 hover:bg-sky-50 text-slate-700 hover:text-blue-700 dark:bg-[#1e222b] dark:hover:bg-[#252a35] dark:text-slate-300 dark:hover:text-white rounded-lg border border-slate-200 dark:border-[#282d37] text-[11px] font-semibold flex items-center gap-1 transition-all cursor-pointer disabled:opacity-50 shadow-2xs"
+            >
+              <BookOpen className="w-3 h-3 text-purple-600 dark:text-purple-400" />
+              <span>Learn</span>
+            </button>
           </div>
         </div>
 
-        {/* Quick Action Pills */}
-        <div className="flex flex-wrap items-center gap-2">
-          <button
-            type="button"
-            disabled={isLoading}
-            onClick={(e) => {
-              e.preventDefault();
-              e.stopPropagation();
-              handleActionClick('summary');
-            }}
-            className="px-3 py-1 bg-[#1e222b] hover:bg-[#252a35] text-slate-300 hover:text-white rounded-xl border border-[#282d37] text-xs font-semibold flex items-center gap-1.5 transition-all cursor-pointer disabled:opacity-50"
-          >
-            <FileText className="w-3.5 h-3.5 text-blue-400" />
-            Summary
-          </button>
-
-          <button
-            type="button"
-            disabled={isLoading}
-            onClick={(e) => {
-              e.preventDefault();
-              e.stopPropagation();
-              handleActionClick('analysis');
-            }}
-            className="px-3 py-1 bg-[#1e222b] hover:bg-[#252a35] text-slate-300 hover:text-white rounded-xl border border-[#282d37] text-xs font-semibold flex items-center gap-1.5 transition-all cursor-pointer disabled:opacity-50"
-          >
-            <Zap className="w-3.5 h-3.5 text-amber-400" />
-            Analysis
-          </button>
-
-          <button
-            type="button"
-            disabled={isLoading}
-            onClick={(e) => {
-              e.preventDefault();
-              e.stopPropagation();
-              handleActionClick('optimization');
-            }}
-            className="px-3 py-1 bg-[#1e222b] hover:bg-[#252a35] text-slate-300 hover:text-white rounded-xl border border-[#282d37] text-xs font-semibold flex items-center gap-1.5 transition-all cursor-pointer disabled:opacity-50"
-          >
-            <Compass className="w-3.5 h-3.5 text-emerald-400" />
-            Optimization
-          </button>
-
-          <button
-            type="button"
-            disabled={isLoading}
-            onClick={(e) => {
-              e.preventDefault();
-              e.stopPropagation();
-              handleActionClick('learn');
-            }}
-            className="px-3 py-1 bg-[#1e222b] hover:bg-[#252a35] text-slate-300 hover:text-white rounded-xl border border-[#282d37] text-xs font-semibold flex items-center gap-1.5 transition-all cursor-pointer disabled:opacity-50"
-          >
-            <BookOpen className="w-3.5 h-3.5 text-purple-400" />
-            Learn
-          </button>
+        <div className="flex items-center gap-2.5 text-[11px] text-slate-500 dark:text-slate-400 font-mono">
+          {cooldownSeconds > 0 && (
+            <span className="text-[10px] text-slate-500 dark:text-slate-400 font-mono flex items-center gap-1 animate-pulse">
+              <Clock className="w-3 h-3 text-slate-400 dark:text-slate-500" />
+              {cooldownSeconds}s
+            </span>
+          )}
+          <div className="flex items-center gap-1.5">
+            <span className="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
+            Grounded on BuildLogs
+          </div>
         </div>
       </div>
 
@@ -480,43 +551,100 @@ export const HavnAiAssistant: React.FC<HavnAiAssistantProps> = ({
       <div
         ref={chatContainerRef}
         onScroll={handleScroll}
-        className="relative flex-1 min-h-0 overflow-y-auto p-5 sm:px-6 space-y-4 selection:bg-blue-600 selection:text-white"
+        className={`relative flex-1 min-h-0 overflow-y-auto space-y-4 selection:bg-blue-600 selection:text-white ${
+          isFullscreen ? 'p-6 sm:px-10 lg:px-16' : 'p-5 sm:px-6'
+        }`}
       >
         {messages.length === 0 && !isLoading && (
-          <div className="h-full flex flex-col items-center justify-center py-12 text-center text-slate-500 space-y-3">
-            <div className="w-12 h-12 rounded-2xl bg-blue-950/40 border border-blue-800/40 flex items-center justify-center text-blue-400 shadow-lg">
-              <Sparkles className="w-6 h-6" />
+          <div className="h-full flex flex-col items-center justify-center py-6 text-center text-slate-500 dark:text-slate-400 space-y-3.5 max-w-lg mx-auto select-none">
+            {/* Hakka Mascot with Entrance Jump + Physical Wave Animation (1.6s then breathing idle) */}
+            <div className="w-36 h-36 sm:w-40 sm:h-40 relative flex items-center justify-center">
+              <div className="absolute inset-0 bg-radial from-sky-400/20 via-blue-400/10 to-transparent dark:from-blue-500/15 dark:via-sky-400/5 dark:to-transparent pointer-events-none rounded-full blur-md" />
+
+              {/* Friendly Yeti Greeting Speech Bubble ("👋 Hi, I'm Hakka!") */}
+              <div
+                className={`absolute -top-8 left-1/2 -translate-x-1/2 z-20 transition-all duration-500 ease-out transform ${
+                  showGreeting
+                    ? 'opacity-100 scale-100 translate-y-0'
+                    : 'opacity-0 scale-90 translate-y-1 pointer-events-none'
+                }`}
+              >
+                <div className="relative bg-white/95 dark:bg-[#16191f]/95 backdrop-blur-md border border-sky-200/90 dark:border-[#282d37] text-slate-800 dark:text-slate-100 text-xs font-bold px-3.5 py-1.5 rounded-2xl shadow-md shadow-sky-950/10 dark:shadow-black/40 flex items-center gap-1.5 select-none whitespace-nowrap">
+                  <span>👋 Hi, I'm Hakka!</span>
+                  {/* Subtle speech tail pointing down to mascot */}
+                  <div className="absolute -bottom-1 left-1/2 -translate-x-1/2 w-2 h-2 bg-white dark:bg-[#16191f] border-b border-r border-sky-200/90 dark:border-[#282d37] transform rotate-45" />
+                </div>
+              </div>
+
+              <HavnMascot
+                key={`hakka-mascot-${entranceCycle}`}
+                focusedField="idle"
+                className="w-full h-full relative z-10"
+              />
             </div>
-            <div className="space-y-1 max-w-md">
-              <h4 className="text-sm font-bold text-slate-300">
-                Ask HAVN AI about this deployment
+
+            <div className="space-y-1">
+              <h4 className="text-base font-bold text-slate-900 dark:text-white tracking-wide">
+                Ask HAVN AI about this build
               </h4>
-              <p className="text-xs text-slate-500">
-                Get plain-English explanations or deep technical root cause analysis based directly on your container build logs.
+              <p className="text-xs text-slate-600 dark:text-slate-400 leading-relaxed max-w-md mx-auto">
+                Understand the failure. Fix it faster.
               </p>
             </div>
-            <div className="flex flex-wrap items-center justify-center gap-2 pt-2">
+
+            {/* Empty State Four Action Pills */}
+            <div className="flex flex-wrap items-center justify-center gap-2 pt-1">
               <button
                 type="button"
+                disabled={isLoading || cooldownSeconds > 0}
+                onClick={(e) => {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  handleActionClick('summary');
+                }}
+                className="px-3 py-1.5 bg-white/90 hover:bg-sky-50 text-slate-700 hover:text-blue-700 dark:bg-[#1e222b] dark:hover:bg-[#252a35] dark:text-slate-300 dark:hover:text-white rounded-xl border border-sky-200/80 dark:border-[#282d37] text-xs font-semibold flex items-center gap-1.5 transition-all cursor-pointer disabled:opacity-50 shadow-2xs"
+              >
+                <FileText className="w-3.5 h-3.5 text-blue-600 dark:text-blue-400" />
+                <span>Summary</span>
+              </button>
+              <button
+                type="button"
+                disabled={isLoading || cooldownSeconds > 0}
                 onClick={(e) => {
                   e.preventDefault();
                   e.stopPropagation();
                   handleActionClick('analysis');
                 }}
-                className="text-xs bg-[#16191f] hover:bg-[#1e222b] border border-[#282d37] text-slate-300 hover:text-white px-3 py-1.5 rounded-xl transition-colors cursor-pointer"
+                className="px-3 py-1.5 bg-white/90 hover:bg-sky-50 text-slate-700 hover:text-blue-700 dark:bg-[#1e222b] dark:hover:bg-[#252a35] dark:text-slate-300 dark:hover:text-white rounded-xl border border-sky-200/80 dark:border-[#282d37] text-xs font-semibold flex items-center gap-1.5 transition-all cursor-pointer disabled:opacity-50 shadow-2xs"
               >
-                Why did my build {deploymentStatus === 'FAILED' ? 'fail' : 'complete'}?
+                <Zap className="w-3.5 h-3.5 text-amber-500" />
+                <span>Analysis</span>
               </button>
               <button
                 type="button"
+                disabled={isLoading || cooldownSeconds > 0}
                 onClick={(e) => {
                   e.preventDefault();
                   e.stopPropagation();
                   handleActionClick('optimization');
                 }}
-                className="text-xs bg-[#16191f] hover:bg-[#1e222b] border border-[#282d37] text-slate-300 hover:text-white px-3 py-1.5 rounded-xl transition-colors cursor-pointer"
+                className="px-3 py-1.5 bg-white/90 hover:bg-sky-50 text-slate-700 hover:text-blue-700 dark:bg-[#1e222b] dark:hover:bg-[#252a35] dark:text-slate-300 dark:hover:text-white rounded-xl border border-sky-200/80 dark:border-[#282d37] text-xs font-semibold flex items-center gap-1.5 transition-all cursor-pointer disabled:opacity-50 shadow-2xs"
               >
-                How can I optimize this Dockerfile?
+                <Compass className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400" />
+                <span>Optimization</span>
+              </button>
+              <button
+                type="button"
+                disabled={isLoading || cooldownSeconds > 0}
+                onClick={(e) => {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  handleActionClick('learn');
+                }}
+                className="px-3 py-1.5 bg-white/90 hover:bg-sky-50 text-slate-700 hover:text-blue-700 dark:bg-[#1e222b] dark:hover:bg-[#252a35] dark:text-slate-300 dark:hover:text-white rounded-xl border border-sky-200/80 dark:border-[#282d37] text-xs font-semibold flex items-center gap-1.5 transition-all cursor-pointer disabled:opacity-50 shadow-2xs"
+              >
+                <BookOpen className="w-3.5 h-3.5 text-purple-600 dark:text-purple-400" />
+                <span>Learn</span>
               </button>
             </div>
           </div>
@@ -528,7 +656,9 @@ export const HavnAiAssistant: React.FC<HavnAiAssistantProps> = ({
             className={`flex flex-col ${msg.sender === 'user' ? 'items-end' : 'items-start'}`}
           >
             {msg.sender === 'user' ? (
-              <div className="bg-blue-600 text-white text-xs font-semibold px-4 py-2.5 rounded-2xl rounded-tr-xs max-w-lg shadow-md">
+              <div className={`bg-blue-600 text-white text-xs font-semibold px-4 py-2.5 rounded-2xl rounded-tr-xs shadow-md ${
+                isFullscreen ? 'max-w-2xl' : 'max-w-lg'
+              }`}>
                 <div className="flex items-center gap-1.5 mb-1 text-[10px] text-blue-200 uppercase font-mono">
                   <span>{msg.mode} Mode</span>
                   {msg.action && <span>• {msg.action}</span>}
@@ -536,21 +666,46 @@ export const HavnAiAssistant: React.FC<HavnAiAssistantProps> = ({
                 {msg.text}
               </div>
             ) : (
-              <div className="bg-[#16191f] border border-[#282d37] rounded-2xl rounded-tl-xs p-5 max-w-2xl w-full shadow-lg space-y-2">
-                <div className="flex items-center justify-between border-b border-[#282d37] pb-2">
+              <div className={`bg-white/95 dark:bg-[#16191f]/90 backdrop-blur-xl border border-sky-200/80 dark:border-[#282d37] rounded-2xl rounded-tl-xs p-5 w-full shadow-md shadow-sky-950/5 dark:shadow-black/30 space-y-2.5 text-slate-800 dark:text-slate-200 ${
+                isFullscreen ? 'max-w-4xl xl:max-w-5xl' : 'max-w-3xl'
+              }`}>
+                <div className="flex items-center justify-between border-b border-sky-100 dark:border-[#282d37] pb-2">
                   <div className="flex items-center gap-2">
-                    <Sparkles className="w-3.5 h-3.5 text-blue-400" />
-                    <span className="text-xs font-bold text-white">HAVN AI Diagnosis</span>
-                    <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-[#1e222b] text-slate-400 uppercase font-bold border border-[#282d37]">
+                    <Sparkles className="w-3.5 h-3.5 text-blue-600 dark:text-blue-400" />
+                    <span className="text-xs font-bold text-slate-900 dark:text-white">
+                      {msg.action === 'custom' ? 'HAVN AI Answer' : 'HAVN AI Diagnosis'}
+                    </span>
+                    <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-slate-100 dark:bg-[#1e222b] text-slate-600 dark:text-slate-300 uppercase font-bold border border-slate-200 dark:border-[#282d37]">
                       {msg.mode}
                     </span>
+                    {msg.cached && (
+                      <span
+                        className="text-[10px] font-mono px-2 py-0.5 rounded bg-emerald-50 dark:bg-emerald-950/50 text-emerald-700 dark:text-emerald-300 font-bold border border-emerald-200 dark:border-emerald-800 flex items-center gap-1"
+                        title={msg.cachedAt ? `Cached response (${new Date(msg.cachedAt).toLocaleTimeString()})` : "Cached diagnosis"}
+                      >
+                        <ShieldCheck className="w-3 h-3 text-emerald-600 dark:text-emerald-400" />
+                        Cached
+                      </span>
+                    )}
                   </div>
                   {msg.citedSequences && msg.citedSequences.length > 0 && (
-                    <div className="text-[11px] text-slate-400 font-mono">
-                      Citations: {msg.citedSequences.map((s) => `#${s}`).join(', ')}
+                    <div className="text-[11px] text-slate-500 dark:text-slate-400 font-mono flex items-center gap-1.5">
+                      <span>Citations: {msg.citedSequences.map((s) => `#${s}`).join(', ')}</span>
+                      {msg.citationsValidated && (
+                        <span className="text-[9px] px-1.5 py-0.2 rounded bg-blue-50 dark:bg-blue-950/60 text-blue-700 dark:text-blue-300 border border-blue-200 dark:border-blue-800/60 font-bold">
+                          Verified
+                        </span>
+                      )}
                     </div>
                   )}
                 </div>
+
+                {msg.warning && (
+                  <div className="p-2.5 bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-800/60 rounded-xl text-[11px] text-amber-800 dark:text-amber-300 flex items-center gap-2 mb-2">
+                    <AlertTriangle className="w-3.5 h-3.5 text-amber-600 dark:text-amber-400 shrink-0" />
+                    <span>{msg.warning}</span>
+                  </div>
+                )}
 
                 <div className="text-xs space-y-1">
                   {renderFormattedText(msg.text)}
@@ -563,8 +718,8 @@ export const HavnAiAssistant: React.FC<HavnAiAssistantProps> = ({
         {/* Loading Spinner Indicator */}
         {isLoading && (
           <div className="flex items-start">
-            <div className="bg-[#16191f] border border-[#282d37] rounded-2xl rounded-tl-xs p-5 max-w-md shadow-lg flex items-center gap-3 text-xs text-slate-400">
-              <RefreshCw className="w-4 h-4 animate-spin text-blue-400" />
+            <div className="bg-white/95 dark:bg-[#16191f]/90 border border-sky-200/80 dark:border-[#282d37] rounded-2xl rounded-tl-xs p-5 max-w-md shadow-md shadow-sky-950/5 dark:shadow-black/20 flex items-center gap-3 text-xs text-slate-600 dark:text-slate-300">
+              <RefreshCw className="w-4 h-4 animate-spin text-blue-600 dark:text-blue-400" />
               <span>Analyzing deployment context & BuildLogs...</span>
             </div>
           </div>
@@ -572,11 +727,11 @@ export const HavnAiAssistant: React.FC<HavnAiAssistantProps> = ({
 
         {/* Error Alert with Retry */}
         {errorMessage && (
-          <div className="p-4 bg-red-950/40 border border-red-800/80 rounded-2xl flex items-start justify-between gap-3 text-xs text-red-300">
+          <div className="p-4 bg-rose-50 dark:bg-rose-950/40 border border-rose-200 dark:border-rose-800/60 rounded-2xl flex items-start justify-between gap-3 text-xs text-rose-800 dark:text-rose-300 shadow-sm">
             <div className="flex items-start gap-2.5">
-              <AlertTriangle className="w-4 h-4 text-red-400 shrink-0 mt-0.5" />
+              <AlertTriangle className="w-4 h-4 text-rose-600 dark:text-rose-400 shrink-0 mt-0.5" />
               <div className="space-y-1">
-                <p className="font-bold">
+                <p className="font-bold text-rose-900 dark:text-rose-200">
                   {errorMessage.includes('free-tier quota') || errorMessage.includes('quota has been exhausted')
                     ? 'AI Free-Tier Quota Exhausted'
                     : errorMessage.includes('rate limit')
@@ -585,9 +740,9 @@ export const HavnAiAssistant: React.FC<HavnAiAssistantProps> = ({
                     ? 'AI Service Busy'
                     : 'AI Diagnostics Notice'}
                 </p>
-                <p className="text-slate-400 leading-relaxed">{errorMessage}</p>
+                <p className="text-slate-600 dark:text-slate-300 leading-relaxed">{errorMessage}</p>
                 {retryAfterSeconds && (
-                  <p className="text-[11px] text-amber-400/90 font-medium flex items-center gap-1 mt-1">
+                  <p className="text-[11px] text-amber-700 dark:text-amber-400 font-medium flex items-center gap-1 mt-1">
                     <Clock className="w-3 h-3" />
                     Suggested wait: {retryAfterSeconds} seconds before retrying.
                   </p>
@@ -599,7 +754,7 @@ export const HavnAiAssistant: React.FC<HavnAiAssistantProps> = ({
                 type="button"
                 onClick={handleRetry}
                 disabled={isLoading}
-                className="px-3 py-1 bg-red-900/60 hover:bg-red-800 text-white rounded-xl font-bold transition-colors cursor-pointer shrink-0 disabled:opacity-50"
+                className="px-3 py-1 bg-rose-600 hover:bg-rose-700 text-white rounded-xl font-bold transition-colors cursor-pointer shrink-0 disabled:opacity-50 shadow-xs"
               >
                 Retry
               </button>
@@ -612,7 +767,7 @@ export const HavnAiAssistant: React.FC<HavnAiAssistantProps> = ({
           <button
             type="button"
             onClick={handleJumpToBottom}
-            className="sticky bottom-2 ml-auto mr-2 px-3 py-1.5 bg-blue-600 hover:bg-blue-500 text-white rounded-full shadow-lg shadow-black/50 text-xs font-bold flex items-center gap-1.5 transition-all animate-bounce cursor-pointer border border-blue-400/30 z-20"
+            className="sticky bottom-2 ml-auto mr-2 px-3 py-1.5 bg-blue-600 hover:bg-blue-700 text-white rounded-full shadow-lg shadow-blue-500/25 text-xs font-bold flex items-center gap-1.5 transition-all animate-bounce cursor-pointer border border-blue-400/40 z-20"
           >
             <ArrowDown className="w-3.5 h-3.5" />
             <span>Scroll to latest</span>
@@ -622,24 +777,24 @@ export const HavnAiAssistant: React.FC<HavnAiAssistantProps> = ({
         <div ref={messagesEndRef} />
       </div>
 
-      {/* Query Input Bar */}
+      {/* Query Input Bar: Compact Height */}
       <form
         onSubmit={handleCustomSubmit}
-        className="p-4 sm:px-6 bg-[#12151a] border-t border-[#282d37] shrink-0"
+        className={`px-4 ${isFullscreen ? 'sm:px-8 lg:px-10' : 'sm:px-6'} py-2.5 bg-white/80 dark:bg-[#16191f]/80 backdrop-blur-lg border-t border-sky-200/60 dark:border-[#282d37] shrink-0`}
       >
         <div className="flex items-center gap-2">
           <input
             type="text"
             value={customQuestion}
             onChange={(e) => setCustomQuestion(e.target.value)}
-            disabled={isLoading}
+            disabled={isLoading || cooldownSeconds > 0}
             placeholder={`Ask anything about this deployment (${mode} mode)...`}
-            className="flex-1 bg-[#0a0c0e] border border-[#282d37] focus:border-blue-500 rounded-xl px-4 py-2.5 text-xs text-slate-200 placeholder:text-slate-500 outline-none focus:ring-1 focus:ring-blue-500 font-medium transition-all"
+            className="flex-1 bg-white/95 dark:bg-[#12151a]/95 border border-slate-200 dark:border-[#282d37] focus:border-blue-500 rounded-xl px-3.5 py-2 text-xs text-slate-800 dark:text-slate-200 placeholder:text-slate-400 dark:placeholder:text-slate-500 outline-none focus:ring-1 focus:ring-blue-500 font-medium transition-all shadow-2xs"
           />
           <button
             type="submit"
-            disabled={isLoading || !customQuestion.trim()}
-            className="px-4 py-2.5 bg-blue-600 hover:bg-blue-500 text-white text-xs font-bold rounded-xl transition-all cursor-pointer flex items-center gap-1.5 disabled:opacity-40 disabled:cursor-not-allowed"
+            disabled={isLoading || cooldownSeconds > 0 || !customQuestion.trim()}
+            className="px-3.5 py-2 bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold rounded-xl transition-all cursor-pointer flex items-center gap-1.5 disabled:opacity-40 disabled:cursor-not-allowed shrink-0 shadow-xs"
           >
             {isLoading ? <RefreshCw className="w-3.5 h-3.5 animate-spin" /> : <Send className="w-3.5 h-3.5" />}
             <span>Ask</span>
@@ -649,19 +804,19 @@ export const HavnAiAssistant: React.FC<HavnAiAssistantProps> = ({
 
       {/* Voluntary ₹20 Support Prompt Modal */}
       {showSupportModal && (
-        <div className="fixed inset-0 z-60 flex items-center justify-center p-4 bg-black/70 backdrop-blur-md animate-fade-in">
-          <div className="bg-[#16191f] border border-[#282d37] rounded-3xl w-full max-w-sm overflow-hidden shadow-2xl p-6 text-center space-y-4 motion-safe:animate-fade-in-up">
+        <div className="fixed inset-0 z-60 flex items-center justify-center p-4 bg-slate-900/40 dark:bg-black/70 backdrop-blur-md animate-fade-in">
+          <div className="bg-white/95 dark:bg-[#16191f]/95 backdrop-blur-xl border border-sky-200/80 dark:border-[#282d37] rounded-3xl w-full max-w-sm overflow-hidden shadow-2xl p-6 text-center space-y-4 motion-safe:animate-fade-in-up">
             <div className="space-y-1">
-              <h3 className="text-base font-extrabold text-white tracking-wide">
+              <h3 className="text-base font-extrabold text-slate-900 dark:text-white tracking-wide">
                 ₹20 do, phir bataunga 😄
               </h3>
-              <p className="text-xs text-slate-400">
+              <p className="text-xs text-slate-600 dark:text-slate-400">
                 Support HAVN development with a small voluntary coffee!
               </p>
             </div>
 
             {/* QR Code Container using exact existing havn-upi-qr.jpeg asset */}
-            <div className="bg-white p-2 rounded-2xl shadow-inner inline-block mx-auto">
+            <div className="bg-sky-50/50 dark:bg-white p-2 rounded-2xl border border-sky-100 dark:border-slate-300 inline-block mx-auto">
               <img
                 src={havnUpiQr}
                 alt="HAVN UPI Support QR Code - Shiv Ram Krishna Chaman"
@@ -669,7 +824,7 @@ export const HavnAiAssistant: React.FC<HavnAiAssistantProps> = ({
               />
             </div>
 
-            <p className="text-xs font-medium text-slate-400">
+            <p className="text-xs font-medium text-slate-500 dark:text-slate-400">
               Scan & support HAVN
             </p>
 
@@ -678,7 +833,7 @@ export const HavnAiAssistant: React.FC<HavnAiAssistantProps> = ({
               <button
                 type="button"
                 onClick={handleSupportModalContinue}
-                className="flex-1 py-2.5 bg-blue-600 hover:bg-blue-500 text-white font-bold text-xs rounded-xl transition-all shadow-md cursor-pointer flex items-center justify-center gap-1.5"
+                className="flex-1 py-2.5 bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs rounded-xl transition-all shadow-md cursor-pointer flex items-center justify-center gap-1.5"
               >
                 <CheckCircle2 className="w-3.5 h-3.5" />
                 Already Done
@@ -686,7 +841,7 @@ export const HavnAiAssistant: React.FC<HavnAiAssistantProps> = ({
               <button
                 type="button"
                 onClick={handleSupportModalContinue}
-                className="flex-1 py-2.5 bg-[#1e222b] hover:bg-[#252a35] text-slate-300 hover:text-white font-bold text-xs rounded-xl transition-all border border-[#282d37] cursor-pointer"
+                className="flex-1 py-2.5 bg-slate-100 dark:bg-[#1e222b] hover:bg-slate-200 dark:hover:bg-[#252a35] text-slate-700 dark:text-slate-300 font-bold text-xs rounded-xl transition-all border border-slate-200 dark:border-[#282d37] cursor-pointer"
               >
                 Skip
               </button>

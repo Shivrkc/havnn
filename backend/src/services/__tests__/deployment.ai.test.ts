@@ -178,6 +178,7 @@ async function runDeploymentAiTests() {
     const resAnalysis = await queryDeploymentAi(failedDep.id, userA.id, {
       mode: "beginner",
       action: "analysis",
+      bypassCache: true,
     });
     assert.strictEqual(resAnalysis.action, "analysis");
     assert(lastCapturedParams?.prompt.includes("Analyze this deployment"), "Prompt missing analysis instructions");
@@ -370,7 +371,7 @@ async function runDeploymentAiTests() {
         mode: "expert",
         action: act,
       });
-      assert.strictEqual(lastCapturedParams.model, "gemini-3.6-flash");
+      assert.strictEqual(lastCapturedParams.model, "gemini-3.1-flash-lite");
       if (act === "summary") {
         assert(lastCapturedParams.prompt.includes("summary covering final state"), "Summary prompt isolation failed");
       } else if (act === "analysis") {

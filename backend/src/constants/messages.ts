@@ -7,5 +7,5 @@ export const AUTH_MESSAGES = {
   
   export const HEALTH_MESSAGES = {
     STATUS: "ok",
-    SERVICE: "CloudForge Backend",
+    SERVICE: "HAVN Backend",
   };

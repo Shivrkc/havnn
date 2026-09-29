@@ -6,6 +6,7 @@ import {
   MAX_USER_AI_REQUESTS_PER_MINUTE,
 } from "../constants/ai.constants";
 import { queryDeploymentAi, AiAction, AiMode } from "../services/ai.service";
+import { aiCacheService } from "../services/ai-cache.service";
 
 /**
  * In-memory sliding-window rate limiter per user ID.
@@ -52,16 +53,6 @@ export const queryDeploymentAiHandler = async (req: AuthRequest, res: Response) 
       return res.status(401).json({ success: false, message: "Unauthorized" });
     }
 
-    // 1. Rate Limiting Check
-    const rateCheck = aiRateLimiter.isAllowed(userId);
-    if (!rateCheck.allowed) {
-      res.setHeader("Retry-After", String(rateCheck.retryAfterSec || 60));
-      return res.status(429).json({
-        success: false,
-        message: `Too many AI requests. Maximum ${MAX_USER_AI_REQUESTS_PER_MINUTE} queries per minute allowed. Please wait ${rateCheck.retryAfterSec} seconds.`,
-      });
-    }
-
     const deploymentId = Array.isArray(req.params.deploymentId)
       ? req.params.deploymentId[0]
       : req.params.deploymentId;
@@ -70,17 +61,18 @@ export const queryDeploymentAiHandler = async (req: AuthRequest, res: Response) 
       return res.status(400).json({ success: false, message: "Missing deploymentId parameter." });
     }
 
-    const { mode, action, question } = req.body;
+    const { mode, action, question, bypassCache: bodyBypass } = req.body || {};
+    const bypassCache = bodyBypass === true || req.headers?.["x-bypass-cache"] === "true";
 
-    // 2. Validate Mode
+    // 1. Validate Mode
     const validModes: AiMode[] = ["beginner", "expert"];
     const selectedMode: AiMode = validModes.includes(mode) ? mode : "beginner";
 
-    // 3. Validate Action
+    // 2. Validate Action
     const validActions: AiAction[] = ["summary", "analysis", "optimization", "learn", "custom"];
     const selectedAction: AiAction = validActions.includes(action) ? action : "analysis";
 
-    // 4. Validate Custom Question
+    // 3. Validate Custom Question
     if (selectedAction === "custom") {
       if (!question || typeof question !== "string" || question.trim().length === 0) {
         return res.status(400).json({
@@ -90,11 +82,27 @@ export const queryDeploymentAiHandler = async (req: AuthRequest, res: Response) 
       }
     }
 
+    // 4. Rate Limiting Check (Only consume quota for fresh uncached provider calls)
+    const willHitCache = !bypassCache && aiCacheService.has(deploymentId, selectedMode, selectedAction, question);
+    if (!willHitCache) {
+      const rateCheck = aiRateLimiter.isAllowed(userId);
+      if (!rateCheck.allowed) {
+        res.setHeader("Retry-After", String(rateCheck.retryAfterSec || 60));
+        return res.status(429).json({
+          success: false,
+          code: "AI_RATE_LIMIT_EXCEEDED",
+          message: `Too many AI requests. Maximum ${MAX_USER_AI_REQUESTS_PER_MINUTE} queries per minute allowed. Please wait ${rateCheck.retryAfterSec} seconds.`,
+          retryAfterSec: rateCheck.retryAfterSec,
+        });
+      }
+    }
+
     // 5. Query AI Service
     const result = await queryDeploymentAi(deploymentId, userId, {
       mode: selectedMode,
       action: selectedAction,
       question: typeof question === "string" ? question.trim() : undefined,
+      bypassCache,
     });
 
     return res.status(200).json({
@@ -112,6 +120,7 @@ export const queryDeploymentAiHandler = async (req: AuthRequest, res: Response) 
     if (error.code === "AI_CONFIG_MISSING") {
       return res.status(503).json({
         success: false,
+        code: "AI_CONFIG_MISSING",
         message: error.message || "AI diagnostics service is temporarily unconfigured.",
       });
     }
@@ -119,6 +128,7 @@ export const queryDeploymentAiHandler = async (req: AuthRequest, res: Response) 
     if (error.code === "AI_TIMEOUT") {
       return res.status(504).json({
         success: false,
+        code: "AI_TIMEOUT",
         message: "AI diagnostics request timed out. Please retry.",
       });
     }

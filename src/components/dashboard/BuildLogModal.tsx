@@ -1,8 +1,10 @@
 import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { 
   X, RefreshCw, CheckCircle2, AlertTriangle, 
   Terminal, ShieldAlert, GitBranch, Hash, Clock,
-  Copy, Check, Download, Search, ArrowDown, Sparkles
+  Copy, Check, Download, Search, ArrowDown, Sparkles,
+  Maximize2
 } from 'lucide-react';
 import { DeploymentStatus, DeploymentLog, BackendDeployment } from '../../types';
 import { 
@@ -12,6 +14,7 @@ import {
   cancelDeployment 
 } from '../../services/deployment.service';
 import { HavnAiAssistant } from './HavnAiAssistant';
+import { ThemeToggle } from '../ui/ThemeToggle';
 
 const MAX_RENDER_LINES = 2500;
 
@@ -30,6 +33,7 @@ export const BuildLogModal: React.FC<BuildLogModalProps> = ({
   onClose,
   onDeploymentTerminal,
 }) => {
+  const navigate = useNavigate();
   const [logs, setLogs] = useState<DeploymentLog[]>([]);
   const [deployment, setDeployment] = useState<BackendDeployment | null>(null);
   const [status, setStatus] = useState<DeploymentStatus>('QUEUED');
@@ -50,6 +54,39 @@ export const BuildLogModal: React.FC<BuildLogModalProps> = ({
   const lastSequenceRef = useRef<number>(0);
   const isAutoScrollRef = useRef<boolean>(true);
   const pollTimerRef = useRef<NodeJS.Timeout | null>(null);
+
+  // Lock background page scrolling while modal is open
+  useEffect(() => {
+    if (isOpen) {
+      const originalOverflow = document.body.style.overflow;
+      document.body.style.overflow = 'hidden';
+      return () => {
+        document.body.style.overflow = originalOverflow;
+      };
+    }
+  }, [isOpen]);
+
+  // Escape key handling: Closes modal if not typing in input
+  useEffect(() => {
+    if (!isOpen) return;
+
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        const target = e.target as HTMLElement | null;
+        const isTextInput = target && (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA');
+        if (isTextInput && target === document.activeElement) {
+          target.blur();
+          return;
+        }
+
+        e.preventDefault();
+        onClose();
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [isOpen, onClose]);
 
   // Auto-scroll logic: scroll to bottom if user hasn't manually scrolled up
   const scrollToBottom = useCallback((force = false) => {
@@ -270,110 +307,129 @@ export const BuildLogModal: React.FC<BuildLogModalProps> = ({
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-md animate-fade-in">
-      <div className="bg-[#0d0f12] border border-[#282d37] rounded-3xl w-full max-w-4xl overflow-hidden shadow-2xl flex flex-col h-[88vh] max-h-[850px] min-h-[520px] motion-safe:animate-fade-in-up">
-        {/* Header */}
-        <div className="p-5 sm:px-6 border-b border-[#282d37] flex items-center justify-between bg-[#12151a] shrink-0">
-          <div className="space-y-1">
-            <div className="flex items-center gap-2.5">
-              <Terminal className="w-4 h-4 text-blue-400" />
-              <h3 className="text-sm font-bold text-[#f1f3f5] tracking-wide">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-slate-900/40 dark:bg-black/70 backdrop-blur-md animate-fade-in">
+      <div className="bg-white/95 dark:bg-[#12151a]/95 backdrop-blur-xl border border-sky-200/80 dark:border-[#282d37] rounded-3xl w-full max-w-4xl h-[88vh] max-h-[850px] min-h-[520px] overflow-hidden shadow-2xl flex flex-col motion-safe:animate-fade-in-up text-slate-800 dark:text-slate-100">
+        {/* Compact Header */}
+        <div className="px-4 sm:px-6 py-2.5 border-b border-sky-200/60 dark:border-[#282d37] flex items-center justify-between bg-white/80 dark:bg-[#16191f]/80 backdrop-blur-md shrink-0">
+          <div className="space-y-0.5">
+            <div className="flex items-center gap-2">
+              <Terminal className="w-4 h-4 text-blue-600 dark:text-blue-400" />
+              <h3 className="text-sm font-bold text-slate-900 dark:text-white tracking-wide">
                 Build & Deployment Console
               </h3>
               {/* Status Badge */}
               <span
-                className={`text-[10px] font-extrabold uppercase px-2.5 py-0.5 rounded-full border flex items-center gap-1.5 ${
+                className={`text-[10px] font-extrabold uppercase px-2 py-0.5 rounded-full border flex items-center gap-1 ${
                   status === 'BUILT'
-                    ? 'bg-emerald-500/20 text-emerald-400 border-emerald-500/30'
+                    ? 'bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-950/50 dark:text-emerald-300 dark:border-emerald-800'
                     : status === 'FAILED'
-                    ? 'bg-red-500/20 text-red-400 border-red-500/30'
+                    ? 'bg-rose-50 text-rose-700 border-rose-200 dark:bg-rose-950/50 dark:text-rose-300 dark:border-rose-800'
                     : status === 'CANCELLED'
-                    ? 'bg-slate-500/20 text-slate-400 border-slate-500/30'
-                    : 'bg-blue-500/20 text-blue-400 border-blue-500/30'
+                    ? 'bg-slate-100 text-slate-600 border-slate-200 dark:bg-slate-800/80 dark:text-slate-400 dark:border-slate-700'
+                    : 'bg-blue-50 text-blue-700 border-blue-200 dark:bg-blue-950/50 dark:text-blue-300 dark:border-blue-800'
                 }`}
               >
-                {!isTerminal && <RefreshCw className="w-3 h-3 animate-spin" />}
-                {status === 'BUILT' && <CheckCircle2 className="w-3 h-3" />}
-                {status === 'FAILED' && <AlertTriangle className="w-3 h-3" />}
+                {!isTerminal && <RefreshCw className="w-2.5 h-2.5 animate-spin" />}
+                {status === 'BUILT' && <CheckCircle2 className="w-2.5 h-2.5" />}
+                {status === 'FAILED' && <AlertTriangle className="w-2.5 h-2.5" />}
                 {status}
               </span>
             </div>
-            <p className="text-xs text-slate-400 flex items-center gap-2">
-              <span className="font-semibold text-slate-300">{projectName || deployment?.repositoryName || 'Deployment'}</span>
+            <p className="text-xs text-slate-500 dark:text-slate-400 flex items-center gap-2">
+              <span className="font-semibold text-slate-700 dark:text-slate-200">{projectName || deployment?.repositoryName || 'Deployment'}</span>
               {deployment?.branch && (
-                <span className="flex items-center gap-1 font-mono text-[11px] text-blue-400 bg-blue-950/60 px-2 py-0.5 rounded border border-blue-900/40">
-                  <GitBranch className="w-3 h-3" /> {deployment.branch}
+                <span className="flex items-center gap-1 font-mono text-[11px] text-blue-700 bg-blue-50 dark:text-blue-300 dark:bg-blue-950/60 px-2 py-0.5 rounded border border-blue-200 dark:border-blue-800/60">
+                  <GitBranch className="w-3 h-3 text-blue-600 dark:text-blue-400" /> {deployment.branch}
                 </span>
               )}
               {deployment?.commitSha && (
-                <span className="flex items-center gap-0.5 font-mono text-[11px] text-slate-400">
-                  <Hash className="w-3 h-3" /> {deployment.commitSha.substring(0, 7)}
+                <span className="flex items-center gap-0.5 font-mono text-[11px] text-slate-500 dark:text-slate-400">
+                  <Hash className="w-3 h-3 text-slate-400 dark:text-slate-500" /> {deployment.commitSha.substring(0, 7)}
                 </span>
               )}
             </p>
           </div>
 
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-1.5 sm:gap-2">
             {!isTerminal && (
               <button
                 type="button"
                 onClick={handleCancel}
                 disabled={isCancelling}
-                className="text-xs text-red-400 hover:text-red-300 font-bold bg-red-950/40 hover:bg-red-900/50 border border-red-800/60 rounded-xl px-3 py-1.5 transition-all flex items-center gap-1.5 cursor-pointer disabled:opacity-50"
+                className="text-xs text-rose-600 hover:text-rose-700 bg-rose-50 hover:bg-rose-100 border border-rose-200 dark:text-rose-400 dark:hover:text-rose-300 dark:bg-rose-950/40 dark:hover:bg-rose-900/50 dark:border-rose-800/60 rounded-xl px-2.5 py-1.5 transition-all flex items-center gap-1.5 cursor-pointer disabled:opacity-50"
               >
                 {isCancelling ? <RefreshCw className="w-3 h-3 animate-spin" /> : <ShieldAlert className="w-3.5 h-3.5" />}
-                Cancel Run
+                <span className="hidden sm:inline">Cancel Run</span>
               </button>
             )}
+
+            {/* Dedicated Page Fullscreen Button */}
+            <button
+              type="button"
+              onClick={() => {
+                if (!deploymentId) return;
+                onClose();
+                navigate(`/dashboard/deployments/${deploymentId}`);
+              }}
+              className="p-1.5 text-slate-500 hover:text-slate-800 dark:text-slate-400 dark:hover:text-white rounded-xl hover:bg-slate-100 dark:hover:bg-[#1e222b] transition-colors cursor-pointer border border-transparent hover:border-slate-200 dark:hover:border-[#282d37]"
+              title="Open dedicated full-page deployment console"
+              aria-label="Open dedicated full-page deployment console"
+            >
+              <Maximize2 className="w-4 h-4" />
+            </button>
+
+            {/* Theme Toggle Button */}
+            <ThemeToggle className="scale-90" />
+
+            {/* Close Button */}
             <button
               type="button"
               onClick={onClose}
-              className="p-1.5 text-slate-400 hover:text-white rounded-xl hover:bg-[#1e222b] transition-colors cursor-pointer"
-              title="Close Console"
+              className="p-1.5 text-slate-500 hover:text-slate-800 dark:text-slate-400 dark:hover:text-white rounded-xl hover:bg-slate-100 dark:hover:bg-[#1e222b] transition-colors cursor-pointer border border-transparent hover:border-slate-200 dark:hover:border-[#282d37]"
+              title="Close"
+              aria-label="Close deployment console"
             >
               <X className="w-4 h-4" />
             </button>
           </div>
         </div>
 
-        {/* Modal Navigation Tabs: Terminal Console vs HAVN AI Assistant */}
-        <div className="flex items-center justify-between px-6 py-2 bg-[#0f1115] border-b border-[#282d37] shrink-0">
+        {/* Modal Navigation Bar */}
+        <div className="flex items-center justify-between px-4 sm:px-6 py-2 bg-sky-50/50 dark:bg-[#16191f]/50 border-b border-sky-200/50 dark:border-[#282d37] shrink-0">
           <div className="flex items-center gap-1.5">
             <button
               type="button"
               onClick={() => setActiveModalTab('console')}
               className={`px-3 py-1.5 rounded-xl font-bold text-xs flex items-center gap-1.5 transition-all cursor-pointer ${
                 activeModalTab === 'console'
-                  ? 'bg-[#1e222b] text-white border border-[#282d37] shadow-xs'
-                  : 'text-slate-400 hover:text-slate-200 hover:bg-[#16191f]'
+                  ? 'bg-white text-blue-700 border border-sky-200 shadow-2xs dark:bg-[#1e222b] dark:text-blue-400 dark:border-[#282d37]'
+                  : 'text-slate-600 hover:text-slate-900 hover:bg-white/60 dark:text-slate-400 dark:hover:text-white dark:hover:bg-[#1e222b]/60'
               }`}
             >
-              <Terminal className="w-3.5 h-3.5 text-blue-400" />
+              <Terminal className="w-3.5 h-3.5 text-blue-600 dark:text-blue-400" />
               Terminal Console
-            </button>
-            <button
-              type="button"
-              onClick={() => setActiveModalTab('ai')}
-              className={`px-3 py-1.5 rounded-xl font-bold text-xs flex items-center gap-1.5 transition-all cursor-pointer ${
-                activeModalTab === 'ai'
-                  ? 'bg-blue-600 text-white shadow-xs shadow-blue-500/20'
-                  : 'text-slate-400 hover:text-slate-200 hover:bg-[#16191f]'
-              }`}
-            >
-              <Sparkles className="w-3.5 h-3.5 text-blue-300" />
-              HAVN AI Assistant
             </button>
           </div>
 
-          {activeModalTab === 'console' && (
+          {activeModalTab === 'console' ? (
             <button
               type="button"
               onClick={() => setActiveModalTab('ai')}
-              className="px-2.5 py-1 bg-blue-950/40 hover:bg-blue-900/60 text-blue-300 hover:text-white rounded-xl border border-blue-800/60 font-bold flex items-center gap-1.5 transition-all cursor-pointer text-xs"
-              title="Open HAVN AI diagnostic assistant"
+              className="px-3 py-1.5 bg-blue-600 hover:bg-blue-700 text-white rounded-xl font-bold flex items-center gap-1.5 transition-all cursor-pointer text-xs shadow-md shadow-blue-500/20"
+              title="Open HAVN AI Diagnostics"
             >
-              <Sparkles className="w-3.5 h-3.5 text-blue-400" />
+              <Sparkles className="w-3.5 h-3.5" />
               <span>Ask HAVN AI</span>
+            </button>
+          ) : (
+            <button
+              type="button"
+              onClick={() => setActiveModalTab('console')}
+              className="px-2.5 py-1 bg-white hover:bg-sky-50 text-slate-700 hover:text-blue-700 dark:bg-[#1e222b] dark:hover:bg-[#252a35] dark:text-slate-200 dark:hover:text-white rounded-xl border border-sky-200/80 dark:border-[#282d37] font-semibold flex items-center gap-1.5 transition-all cursor-pointer text-xs shadow-2xs"
+              title="Return to Terminal Console"
+            >
+              <Terminal className="w-3.5 h-3.5 text-blue-600 dark:text-blue-400" />
+              <span>Back to Logs</span>
             </button>
           )}
         </div>
@@ -388,234 +444,210 @@ export const BuildLogModal: React.FC<BuildLogModalProps> = ({
               setActiveModalTab('console');
               setSearchQuery(String(seq));
             }}
+            isFullscreen={false}
+            isActive={activeModalTab === 'ai'}
           />
         </div>
 
         {/* Terminal Console View - Preserved across tab switches */}
         <div className={`flex-1 min-h-0 flex flex-col ${activeModalTab === 'console' ? '' : 'hidden'}`}>
           {/* Metadata Banner */}
-            {deployment && (
-              <div className="px-6 py-2 bg-[#0f1115] border-b border-[#282d37] flex flex-wrap items-center justify-between gap-2 text-[11px] font-mono text-slate-400">
-                <div className="flex items-center gap-4">
-                  {deployment.commitMsg && (
-                    <span className="truncate max-w-sm text-slate-300 italic">
-                      "{deployment.commitMsg}"
-                    </span>
-                  )}
-                  {deployment.durationMs != null && (
-                    <span className="flex items-center gap-1 text-slate-400">
-                      <Clock className="w-3 h-3" /> {Math.round(deployment.durationMs / 1000)}s
-                    </span>
-                  )}
-                </div>
-                {deployment.imageTag && (
-                  <span className="text-slate-500 truncate max-w-xs" title={deployment.imageTag}>
-                    Tag: {deployment.imageTag}
+          {deployment && (
+            <div className="px-6 py-2 bg-sky-50/40 dark:bg-slate-900/60 border-b border-sky-200/40 dark:border-[#282d37] flex flex-wrap items-center justify-between gap-2 text-[11px] font-mono text-slate-600 dark:text-slate-400">
+              <div className="flex items-center gap-4">
+                {deployment.commitMsg && (
+                  <span className="truncate max-w-sm text-slate-700 dark:text-slate-300 italic">
+                    "{deployment.commitMsg}"
+                  </span>
+                )}
+                {deployment.durationMs != null && (
+                  <span className="flex items-center gap-1 text-slate-500 dark:text-slate-400">
+                    <Clock className="w-3 h-3" /> {Math.round(deployment.durationMs / 1000)}s
                   </span>
                 )}
               </div>
-            )}
-
-            {/* Console Controls: Search, Stream Filters, Copy, Download */}
-            <div className="px-6 py-2.5 bg-[#12151a] border-b border-[#282d37] flex flex-wrap items-center justify-between gap-3 text-xs">
-              {/* Stream Filter Buttons */}
-              <div className="flex items-center gap-1.5 bg-[#0d0f12] p-1 rounded-xl border border-[#282d37]">
-            {(['ALL', 'SYSTEM', 'STDOUT', 'STDERR'] as const).map((s) => (
-              <button
-                key={s}
-                type="button"
-                onClick={() => setFilterStream(s)}
-                className={`px-2.5 py-1 rounded-lg font-bold text-[11px] transition-all cursor-pointer ${
-                  filterStream === s
-                    ? 'bg-blue-600 text-white shadow-xs'
-                    : 'text-slate-400 hover:text-slate-200 hover:bg-[#1e222b]'
-                }`}
-              >
-                {s === 'ALL' ? 'All Logs' : s === 'SYSTEM' ? 'System' : s === 'STDOUT' ? 'Stdout' : 'Stderr'}
-              </button>
-            ))}
-          </div>
-
-          {/* Search Box & Actions */}
-          <div className="flex items-center gap-2 flex-1 sm:flex-initial justify-end">
-            <div className="relative flex-1 sm:w-48">
-              <Search className="w-3.5 h-3.5 text-slate-500 absolute left-2.5 top-1/2 -translate-y-1/2" />
-              <input
-                type="text"
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                placeholder="Search console..."
-                className="w-full bg-[#0a0c0e] border border-[#282d37] focus:border-blue-500 rounded-xl pl-8 pr-7 py-1 text-xs text-slate-200 placeholder:text-slate-500 outline-none focus:ring-1 focus:ring-blue-500 font-mono"
-              />
-              {searchQuery && (
-                <button
-                  type="button"
-                  onClick={() => setSearchQuery('')}
-                  className="absolute right-2 top-1/2 -translate-y-1/2 text-slate-500 hover:text-slate-300"
-                >
-                  <X className="w-3 h-3" />
-                </button>
+              {deployment.imageTag && (
+                <span className="text-slate-500 dark:text-slate-400 truncate max-w-xs" title={deployment.imageTag}>
+                  Tag: {deployment.imageTag}
+                </span>
               )}
             </div>
+          )}
 
-            {/* Copy Button */}
-            <button
-              type="button"
-              onClick={handleCopyLogs}
-              disabled={filteredLogs.length === 0}
-              className="px-2.5 py-1 bg-[#1e222b] hover:bg-[#252a35] text-slate-300 hover:text-white rounded-xl border border-[#282d37] font-semibold flex items-center gap-1.5 transition-all cursor-pointer disabled:opacity-40"
-              title="Copy visible logs to clipboard"
-            >
-              {copied ? <Check className="w-3.5 h-3.5 text-emerald-400" /> : <Copy className="w-3.5 h-3.5" />}
-              <span>{copied ? 'Copied' : 'Copy'}</span>
-            </button>
+          {/* Console Controls: Search, Stream Filters, Copy, Download */}
+          <div className="px-6 py-2 bg-white/70 dark:bg-[#16191f]/70 backdrop-blur-md border-b border-sky-200/50 dark:border-[#282d37] flex flex-wrap items-center justify-between gap-3 text-xs">
+            {/* Stream Filter Buttons */}
+            <div className="flex items-center gap-1.5 bg-slate-100 dark:bg-[#1e222b] p-1 rounded-xl border border-slate-200 dark:border-[#282d37]">
+              {(['ALL', 'SYSTEM', 'STDOUT', 'STDERR'] as const).map((s) => (
+                <button
+                  key={s}
+                  type="button"
+                  onClick={() => setFilterStream(s)}
+                  className={`px-2.5 py-1 rounded-lg font-bold text-[11px] transition-all cursor-pointer ${
+                    filterStream === s
+                      ? 'bg-blue-600 text-white shadow-xs'
+                      : 'text-slate-600 hover:text-slate-900 hover:bg-white dark:text-slate-400 dark:hover:text-white dark:hover:bg-[#252a35]'
+                  }`}
+                >
+                  {s === 'ALL' ? 'All Logs' : s === 'SYSTEM' ? 'System' : s === 'STDOUT' ? 'Stdout' : 'Stderr'}
+                </button>
+              ))}
+            </div>
 
-            {/* Download Button */}
-            <button
-              type="button"
-              onClick={handleDownloadLogs}
-              disabled={isDownloading || logs.length === 0}
-              className="px-2.5 py-1 bg-[#1e222b] hover:bg-[#252a35] text-slate-300 hover:text-white rounded-xl border border-[#282d37] font-semibold flex items-center gap-1.5 transition-all cursor-pointer disabled:opacity-40"
-              title="Download full raw log file"
-            >
-              {isDownloading ? <RefreshCw className="w-3.5 h-3.5 animate-spin" /> : <Download className="w-3.5 h-3.5" />}
-              <span>Download</span>
-            </button>
-          </div>
-        </div>
+            {/* Search Box & Actions */}
+            <div className="flex items-center gap-2 flex-1 sm:flex-initial justify-end">
+              <div className="relative flex-1 sm:w-48">
+                <Search className="w-3.5 h-3.5 text-slate-400 dark:text-slate-500 absolute left-2.5 top-1/2 -translate-y-1/2" />
+                <input
+                  type="text"
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  placeholder="Search console..."
+                  className="w-full bg-white/95 dark:bg-[#12151a]/95 border border-slate-200 dark:border-[#282d37] focus:border-blue-500 rounded-xl pl-8 pr-7 py-1 text-xs text-slate-800 dark:text-slate-200 placeholder:text-slate-400 dark:placeholder:text-slate-500 outline-none focus:ring-1 focus:ring-blue-500 font-mono shadow-2xs"
+                />
+                {searchQuery && (
+                  <button
+                    type="button"
+                    onClick={() => setSearchQuery('')}
+                    className="absolute right-2 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-300"
+                  >
+                    <X className="w-3 h-3" />
+                  </button>
+                )}
+              </div>
 
-        {/* Cancel Error Alert */}
-        {cancelError && (
-          <div className="mx-6 mt-3 p-3 bg-red-950/50 border border-red-800 rounded-xl text-xs text-red-300 font-semibold flex items-center justify-between">
-            <span>{cancelError}</span>
-            <button type="button" onClick={() => setCancelError(null)} className="text-red-400 hover:text-white">
-              <X className="w-3.5 h-3.5" />
-            </button>
-          </div>
-        )}
+              {/* Copy Button */}
+              <button
+                type="button"
+                onClick={handleCopyLogs}
+                disabled={filteredLogs.length === 0}
+                className="px-2.5 py-1 bg-white hover:bg-sky-50 text-slate-700 hover:text-blue-700 dark:bg-[#1e222b] dark:hover:bg-[#252a35] dark:text-slate-300 dark:hover:text-white rounded-xl border border-slate-200 dark:border-[#282d37] font-semibold flex items-center gap-1.5 transition-all cursor-pointer disabled:opacity-40 shadow-2xs"
+                title="Copy visible logs to clipboard"
+              >
+                {copied ? <Check className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400" /> : <Copy className="w-3.5 h-3.5" />}
+                <span>{copied ? 'Copied' : 'Copy'}</span>
+              </button>
 
-        {/* Poll Error Alert */}
-        {pollError && (
-          <div className="mx-6 mt-3 p-2.5 bg-amber-950/40 border border-amber-800 rounded-xl text-xs text-amber-300 font-medium">
-            Connection notice: {pollError}. Retrying...
-          </div>
-        )}
-
-        {/* Terminal Logs View */}
-        <div className="relative flex-1 flex flex-col min-h-0">
-          {/* Large Log Banner */}
-          {isCapped && (
-            <div className="bg-blue-950/50 border-b border-blue-900/50 px-4 py-1.5 text-[11px] font-mono text-blue-300 flex items-center justify-between">
-              <span>
-                Displaying latest {MAX_RENDER_LINES.toLocaleString()} of {filteredLogs.length.toLocaleString()} lines. Full history preserved.
-              </span>
+              {/* Download Button */}
               <button
                 type="button"
                 onClick={handleDownloadLogs}
-                className="underline hover:text-white font-semibold cursor-pointer"
+                disabled={isDownloading || logs.length === 0}
+                className="px-2.5 py-1 bg-white hover:bg-sky-50 text-slate-700 hover:text-blue-700 dark:bg-[#1e222b] dark:hover:bg-[#252a35] dark:text-slate-300 dark:hover:text-white rounded-xl border border-slate-200 dark:border-[#282d37] font-semibold flex items-center gap-1.5 transition-all cursor-pointer disabled:opacity-40 shadow-2xs"
+                title="Download full raw log file"
               >
-                Download full log (.log)
+                {isDownloading ? <RefreshCw className="w-3.5 h-3.5 animate-spin text-blue-600 dark:text-blue-400" /> : <Download className="w-3.5 h-3.5" />}
+                <span>Download</span>
+              </button>
+            </div>
+          </div>
+
+          {/* Cancel Error Alert */}
+          {cancelError && (
+            <div className="mx-6 mt-3 p-3 bg-rose-50 dark:bg-rose-950/40 border border-rose-200 dark:border-rose-800/60 rounded-xl text-xs text-rose-700 dark:text-rose-300 font-semibold flex items-center justify-between">
+              <span>{cancelError}</span>
+              <button type="button" onClick={() => setCancelError(null)} className="text-rose-500 hover:text-rose-700 dark:hover:text-rose-300">
+                <X className="w-3.5 h-3.5" />
               </button>
             </div>
           )}
 
-          <div
-            ref={logContainerRef}
-            onScroll={handleScroll}
-            className="p-5 bg-[#0a0c0e] font-mono text-xs text-slate-300 overflow-y-auto flex-1 min-h-0 space-y-1 selection:bg-blue-600 selection:text-white"
-          >
-            {logs.length === 0 ? (
-              <div className="h-full flex flex-col items-center justify-center py-16 text-slate-500 space-y-2">
-                <RefreshCw className="w-5 h-5 animate-spin text-blue-500" />
-                <p className="text-xs font-semibold">Waiting for initial build output...</p>
-              </div>
-            ) : displayedLogs.length === 0 ? (
-              <div className="h-full flex flex-col items-center justify-center py-16 text-slate-500 space-y-1">
-                <p className="text-xs font-semibold">No logs match your filter criteria.</p>
+          {/* Poll Error Alert */}
+          {pollError && (
+            <div className="mx-6 mt-3 p-2.5 bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-800/60 rounded-xl text-xs text-amber-800 dark:text-amber-300 font-medium">
+              Connection notice: {pollError}. Retrying...
+            </div>
+          )}
+
+          {/* Terminal Logs View */}
+          <div className="relative flex-1 flex flex-col min-h-0">
+            {/* Large Log Banner */}
+            {isCapped && (
+              <div className="bg-blue-50 dark:bg-blue-950/40 border-b border-blue-200 dark:border-blue-800/60 px-4 py-1.5 text-[11px] font-mono text-blue-700 dark:text-blue-300 flex items-center justify-between">
+                <span>
+                  Displaying latest {MAX_RENDER_LINES.toLocaleString()} of {filteredLogs.length.toLocaleString()} lines. Full history preserved.
+                </span>
                 <button
                   type="button"
-                  onClick={() => {
-                    setFilterStream('ALL');
-                    setSearchQuery('');
-                  }}
-                  className="text-xs text-blue-400 underline hover:text-blue-300 cursor-pointer"
+                  onClick={handleDownloadLogs}
+                  className="underline hover:text-blue-900 dark:hover:text-blue-200 font-semibold cursor-pointer"
                 >
-                  Reset filters
+                  Download full log (.log)
                 </button>
               </div>
-            ) : (
-              displayedLogs.map((log) => {
-                const isSystem = log.stream === 'SYSTEM';
-                const isStderr = log.stream === 'STDERR';
-                const isSuccess = log.line.includes('SUCCESS') || log.line.includes('built and verified') || log.line.includes('completed successfully');
-                const isError = isStderr || log.line.includes('ERROR') || log.line.includes('Failed') || log.line.includes('exited with failure');
-                const isWarning = log.line.includes('WARN') || log.line.includes('warning');
+            )}
 
-                const glyph = isSuccess ? '✓' : isError ? '✕' : isWarning ? '⚠' : isSystem ? 'ℹ' : '→';
-                const glyphColor = isSuccess ? 'text-emerald-400' : isError ? 'text-rose-400' : isWarning ? 'text-amber-400' : isSystem ? 'text-blue-400' : 'text-slate-500';
-
-                return (
-                  <div
-                    key={log.id}
-                    className={`leading-relaxed whitespace-pre-wrap break-all flex items-start gap-2 ${
-                      isSystem
-                        ? 'text-blue-300'
-                        : isSuccess
-                        ? 'text-emerald-300'
-                        : isError
-                        ? 'text-rose-300'
-                        : isWarning
-                        ? 'text-amber-300'
-                        : 'text-slate-300'
-                    }`}
+            <div
+              ref={logContainerRef}
+              onScroll={handleScroll}
+              className="p-5 bg-white/70 dark:bg-[#0a0c0e]/85 backdrop-blur-md font-mono text-xs text-slate-800 dark:text-slate-200 overflow-y-auto flex-1 min-h-0 space-y-1 selection:bg-blue-600 selection:text-white"
+            >
+              {logs.length === 0 ? (
+                <div className="h-full flex flex-col items-center justify-center py-16 text-slate-500 dark:text-slate-400 space-y-2">
+                  <RefreshCw className="w-5 h-5 animate-spin text-blue-600 dark:text-blue-400" />
+                  <p className="text-xs font-semibold">Waiting for initial build output...</p>
+                </div>
+              ) : displayedLogs.length === 0 ? (
+                <div className="h-full flex flex-col items-center justify-center py-16 text-slate-500 dark:text-slate-400 space-y-1">
+                  <p className="text-xs font-semibold">No logs match your filter criteria.</p>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setFilterStream('ALL');
+                      setSearchQuery('');
+                    }}
+                    className="text-xs text-blue-600 dark:text-blue-400 underline hover:text-blue-800 dark:hover:text-blue-300 cursor-pointer"
                   >
-                    <span className="text-slate-600 select-none shrink-0 text-[11px] font-mono">[{log.sequence}]</span>
-                    <span className={`select-none shrink-0 font-bold ${glyphColor}`}>{glyph}</span>
-                    <span className="flex-1">{log.line}</span>
-                  </div>
-                );
-              })
+                    Reset filters
+                  </button>
+                </div>
+              ) : (
+                displayedLogs.map((log) => {
+                  const isSystem = log.stream === 'SYSTEM';
+                  const isStderr = log.stream === 'STDERR';
+                  const isSuccess = log.line.includes('SUCCESS') || log.line.includes('built and verified') || log.line.includes('completed successfully');
+                  const isError = isStderr || log.line.includes('ERROR') || log.line.includes('Failed') || log.line.includes('exited with failure');
+                  const isWarning = log.line.includes('WARN') || log.line.includes('warning');
+
+                  const glyph = isSuccess ? '✓' : isError ? '✕' : isWarning ? '⚠' : isSystem ? 'ℹ' : '→';
+                  const glyphColor = isSuccess ? 'text-emerald-600 dark:text-emerald-400' : isError ? 'text-rose-600 dark:text-rose-400' : isWarning ? 'text-amber-600 dark:text-amber-400' : isSystem ? 'text-blue-600 dark:text-blue-400' : 'text-slate-400 dark:text-slate-500';
+
+                  return (
+                    <div
+                      key={log.id}
+                      className={`leading-relaxed whitespace-pre-wrap break-all flex items-start gap-2 py-0.5 px-1 rounded-sm ${
+                        isError
+                          ? 'text-rose-700 bg-rose-50/70 dark:text-rose-300 dark:bg-rose-950/40 border-l-2 border-rose-500 pl-1.5'
+                          : isSuccess
+                          ? 'text-emerald-700 dark:text-emerald-400'
+                          : isWarning
+                          ? 'text-amber-700 dark:text-amber-400'
+                          : isSystem
+                          ? 'text-blue-700 dark:text-blue-400'
+                          : 'text-slate-800 dark:text-slate-300'
+                      }`}
+                    >
+                      <span className="text-slate-400 dark:text-slate-500 select-none shrink-0 text-[11px] font-mono">[{log.sequence}]</span>
+                      <span className={`select-none shrink-0 font-bold ${glyphColor}`}>{glyph}</span>
+                      <span className="flex-1">{log.line}</span>
+                    </div>
+                  );
+                })
+              )}
+            </div>
+
+            {/* Floating "Scroll to latest" button */}
+            {!isAtBottom && logs.length > 0 && (
+              <button
+                type="button"
+                onClick={handleJumpToBottom}
+                className="absolute bottom-4 right-6 px-3 py-1.5 bg-blue-600 hover:bg-blue-700 text-white rounded-full shadow-lg shadow-blue-500/25 text-xs font-bold flex items-center gap-1.5 transition-all animate-bounce cursor-pointer border border-blue-400/40"
+              >
+                <ArrowDown className="w-3.5 h-3.5" />
+                <span>Scroll to latest</span>
+              </button>
             )}
           </div>
-
-          {/* Floating "Scroll to latest" button */}
-          {!isAtBottom && logs.length > 0 && (
-            <button
-              type="button"
-              onClick={handleJumpToBottom}
-              className="absolute bottom-4 right-6 px-3 py-1.5 bg-blue-600 hover:bg-blue-500 text-white rounded-full shadow-lg shadow-black/40 text-xs font-bold flex items-center gap-1.5 transition-all animate-bounce cursor-pointer border border-blue-400/30"
-            >
-              <ArrowDown className="w-3.5 h-3.5" />
-              <span>Scroll to latest</span>
-            </button>
-          )}
-        </div>
-        </div>
-
-        {/* Footer */}
-        <div className="p-4 px-6 border-t border-[#282d37] bg-[#12151a] flex items-center justify-between text-xs text-slate-400 shrink-0">
-          <div className="flex items-center gap-3">
-            <span className="flex items-center gap-1.5">
-              <span
-                className={`w-2 h-2 rounded-full ${
-                  !isTerminal ? 'bg-blue-400 animate-ping' : status === 'BUILT' ? 'bg-emerald-400' : 'bg-red-400'
-                }`}
-              ></span>
-              {!isTerminal ? 'Live stream active' : `Build finished with status: ${status}`}
-            </span>
-            <span className="text-slate-600 hidden sm:inline">|</span>
-            <span className="text-slate-500 hidden sm:inline">
-              {logs.length} total line{logs.length === 1 ? '' : 's'}
-              {filteredLogs.length !== logs.length ? ` (${filteredLogs.length} matching)` : ''}
-            </span>
-          </div>
-          <button
-            type="button"
-            onClick={onClose}
-            className="px-4 py-2 bg-[#1e222b] hover:bg-[#252a35] text-white font-bold rounded-xl border border-[#282d37] transition-all cursor-pointer"
-          >
-            {isTerminal ? 'Close' : 'Minimize'}
-          </button>
         </div>
       </div>
     </div>

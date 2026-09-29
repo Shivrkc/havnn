@@ -144,7 +144,7 @@ async function runAiUxTests() {
       {
         user: { id: user.id },
         params: { deploymentId: deployment.id },
-        body: { mode: "expert", action: "custom", question: customQ },
+        body: { mode: "expert", action: "custom", question: customQ, bypassCache: true },
       } as any,
       {
         status: (s: number) => { res5Status = s; return { json: (b: any) => { res5Body = b; } }; },

@@ -7,19 +7,26 @@ export interface QueryDeploymentAiPayload {
   mode: AiMode;
   action: AiAction;
   question?: string;
+  bypassCache?: boolean;
 }
 
 export interface AiQueryResultData {
   deploymentId: string;
   mode: AiMode;
   action: AiAction;
+  question?: string;
   answer: string;
   citedSequences: number[];
+  invalidCitations?: number[];
+  citationsValidated?: boolean;
   model: string;
   contextStats: {
     totalLogs: number;
     selectedLogs: number;
   };
+  cached?: boolean;
+  cachedAt?: string;
+  warning?: string;
 }
 
 export interface AiQueryResponse {

@@ -254,31 +254,31 @@
     transform: rotate(10deg);
   }
   26% {
-    transform: rotate(-110deg);
+    transform: rotate(-125deg);
   }
-  35% {
-    transform: rotate(-185deg);
+  36% {
+    transform: rotate(-155deg);
   }
   44% {
-    transform: rotate(-162deg);
+    transform: rotate(-122deg);
   }
   52% {
-    transform: rotate(-195deg);
+    transform: rotate(-158deg);
   }
   60% {
-    transform: rotate(-162deg);
+    transform: rotate(-122deg);
   }
   68% {
-    transform: rotate(-195deg);
+    transform: rotate(-152deg);
   }
   76% {
-    transform: rotate(-90deg);
+    transform: rotate(-120deg);
   }
   84% {
-    transform: rotate(8deg);
+    transform: rotate(-45deg);
   }
   92% {
-    transform: rotate(-3deg);
+    transform: rotate(6deg);
   }
   100% {
     transform: rotate(0deg);
@@ -293,16 +293,16 @@
     transform: rotate(-8deg);
   }
   26% {
-    transform: rotate(12deg);
+    transform: rotate(14deg);
   }
   35%, 68% {
-    transform: rotate(8deg);
+    transform: rotate(10deg);
   }
   76% {
     transform: rotate(4deg);
   }
   84% {
-    transform: rotate(-8deg);
+    transform: rotate(-6deg);
   }
   92% {
     transform: rotate(2deg);
@@ -334,38 +334,52 @@
 }
 
 .yeti-entrance-jump {
-  animation: yetiEntranceJump 1.5s cubic-bezier(0.25, 1, 0.5, 1) forwards;
+  transform-origin: 180px 355px !important;
+  transform-box: view-box !important;
+  animation: yetiEntranceJump 1.6s cubic-bezier(0.25, 1, 0.5, 1) forwards;
   will-change: transform;
 }
 
 .yeti-entrance-body {
-  animation: yetiEntranceBody 1.5s cubic-bezier(0.25, 1, 0.5, 1) forwards;
+  transform-origin: 180px 340px !important;
+  transform-box: view-box !important;
+  animation: yetiEntranceBody 1.6s cubic-bezier(0.25, 1, 0.5, 1) forwards;
   will-change: transform;
 }
 
 .yeti-entrance-head {
-  animation: yetiEntranceHead 1.5s cubic-bezier(0.25, 1, 0.5, 1) forwards;
+  transform-origin: 180px 160px !important;
+  transform-box: view-box !important;
+  animation: yetiEntranceHead 1.6s cubic-bezier(0.25, 1, 0.5, 1) forwards;
   will-change: transform;
 }
 
 .yeti-entrance-shadow {
-  animation: yetiEntranceShadow 1.5s cubic-bezier(0.25, 1, 0.5, 1) forwards;
+  transform-origin: 180px 355px !important;
+  transform-box: view-box !important;
+  animation: yetiEntranceShadow 1.6s cubic-bezier(0.25, 1, 0.5, 1) forwards;
   will-change: transform, opacity;
 }
 
 .yeti-entrance-wave-arm {
-  animation: yetiEntranceWaveArm 1.5s cubic-bezier(0.25, 1, 0.5, 1) forwards !important;
+  transform-origin: 265px 230px !important;
+  transform-box: view-box !important;
+  animation: yetiEntranceWaveArm 1.6s cubic-bezier(0.25, 1, 0.5, 1) forwards !important;
   will-change: transform;
   transition: none !important;
 }
 
 .yeti-entrance-balance-arm {
-  animation: yetiEntranceBalanceArm 1.5s cubic-bezier(0.25, 1, 0.5, 1) forwards !important;
+  transform-origin: 95px 230px !important;
+  transform-box: view-box !important;
+  animation: yetiEntranceBalanceArm 1.6s cubic-bezier(0.25, 1, 0.5, 1) forwards !important;
   will-change: transform;
   transition: none !important;
 }
 
 .yeti-entrance-ears {
-  animation: yetiEntranceEars 1.5s ease-in-out forwards;
+  transform-origin: 180px 108px !important;
+  transform-box: view-box !important;
+  animation: yetiEntranceEars 1.6s ease-in-out forwards;
 }
 

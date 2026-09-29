@@ -4,4 +4,5 @@ export const ROUTES = {
   SIGNUP: "/signup",
   DASHBOARD: "/dashboard",
   PROFILE: "/profile",
+  DEPLOYMENT_CONSOLE: "/dashboard/deployments/:deploymentId",
 } as const;

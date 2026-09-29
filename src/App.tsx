@@ -13,6 +13,7 @@ import ResetPassword from "./pages/ResetPassword";
 import ForgotPassword from "./pages/ForgotPassword";
 import Dashboard from "./pages/Dashboard";
 import Profile from "./pages/Profile";
+import DeploymentConsolePage from "./pages/DeploymentConsolePage";
 import ProtectedRoute from "./components/auth/ProtectedRoute";
 import OAuthCallback from "./pages/OAuthCallback";
 export default function App() {
@@ -123,6 +124,22 @@ export default function App() {
           element={
             <ProtectedRoute>
               <Profile />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/dashboard/deployments/:deploymentId"
+          element={
+            <ProtectedRoute>
+              <DeploymentConsolePage />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/deployments/:deploymentId"
+          element={
+            <ProtectedRoute>
+              <DeploymentConsolePage />
             </ProtectedRoute>
           }
         />
