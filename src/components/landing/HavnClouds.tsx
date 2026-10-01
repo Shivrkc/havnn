@@ -62,13 +62,13 @@ export const HavnClouds: React.FC<HavnCloudsProps> = ({
     const element = vantaRef.current;
     if (!element) return;
 
-    // Check prefers-reduced-motion
+    // Check prefers-reduced-motion (strictly respected in production)
     const mediaQuery =
       typeof window !== 'undefined' && window.matchMedia
         ? window.matchMedia('(prefers-reduced-motion: reduce)')
         : null;
 
-    const isReducedMotion = mediaQuery ? mediaQuery.matches : false;
+    const isReducedMotion = !import.meta.env.DEV && mediaQuery ? mediaQuery.matches : false;
     const initialSpeed = isReducedMotion ? 0 : speed;
 
     // Clean up any stale canvas elements to ensure exactly 1 canvas instance
@@ -132,25 +132,33 @@ export const HavnClouds: React.FC<HavnCloudsProps> = ({
       }
     }
 
-    // IntersectionObserver to pause speed when off-screen and resume when visible
+    // IntersectionObserver to pause Three.js render loop when off-screen and resume when visible
     let observer: IntersectionObserver | null = null;
     if (typeof IntersectionObserver !== 'undefined') {
       observer = new IntersectionObserver(
         (entries) => {
           entries.forEach((entry) => {
-            if (!vantaEffectRef.current) return;
-            const currentReducedMotion = mediaQuery ? mediaQuery.matches : false;
+            const effect = vantaEffectRef.current as any;
+            if (!effect) return;
+            const currentReducedMotion = !import.meta.env.DEV && mediaQuery ? mediaQuery.matches : false;
             if (currentReducedMotion) return;
 
             if (entry.isIntersecting) {
-              vantaEffectRef.current.setOptions({ speed });
+              // Resume Three.js render loop
+              if (!effect.req && typeof effect.animationLoop === 'function') {
+                effect.prevNow = null;
+                effect.animationLoop();
+              }
             } else {
-              // Pause cloud movement when scrolled off-screen
-              vantaEffectRef.current.setOptions({ speed: 0 });
+              // Pause Three.js render loop completely when scrolled off-screen
+              if (effect.req) {
+                window.cancelAnimationFrame(effect.req);
+                effect.req = null;
+              }
             }
           });
         },
-        { threshold: 0.05 }
+        { threshold: 0.01 }
       );
       observer.observe(element);
     }

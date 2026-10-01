@@ -1,352 +1,392 @@
-import React, { useEffect, useRef, useState } from 'react';
-import { 
-  GitBranch, 
-  Rocket, 
-  Container, 
-  Bot, 
-  Terminal, 
+import React, { useRef, useState, useEffect } from 'react';
+import {
+  GitBranch,
+  Bot,
+  Terminal,
   KeyRound,
-  ArrowUpRight
+  CheckCircle2,
+  Sparkles
 } from 'lucide-react';
-import { useTheme } from '../../context/ThemeContext';
+import { GithubLogo, DockerLogo } from '../ui/BrandIcons';
+import { motion, MotionValue, MotionStyle, useScroll, useTransform, useMotionValue } from 'motion/react';
+import { useMotionEnvironment } from './motionSystem';
 
-const TECH_STACK = [
-  { name: 'React', label: 'React' },
-  { name: 'Node.js', label: 'Node.js' },
-  { name: 'Docker', label: 'Docker' },
-  { name: 'PostgreSQL', label: 'PostgreSQL' },
-  { name: 'Prisma', label: 'Prisma' },
-  { name: 'GitHub', label: 'GitHub' },
-  { name: 'AWS', label: 'AWS' }
-];
-
-const FEATURES = [
-  {
-    icon: GitBranch,
-    title: 'GitHub Integration',
-    description: 'Organize, sync, and deploy your repositories automatically on every commit and pull request.',
-    tag: 'CI/CD Pipelines'
-  },
-  {
-    icon: Rocket,
-    title: 'One-click Deployments',
-    description: 'Build, deploy, and monitor applications with zero configuration or complex pipeline setup.',
-    tag: 'Zero Friction'
-  },
-  {
-    icon: Container,
-    title: 'Docker Builder',
-    description: 'Isolated micro-VM container builds with automatic package caching and fast cold starts.',
-    tag: 'Containerized'
-  },
-  {
-    icon: Bot,
-    title: 'AI Deployment Assistant',
-    description: 'Your smart companion for analyzing stdout logs, diagnosing errors, and suggesting fixes.',
-    tag: 'HAVN AI'
-  },
-  {
-    icon: Terminal,
-    title: 'Deployment Logs',
-    description: 'Stream live build and server logs with full context, search, filtering, and execution history.',
-    tag: 'Real-time'
-  },
-  {
-    icon: KeyRound,
-    title: 'Environment Variables',
-    description: 'Encrypted secret storage with pre-flight schema validation to prevent missing env variables.',
-    tag: 'Security'
-  }
-];
-
-// Refined iOS/macOS Translucent Glass Card with Subtle Lift
-function GlassFeatureCard({ 
-  feature, 
-  index 
-}: { 
-  feature: typeof FEATURES[0]; 
-  index: number;
-}) {
-  const cardRef = useRef<HTMLDivElement | null>(null);
-  const [transform, setTransform] = useState('');
-  const [isHovered, setIsHovered] = useState(false);
-
-  const Icon = feature.icon;
-
-  const handleMouseMove = (e: React.MouseEvent<HTMLDivElement>) => {
-    if (!cardRef.current) return;
-    const rect = cardRef.current.getBoundingClientRect();
-    const x = e.clientX - rect.left;
-    const y = e.clientY - rect.top;
-    
-    // Very subtle cursor parallax tilt (-2.5deg to +2.5deg max)
-    const rotateX = ((y - rect.height / 2) / (rect.height / 2)) * -2.5;
-    const rotateY = ((x - rect.width / 2) / (rect.width / 2)) * 2.5;
-
-    setTransform(`perspective(1000px) rotateX(${rotateX.toFixed(2)}deg) rotateY(${rotateY.toFixed(2)}deg) translateY(-4px)`);
-  };
-
-  const handleMouseEnter = () => {
-    setIsHovered(true);
-  };
-
-  const handleMouseLeave = () => {
-    setIsHovered(false);
-    setTransform('perspective(1000px) rotateX(0deg) rotateY(0deg) translateY(0px)');
-  };
-
-  return (
-    <div
-      ref={cardRef}
-      onMouseMove={handleMouseMove}
-      onMouseEnter={handleMouseEnter}
-      onMouseLeave={handleMouseLeave}
-      style={{
-        transform: transform,
-        transition: isHovered 
-          ? 'transform 0.15s ease-out, background-color 0.3s ease, border-color 0.3s ease, box-shadow 0.3s ease' 
-          : 'transform 0.4s ease-out, background-color 0.3s ease, border-color 0.3s ease, box-shadow 0.3s ease',
-        animationDelay: `${index * 80}ms`
-      }}
-      className="group relative backdrop-blur-xl bg-white/40 hover:bg-white/60 dark:bg-[#16191f]/80 dark:hover:bg-[#1e222b]/90 border border-white/60 hover:border-white/90 dark:border-[#282d37] dark:hover:border-[#374151] rounded-3xl p-6 sm:p-7 shadow-lg shadow-sky-900/5 dark:shadow-black/30 hover:shadow-xl hover:shadow-blue-600/10 transition-all duration-300 flex flex-col justify-between overflow-hidden cursor-pointer animate-fade-in-up"
-    >
-      {/* Light Reflection Glow Overlay */}
-      <div className="absolute -top-20 -left-20 w-40 h-40 bg-white/40 dark:bg-white/5 blur-xl rounded-full pointer-events-none group-hover:translate-x-10 group-hover:translate-y-10 transition-transform duration-700 ease-out" />
-
-      {/* Subtle Top Border Glow */}
-      <div className="absolute top-0 left-0 right-0 h-[1.5px] bg-gradient-to-r from-transparent via-blue-400/40 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
-
-      <div className="space-y-5 relative z-10">
-        {/* Card Header: Icon & Tag */}
-        <div className="flex items-center justify-between">
-          <div className="w-11 h-11 rounded-2xl bg-white/70 dark:bg-[#1e222b] border border-white/80 dark:border-[#282d37] shadow-xs flex items-center justify-center text-blue-600 dark:text-blue-400 group-hover:text-blue-700 dark:group-hover:text-blue-300 group-hover:scale-105 transition-all duration-300">
-            <Icon className="w-5 h-5 transition-transform duration-300 group-hover:-translate-y-0.5" />
-          </div>
-          <span className="text-[11px] font-mono font-semibold text-slate-700 dark:text-slate-300 bg-white/50 dark:bg-[#1e222b]/80 border border-white/70 dark:border-[#282d37] px-3 py-1 rounded-full group-hover:text-blue-950 dark:group-hover:text-white transition-colors shadow-2xs">
-            {feature.tag}
-          </span>
-        </div>
-
-        {/* Card Title & Description */}
-        <div className="space-y-2 text-left">
-          <h3 className="text-lg font-bold text-slate-900 dark:text-white group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors flex items-center justify-between">
-            <span>{feature.title}</span>
-            <ArrowUpRight className="w-4 h-4 text-slate-400 opacity-0 group-hover:opacity-100 group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-all duration-300 -translate-x-1 group-hover:translate-x-0" />
-          </h3>
-          <p className="text-sm text-slate-600 dark:text-slate-300 leading-relaxed font-normal">
-            {feature.description}
-          </p>
-        </div>
-      </div>
-    </div>
-  );
+export interface FeaturesMotionProps {
+  style?: MotionStyle;
+  headerY?: MotionValue<number>;
+  headerOpacity?: MotionValue<number>;
+  cardRow1Y?: MotionValue<number>;
+  cardRow2Y?: MotionValue<number>;
+  cardsOpacity?: MotionValue<number>;
+  localProgress?: MotionValue<number>;
 }
 
-export default function Features() {
-  const { theme } = useTheme();
-  const canvasRef = useRef<HTMLCanvasElement | null>(null);
+export default function Features({
+  style,
+  headerY,
+  headerOpacity,
+  cardRow1Y,
+  cardRow2Y,
+  cardsOpacity,
+  localProgress,
+}: FeaturesMotionProps) {
+  const sectionRef = useRef<HTMLElement | null>(null);
+  const { isCinematicActive } = useMotionEnvironment();
 
-  // Seamless Cloud Ocean Extension Canvas Animation
+  // Responsive scale factor for card-deck travel distance
+  // Desktop (>=1024px): 1.0 | Tablet (768px-1023px): 0.58 | Mobile (<768px): 0 (normal flow)
+  const [motionScale, setMotionScale] = useState(1);
+
   useEffect(() => {
-    const canvas = canvasRef.current;
-    if (!canvas) return;
-    const ctx = canvas.getContext('2d');
-    if (!ctx) return;
-
-    let animationFrameId: number;
-    let width = (canvas.width = window.innerWidth);
-    let height = (canvas.height = canvas.parentElement?.offsetHeight || 800);
-    const reduceMotion = typeof window !== 'undefined' && window.matchMedia 
-      ? window.matchMedia('(prefers-reduced-motion: reduce)').matches 
-      : false;
-
-    const handleResize = () => {
-      if (!canvas || !canvas.parentElement) return;
-      width = canvas.width = window.innerWidth;
-      height = canvas.height = canvas.parentElement.offsetHeight;
-      if (reduceMotion) {
-        render();
-      }
-    };
-    window.addEventListener('resize', handleResize);
-
-    const cloudCount = 45;
-    interface CloudPuff {
-      xRatio: number;
-      z: number;
-      radius: number;
-      opacity: number;
-    }
-
-    const clouds: CloudPuff[] = Array.from({ length: cloudCount }, () => ({
-      xRatio: (Math.random() - 0.5) * 2.5,
-      z: Math.random(),
-      radius: 90 + Math.random() * 140,
-      opacity: 0.3 + Math.random() * 0.4,
-    }));
-
-    const speed = 0.0006;
-    const isDark = theme === 'dark';
-
-    const render = () => {
-      ctx.clearRect(0, 0, width, height);
-
-      // Continuous Aerial Sky Gradient
-      const skyGrad = ctx.createLinearGradient(0, 0, 0, height);
-      if (isDark) {
-        skyGrad.addColorStop(0, '#0d0f12');
-        skyGrad.addColorStop(0.5, '#14171d');
-        skyGrad.addColorStop(1, '#0d0f12');
+    const updateScale = () => {
+      if (typeof window === 'undefined') return;
+      if (window.innerWidth >= 1024) {
+        setMotionScale(1.0);
+      } else if (window.innerWidth >= 768) {
+        setMotionScale(0.58);
       } else {
-        skyGrad.addColorStop(0, '#e0f2fe'); // Soft horizon transition from Hero
-        skyGrad.addColorStop(0.5, '#bae6fd'); // Light sky blue
-        skyGrad.addColorStop(1, '#f0f9ff'); // Very soft sky bottom
-      }
-      ctx.fillStyle = skyGrad;
-      ctx.fillRect(0, 0, width, height);
-
-      // Render Continuous Cloud Ocean
-      clouds.sort((a, b) => a.z - b.z);
-
-      clouds.forEach((cloud) => {
-        cloud.z += speed;
-        if (cloud.z > 1) {
-          cloud.z -= 1;
-          cloud.xRatio = (Math.random() - 0.5) * 2.5;
-        }
-
-        const perspective = Math.pow(cloud.z, 2);
-        const screenY = perspective * height;
-        const screenX = width / 2 + cloud.xRatio * width * (0.4 + perspective * 0.7);
-        const currentRadius = cloud.radius * (0.4 + perspective * 1.5);
-        const currentOpacity = Math.min(cloud.opacity, cloud.z * 1.1);
-
-        const cloudGlow = ctx.createRadialGradient(
-          screenX - currentRadius * 0.2,
-          screenY - currentRadius * 0.3,
-          currentRadius * 0.1,
-          screenX,
-          screenY,
-          currentRadius
-        );
-
-        if (isDark) {
-          cloudGlow.addColorStop(0, `rgba(191, 196, 207, ${currentOpacity * 0.45})`);
-          cloudGlow.addColorStop(0.6, `rgba(35, 39, 48, ${currentOpacity * 0.3})`);
-          cloudGlow.addColorStop(1, 'rgba(13, 15, 18, 0)');
-        } else {
-          cloudGlow.addColorStop(0, `rgba(255, 255, 255, ${currentOpacity})`);
-          cloudGlow.addColorStop(0.6, `rgba(241, 245, 249, ${currentOpacity * 0.8})`);
-          cloudGlow.addColorStop(1, 'rgba(203, 213, 225, 0)');
-        }
-
-        ctx.beginPath();
-        ctx.fillStyle = cloudGlow;
-        ctx.arc(screenX, screenY, currentRadius, 0, Math.PI * 2);
-        ctx.fill();
-      });
-
-      if (!reduceMotion) {
-        animationFrameId = requestAnimationFrame(render);
+        setMotionScale(0);
       }
     };
+    updateScale();
+    window.addEventListener('resize', updateScale);
+    return () => window.removeEventListener('resize', updateScale);
+  }, []);
 
-    render();
+  // Local section scroll progress for native document flow:
+  // Starts when section top enters lower viewport (start 0.88)
+  // Settles into 2x2 grid as section centers in viewport (center 0.50)
+  const { scrollYProgress: sectionScrollProgress } = useScroll({
+    target: sectionRef,
+    offset: ['start 0.88', 'center 0.50'],
+  });
 
-    return () => {
-      if (animationFrameId) {
-        cancelAnimationFrame(animationFrameId);
+  const fallbackProgress = useMotionValue(1);
+
+  const targetProgress = isCinematicActive
+    ? (localProgress || sectionScrollProgress)
+    : fallbackProgress;
+
+  const hasDeckMotion = isCinematicActive && motionScale > 0;
+
+  // =========================================================================
+  // REFINED 4-CARD PHYSICAL DECK CHOREOGRAPHY (Normalized Scene Progress: 0.00 -> 1.00)
+  //
+  // 1. COMPACT DECK   (0.00 -> 0.22): Cards form a compact, tight physical stack near center
+  //    - Dominant front card (z:40), partial overlap, subtle rotations (-2.5° to +2.0°)
+  // 2. SHORT SHUFFLE  (0.22 -> 0.36): Subtle physical shuffle ("dealing the deck")
+  //    - Small twitch offsets, tiny rotation changes, slight depth movement
+  // 3. CONTROLLED FAN (0.36 -> 0.58): Clear 4-directional fan toward 2x2 quadrants
+  // 4. CLEAN SPREAD   (0.58 -> 0.84): Smooth glide into 2x2 grid slots (rot->0, scale->1)
+  // 5. SETTLE & LOCK  (0.84 -> 1.00): Locked into original 2x2 bento grid
+  // =========================================================================
+
+  // CARD 1: Row 1, Col 1 (Top-Left 7-col) | Dominant Front Card (z: 40)
+  const c1X = 253 * motionScale;
+  const c1Y = 182.5 * motionScale;
+  const card1X = useTransform(targetProgress, [0.00, 0.12, 0.22, 0.36, 0.58, 0.84, 1.00], [c1X, c1X, c1X, c1X * 0.94, c1X * 0.59, 0, 0]);
+  const card1Y = useTransform(targetProgress, [0.00, 0.12, 0.22, 0.36, 0.58, 0.84, 1.00], [c1Y, c1Y, c1Y, c1Y * 0.92, c1Y * 0.58, 0, 0]);
+  const card1Rot = useTransform(targetProgress, [0.00, 0.12, 0.22, 0.36, 0.58, 0.84, 1.00], [-2.5, -2.5, -2.5, -3.5, -2.0, 0, 0]);
+  const card1Scale = useTransform(targetProgress, [0.00, 0.12, 0.22, 0.36, 0.58, 0.84, 1.00], [0.88, 0.88, 0.88, 0.89, 0.93, 1, 1]);
+  const card1Opacity = useTransform(targetProgress, [0.00, 0.08, 0.84, 1.00], [0, 1, 1, 1]);
+
+  // CARD 2: Row 1, Col 2 (Top-Right 5-col) | Upper-Mid Card (z: 30)
+  const c2X = -358.5 * motionScale;
+  const c2Y = 188.5 * motionScale;
+  const card2X = useTransform(targetProgress, [0.00, 0.12, 0.22, 0.36, 0.58, 0.84, 1.00], [c2X, c2X, c2X, c2X * 0.95, c2X * 0.57, 0, 0]);
+  const card2Y = useTransform(targetProgress, [0.00, 0.12, 0.22, 0.36, 0.58, 0.84, 1.00], [c2Y, c2Y, c2Y, c2Y * 0.92, c2Y * 0.56, 0, 0]);
+  const card2Rot = useTransform(targetProgress, [0.00, 0.12, 0.22, 0.36, 0.58, 0.84, 1.00], [1.8, 1.8, 1.8, 2.8, 1.5, 0, 0]);
+  const card2Scale = useTransform(targetProgress, [0.00, 0.12, 0.22, 0.36, 0.58, 0.84, 1.00], [0.87, 0.87, 0.87, 0.88, 0.93, 1, 1]);
+  const card2Opacity = useTransform(targetProgress, [0.00, 0.08, 0.84, 1.00], [0, 1, 1, 1]);
+
+  // CARD 3: Row 2, Col 1 (Bottom-Left 5-col) | Lower-Mid Card (z: 20)
+  const c3X = 358.5 * motionScale;
+  const c3Y = -186.5 * motionScale;
+  const card3X = useTransform(targetProgress, [0.00, 0.12, 0.22, 0.36, 0.58, 0.84, 1.00], [c3X, c3X, c3X, c3X * 0.95, c3X * 0.57, 0, 0]);
+  const card3Y = useTransform(targetProgress, [0.00, 0.12, 0.22, 0.36, 0.58, 0.84, 1.00], [c3Y, c3Y, c3Y, c3Y * 0.92, c3Y * 0.56, 0, 0]);
+  const card3Rot = useTransform(targetProgress, [0.00, 0.12, 0.22, 0.36, 0.58, 0.84, 1.00], [-1.5, -1.5, -1.5, -2.2, -1.0, 0, 0]);
+  const card3Scale = useTransform(targetProgress, [0.00, 0.12, 0.22, 0.36, 0.58, 0.84, 1.00], [0.86, 0.86, 0.86, 0.87, 0.93, 1, 1]);
+  const card3Opacity = useTransform(targetProgress, [0.00, 0.08, 0.84, 1.00], [0, 1, 1, 1]);
+
+  // CARD 4: Row 2, Col 2 (Bottom-Right 7-col) | Base Card (z: 10)
+  const c4X = -253 * motionScale;
+  const c4Y = -182.5 * motionScale;
+  const card4X = useTransform(targetProgress, [0.00, 0.12, 0.22, 0.36, 0.58, 0.84, 1.00], [c4X, c4X, c4X, c4X * 0.94, c4X * 0.59, 0, 0]);
+  const card4Y = useTransform(targetProgress, [0.00, 0.12, 0.22, 0.36, 0.58, 0.84, 1.00], [c4Y, c4Y, c4Y, c4Y * 0.92, c4Y * 0.58, 0, 0]);
+  const card4Rot = useTransform(targetProgress, [0.00, 0.12, 0.22, 0.36, 0.58, 0.84, 1.00], [2.0, 2.0, 2.0, 3.0, 1.5, 0, 0]);
+  const card4Scale = useTransform(targetProgress, [0.00, 0.12, 0.22, 0.36, 0.58, 0.84, 1.00], [0.85, 0.85, 0.85, 0.86, 0.93, 1, 1]);
+  const card4Opacity = useTransform(targetProgress, [0.00, 0.08, 0.84, 1.00], [0, 1, 1, 1]);
+
+  // High-performance settled glass subscription: only triggers attribute update when crossing 0.84 threshold
+  // Zero style recalculations or DOM writes during all active motion frames (0.00 -> 0.839)
+  useEffect(() => {
+    if (!hasDeckMotion || !sectionRef.current) return;
+    let settled = targetProgress.get() >= 0.84;
+    sectionRef.current.dataset.deckSettled = settled ? 'true' : 'false';
+
+    const unsubscribe = targetProgress.on('change', (v) => {
+      const isNowSettled = v >= 0.84;
+      if (isNowSettled !== settled) {
+        settled = isNowSettled;
+        if (sectionRef.current) {
+          sectionRef.current.dataset.deckSettled = settled ? 'true' : 'false';
+        }
       }
-      window.removeEventListener('resize', handleResize);
-    };
-  }, [theme]);
+    });
+    return () => unsubscribe();
+  }, [hasDeckMotion, targetProgress]);
+
+  const card1Style: MotionStyle | undefined = hasDeckMotion ? {
+    x: card1X,
+    y: card1Y,
+    rotate: card1Rot,
+    scale: card1Scale,
+    opacity: card1Opacity,
+    willChange: 'transform',
+  } : (cardRow1Y ? { y: cardRow1Y } : undefined);
+
+  const card2Style: MotionStyle | undefined = hasDeckMotion ? {
+    x: card2X,
+    y: card2Y,
+    rotate: card2Rot,
+    scale: card2Scale,
+    opacity: card2Opacity,
+    willChange: 'transform',
+  } : (cardRow1Y ? { y: cardRow1Y } : undefined);
+
+  const card3Style: MotionStyle | undefined = hasDeckMotion ? {
+    x: card3X,
+    y: card3Y,
+    rotate: card3Rot,
+    scale: card3Scale,
+    opacity: card3Opacity,
+    willChange: 'transform',
+  } : (cardRow2Y ? { y: cardRow2Y } : undefined);
+
+  const card4Style: MotionStyle | undefined = hasDeckMotion ? {
+    x: card4X,
+    y: card4Y,
+    rotate: card4Rot,
+    scale: card4Scale,
+    opacity: card4Opacity,
+    willChange: 'transform',
+  } : (cardRow2Y ? { y: cardRow2Y } : undefined);
+
 
   return (
-    <section id="features" className="py-28 relative overflow-hidden text-slate-900 dark:text-white selection:bg-sky-200">
-      
-      {/* Dynamic Canvas Continuing the Sky & Cloud Ocean Environment */}
-      <canvas
-        ref={canvasRef}
-        aria-hidden="true"
-        className="absolute inset-0 w-full h-full pointer-events-none z-0"
-      />
+    <motion.section
+      ref={sectionRef}
+      id="features-section"
+      style={style}
+      className="py-6 sm:py-10 lg:py-8 relative overflow-hidden text-slate-900 dark:text-white selection:bg-blue-600/30"
+    >
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10 space-y-6 sm:space-y-8">
 
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10 space-y-24">
-        
-        {/* Trusted Ecosystems Banner */}
-        <div className="space-y-6 text-center">
-          <p className="text-[11px] font-mono font-bold text-blue-950/60 dark:text-blue-300/80 uppercase tracking-widest">
-            Trusted & Supported Ecosystems
+        {/* Section Heading & Description */}
+        <motion.div
+          style={{ y: headerY, opacity: headerOpacity }}
+          className="text-center max-w-2xl mx-auto space-y-4"
+        >
+          <div className="inline-flex items-center gap-2 backdrop-blur-md bg-white/60 dark:bg-[#16191f]/90 border border-slate-200/80 dark:border-[#282d37] rounded-full px-4 py-1 text-xs text-blue-900 dark:text-[#7BBBFF] font-bold shadow-xs">
+            <Sparkles className="w-3.5 h-3.5 text-blue-600 dark:text-[#7BBBFF]" />
+            <span>Platform Capabilities</span>
+          </div>
+
+          <h2 className="font-display text-3xl sm:text-5xl font-bold text-slate-900 dark:text-white tracking-tight leading-tight">
+            Everything You Need to Deploy Better
+          </h2>
+
+          <p className="text-slate-600 dark:text-slate-300 text-sm sm:text-base lg:text-lg leading-relaxed">
+            Designed for modern development workflows. High-performance infrastructure without the ops complexity.
           </p>
-          <div className="flex flex-wrap items-center justify-center gap-4 sm:gap-6 md:gap-8 opacity-90">
-            {TECH_STACK.map((tech) => (
-              <div 
-                key={tech.name} 
-                className="flex items-center gap-2 backdrop-blur-md bg-white/40 dark:bg-[#16191f]/80 border border-white/60 dark:border-[#282d37] px-4 py-1.5 rounded-full text-slate-700 dark:text-slate-300 hover:text-blue-600 dark:hover:text-blue-400 hover:bg-white/70 dark:hover:bg-[#1e222b] hover:border-white dark:hover:border-[#374151] transition-all duration-200 text-xs font-semibold shadow-2xs cursor-default"
-              >
-                <span className="w-1.5 h-1.5 rounded-full bg-blue-500 shadow-xs" />
-                <span>{tech.label}</span>
+        </motion.div>
+
+        {/* Asymmetric 2x2 Bento Grid with Circular Orbit Choreography */}
+        <motion.div
+          style={{ opacity: cardsOpacity }}
+          className="grid grid-cols-1 lg:grid-cols-12 gap-5 sm:gap-6 lg:gap-8 relative"
+        >
+
+          {/* ROW 1 - CARD 1: Wide Feature (7 Cols) - GitHub & Automated CI/CD */}
+          <motion.div
+            data-feature-card="1"
+            style={card1Style}
+            className={`lg:col-span-7 z-40 ${
+              hasDeckMotion ? 'motion-card-glass' : 'backdrop-blur-xl'
+            } bg-white/60 hover:bg-white/80 dark:bg-[#16191f]/85 dark:hover:bg-[#1e222b]/95 border border-white/80 dark:border-[#282d37] hover:border-blue-400/40 dark:hover:border-blue-500/30 rounded-3xl p-6 sm:p-8 shadow-lg shadow-sky-900/5 dark:shadow-black/30 hover:shadow-xl transition-all duration-300 flex flex-col justify-between group text-left cursor-default relative`}
+          >
+            <div>
+              <div className="flex items-center justify-between mb-4">
+                <div className="w-10 h-10 sm:w-11 sm:h-11 rounded-2xl bg-slate-100 dark:bg-[#1e222b] border border-slate-200/80 dark:border-[#282d37] flex items-center justify-center text-slate-800 dark:text-white group-hover:scale-105 transition-transform duration-300">
+                  <GithubLogo className="w-5 h-5 fill-current" />
+                </div>
+                <span className="text-[11px] font-mono font-bold text-blue-800 dark:text-blue-300 bg-blue-50/80 dark:bg-blue-950/60 border border-blue-200/70 dark:border-blue-800/60 px-3 py-1 rounded-full">
+                  Automated CI/CD
+                </span>
               </div>
-            ))}
-          </div>
-        </div>
 
-        {/* Section Heading */}
-        <div className="space-y-16">
-          <div className="text-center max-w-2xl mx-auto space-y-4">
-            <div className="inline-flex items-center gap-2 backdrop-blur-md bg-white/50 dark:bg-[#16191f]/90 border border-white/80 dark:border-[#282d37] rounded-full px-4 py-1 text-xs text-blue-900 dark:text-blue-300 font-bold shadow-xs">
-              <span className="w-2 h-2 rounded-full bg-blue-600 dark:bg-blue-400 animate-pulse" />
-              <span>Platform Capabilities</span>
+              <h3 className="font-display text-xl sm:text-2xl font-bold text-slate-900 dark:text-white mb-2 sm:mb-3">
+                GitHub Integration & Zero-Config Pipelines
+              </h3>
+
+              <p className="text-xs sm:text-sm text-slate-600 dark:text-slate-300 leading-relaxed mb-5 max-w-xl">
+                Connect your repositories with one click. Havn listens for webhook events, automatically detects your framework, triggers containerized builds, and rolls out edge-routed deployments.
+              </p>
             </div>
-            
-            <h2 className="text-4xl sm:text-5xl font-extrabold text-slate-900 dark:text-white tracking-tight leading-tight">
-              Everything You Need to Deploy Better
-            </h2>
-            
-            <p className="text-slate-600 dark:text-slate-300 text-base sm:text-lg leading-relaxed">
-              Designed for modern development workflows. High-performance infrastructure without the ops complexity.
-            </p>
-          </div>
 
-          {/* 3-Column Light/Dark Glass Feature Card Grid */}
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 lg:gap-8">
-            {FEATURES.map((feature, idx) => (
-              <GlassFeatureCard 
-                key={feature.title} 
-                feature={feature} 
-                index={idx} 
-              />
-            ))}
-          </div>
-        </div>
+            {/* Embedded Visual: GitHub Pipeline Mockup */}
+            <div className="p-3.5 sm:p-4 rounded-2xl bg-slate-100/80 dark:bg-[#0d0f12] border border-slate-200/80 dark:border-[#282d37] font-mono text-xs space-y-2">
+              <div className="flex items-center justify-between pb-2 border-b border-slate-200/60 dark:border-[#282d37] text-[11px] text-slate-500 dark:text-slate-400">
+                <span className="flex items-center gap-1.5 font-medium">
+                  <GitBranch className="w-3.5 h-3.5 text-blue-500" />
+                  branch: main
+                </span>
+                <span className="text-emerald-600 dark:text-emerald-400 font-semibold flex items-center gap-1">
+                  <CheckCircle2 className="w-3.5 h-3.5" /> Auto-Deploy Enabled
+                </span>
+              </div>
+              <div className="flex items-center justify-between text-slate-700 dark:text-slate-300 text-[11px]">
+                <span className="truncate">Commit #8f32a0c · feat: setup cloud infrastructure</span>
+                <span className="text-slate-400 shrink-0 ml-2">Just now</span>
+              </div>
+            </div>
+          </motion.div>
+
+          {/* ROW 1 - CARD 2: Narrow Feature (5 Cols) - Docker Container Builder */}
+          <motion.div
+            data-feature-card="2"
+            style={card2Style}
+            className={`lg:col-span-5 z-30 ${
+              hasDeckMotion ? 'motion-card-glass' : 'backdrop-blur-xl'
+            } bg-white/60 hover:bg-white/80 dark:bg-[#16191f]/85 dark:hover:bg-[#1e222b]/95 border border-white/80 dark:border-[#282d37] hover:border-blue-400/40 dark:hover:border-blue-500/30 rounded-3xl p-6 sm:p-8 shadow-lg shadow-sky-900/5 dark:shadow-black/30 hover:shadow-xl transition-all duration-300 flex flex-col justify-between group text-left cursor-default relative`}
+          >
+            <div>
+              <div className="flex items-center justify-between mb-4">
+                <div className="w-10 h-10 sm:w-11 sm:h-11 rounded-2xl bg-sky-50 dark:bg-[#1e222b] border border-sky-100 dark:border-[#282d37] flex items-center justify-center text-[#2496ED] group-hover:scale-105 transition-transform duration-300">
+                  <DockerLogo className="w-5.5 h-5.5 fill-current" />
+                </div>
+                <span className="text-[11px] font-mono font-bold text-sky-800 dark:text-sky-300 bg-sky-50/80 dark:bg-sky-950/60 border border-sky-200/70 dark:border-sky-800/60 px-3 py-1 rounded-full">
+                  Micro-VMs
+                </span>
+              </div>
+
+              <h3 className="font-display text-xl sm:text-2xl font-bold text-slate-900 dark:text-white mb-2 sm:mb-3">
+                Docker Container Builder
+              </h3>
+
+              <p className="text-xs sm:text-sm text-slate-600 dark:text-slate-300 leading-relaxed mb-5">
+                Isolated container builds with multi-stage layer caching for fast cold starts and reproducible runtime environments.
+              </p>
+            </div>
+
+            {/* Embedded Visual: Docker Stage Metrics */}
+            <div className="p-3.5 sm:p-4 rounded-2xl bg-slate-100/80 dark:bg-[#0d0f12] border border-slate-200/80 dark:border-[#282d37] font-mono text-xs space-y-2">
+              <div className="flex items-center justify-between text-[11px]">
+                <span className="text-slate-600 dark:text-slate-400">Layer Cache</span>
+                <span className="text-emerald-600 dark:text-emerald-400 font-semibold">92% Hit Rate</span>
+              </div>
+              <div className="w-full h-1.5 bg-slate-200 dark:bg-[#1e222b] rounded-full overflow-hidden">
+                <div className="h-full bg-emerald-500 rounded-full w-[92%]" />
+              </div>
+              <p className="text-[10px] text-slate-500 dark:text-slate-400 pt-1">
+                Optimized OCI runtime with zero daemon overhead
+              </p>
+            </div>
+          </motion.div>
+
+          {/* ROW 2 - CARD 3: Narrow Feature (5 Cols) - Environment Variable Validation */}
+          <motion.div
+            data-feature-card="3"
+            style={card3Style}
+            className={`lg:col-span-5 z-20 ${
+              hasDeckMotion ? 'motion-card-glass' : 'backdrop-blur-xl'
+            } bg-white/60 hover:bg-white/80 dark:bg-[#16191f]/85 dark:hover:bg-[#1e222b]/95 border border-white/80 dark:border-[#282d37] hover:border-blue-400/40 dark:hover:border-blue-500/30 rounded-3xl p-6 sm:p-8 shadow-lg shadow-sky-900/5 dark:shadow-black/30 hover:shadow-xl transition-all duration-300 flex flex-col justify-between group text-left cursor-default relative`}
+          >
+            <div>
+              <div className="flex items-center justify-between mb-4">
+                <div className="w-10 h-10 sm:w-11 sm:h-11 rounded-2xl bg-amber-50 dark:bg-[#1e222b] border border-amber-100 dark:border-[#282d37] flex items-center justify-center text-amber-600 dark:text-amber-400 group-hover:scale-105 transition-transform duration-300">
+                  <KeyRound className="w-5 h-5" />
+                </div>
+                <span className="text-[11px] font-mono font-bold text-amber-800 dark:text-amber-300 bg-amber-50/80 dark:bg-amber-950/60 border border-amber-200/70 dark:border-amber-800/60 px-3 py-1 rounded-full">
+                  Pre-Flight Safety
+                </span>
+              </div>
+
+              <h3 className="font-display text-xl sm:text-2xl font-bold text-slate-900 dark:text-white mb-2 sm:mb-3">
+                Environment Variable Validation
+              </h3>
+
+              <p className="text-xs sm:text-sm text-slate-600 dark:text-slate-300 leading-relaxed mb-5">
+                Prevent 500 runtime crashes before deployment. Pre-flight schema inspection verifies that all required secrets and configuration keys are securely set.
+              </p>
+            </div>
+
+            {/* Embedded Visual: Secret Schema Check */}
+            <div className="p-3.5 sm:p-4 rounded-2xl bg-slate-100/80 dark:bg-[#0d0f12] border border-slate-200/80 dark:border-[#282d37] font-mono text-[11px] space-y-1.5">
+              <div className="flex items-center justify-between">
+                <span className="text-slate-700 dark:text-slate-300">DATABASE_URL</span>
+                <span className="text-emerald-500 font-semibold flex items-center gap-1">
+                  <CheckCircle2 className="w-3 h-3" /> Valid
+                </span>
+              </div>
+              <div className="flex items-center justify-between">
+                <span className="text-slate-700 dark:text-slate-300">JWT_SECRET</span>
+                <span className="text-emerald-500 font-semibold flex items-center gap-1">
+                  <CheckCircle2 className="w-3 h-3" /> Valid
+                </span>
+              </div>
+              <div className="flex items-center justify-between">
+                <span className="text-slate-700 dark:text-slate-300">PORT</span>
+                <span className="text-slate-400 font-mono">3000 (Default)</span>
+              </div>
+            </div>
+          </motion.div>
+
+          {/* ROW 2 - CARD 4: Wide Feature (7 Cols) - Deployment Logs & HAVN AI */}
+          <motion.div
+            data-feature-card="4"
+            style={card4Style}
+            className={`lg:col-span-7 z-10 ${
+              hasDeckMotion ? 'motion-card-glass' : 'backdrop-blur-xl'
+            } bg-white/60 hover:bg-white/80 dark:bg-[#16191f]/85 dark:hover:bg-[#1e222b]/95 border border-white/80 dark:border-[#282d37] hover:border-blue-400/40 dark:hover:border-blue-500/30 rounded-3xl p-6 sm:p-8 shadow-lg shadow-sky-900/5 dark:shadow-black/30 hover:shadow-xl transition-all duration-300 flex flex-col justify-between group text-left cursor-default relative`}
+          >
+            <div>
+              <div className="flex items-center justify-between mb-4">
+                <div className="w-10 h-10 sm:w-11 sm:h-11 rounded-2xl bg-indigo-50 dark:bg-[#1e222b] border border-indigo-100 dark:border-[#282d37] flex items-center justify-center text-indigo-600 dark:text-[#B8A9FF] group-hover:scale-105 transition-transform duration-300">
+                  <Terminal className="w-5 h-5" />
+                </div>
+                <span className="text-[11px] font-mono font-bold text-indigo-800 dark:text-[#B8A9FF] bg-indigo-50/80 dark:bg-indigo-950/60 border border-indigo-200/70 dark:border-indigo-800/60 px-3 py-1 rounded-full">
+                  AI Diagnostics
+                </span>
+              </div>
+
+              <h3 className="font-display text-xl sm:text-2xl font-bold text-slate-900 dark:text-white mb-2 sm:mb-3">
+                Deployment Logs & HAVN AI Assistant
+              </h3>
+
+              <p className="text-xs sm:text-sm text-slate-600 dark:text-slate-300 leading-relaxed mb-5 max-w-xl">
+                Stream real-time build and execution logs with sequence numbers and status glyphs. When errors occur, HAVN AI decodes raw stderr stack traces into plain English explanations and actionable fixes.
+              </p>
+            </div>
+
+            {/* Embedded Visual: Split Terminal & AI Remedy */}
+            <div className="p-3.5 sm:p-4 rounded-2xl bg-slate-100/80 dark:bg-[#0d0f12] border border-slate-200/80 dark:border-[#282d37] font-mono text-[11px] space-y-2">
+              <div className="flex items-center gap-2 text-slate-400 pb-1 border-b border-slate-200/60 dark:border-[#282d37]">
+                <Bot className="w-3.5 h-3.5 text-blue-500" />
+                <span className="font-semibold text-slate-800 dark:text-slate-200">Live AI Assistant Stream</span>
+              </div>
+              <div className="text-slate-600 dark:text-slate-400">
+                012 // [stdout] Container entrypoint initialized
+              </div>
+              <div className="text-emerald-600 dark:text-emerald-400 font-medium">
+                013 // [status] Health checks responding on :3000 (HTTP 200 OK)
+              </div>
+            </div>
+          </motion.div>
+
+        </motion.div>
 
       </div>
-
-      {/* Embedded Styles for Staggered Entrance and Motion Reduction */}
-      <style>{`
-        @keyframes fadeInUp {
-          from {
-            opacity: 0;
-            transform: translateY(16px);
-          }
-          to {
-            opacity: 1;
-            transform: translateY(0);
-          }
-        }
-        
-        .animate-fade-in-up {
-          animation: fadeInUp 0.5s cubic-bezier(0.16, 1, 0.3, 1) forwards;
-        }
-
-        @media (prefers-reduced-motion: reduce) {
-          .animate-fade-in-up {
-            animation: none !important;
-            opacity: 1 !important;
-            transform: none !important;
-          }
-        }
-      `}</style>
-    </section>
+    </motion.section>
   );
 }

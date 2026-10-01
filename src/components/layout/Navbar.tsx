@@ -1,6 +1,7 @@
 // Navbar.tsx
 import { useState, useEffect } from 'react';
-import { Menu, X, Github } from 'lucide-react';
+import { Menu, X } from 'lucide-react';
+import { GithubLogo } from '../ui/BrandIcons';
 import { useLocation, useNavigate } from "react-router-dom";
 import { ROUTES } from "../../constants/routes";
 import Logo from "../ui/Logo";
@@ -44,6 +45,15 @@ export default function Navbar({ scrollToSection }: NavbarProps) {
       scrollToSection?.(sectionId);
     }
   };
+
+  const isDeploymentConsole =
+    location.pathname.startsWith('/dashboard/deployments') ||
+    location.pathname.startsWith('/deployments');
+
+  // Dashboard and Dedicated Deployment Console have their own full-page chrome
+  if (isDashboard || isDeploymentConsole) {
+    return null;
+  }
 
   return (
     <header
@@ -116,7 +126,7 @@ export default function Navbar({ scrollToSection }: NavbarProps) {
             aria-label="GitHub Repository"
             className="inline-flex items-center justify-center gap-1.5 h-8 px-3.5 text-xs font-medium text-slate-700 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white border border-transparent hover:border-slate-200/60 dark:hover:border-white/10 hover:bg-white/60 dark:hover:bg-white/10 rounded-xl transition-all duration-200 ease-out active:scale-95 cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500/50 focus-visible:ring-offset-1"
           >
-            <Github className="w-3.5 h-3.5" />
+            <GithubLogo className="w-3.5 h-3.5 fill-current" />
             <span>GitHub</span>
           </a>
 
@@ -194,7 +204,7 @@ export default function Navbar({ scrollToSection }: NavbarProps) {
               rel="noopener noreferrer"
               className="inline-flex items-center justify-center gap-2 w-full h-9 text-xs font-medium text-slate-700 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white border border-slate-200/80 dark:border-[#282d37] bg-white/40 dark:bg-[#1e222b] hover:bg-white/70 dark:hover:bg-[#252a35] rounded-xl transition-all duration-200 ease-out active:scale-[0.99] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500/50"
             >
-              <Github className="w-3.5 h-3.5" />
+              <GithubLogo className="w-3.5 h-3.5 fill-current" />
               <span>GitHub</span>
             </a>
 
