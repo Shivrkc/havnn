@@ -81,6 +81,7 @@ export interface Project {
   status: 'ready' | 'building' | 'failed' | 'queued' | 'cancelled' | 'idle';
   url: string;
   updatedAt: string;
+  updatedAtRaw?: string;
   deploymentsCount: number;
   latestDeployment?: {
     id: string;

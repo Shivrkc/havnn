@@ -2,17 +2,17 @@ import { Resend } from "resend";
 
 const resend = new Resend(process.env.RESEND_API_KEY);
 
-const FROM_EMAIL = "CloudForge <onboarding@resend.dev>";
+const FROM_EMAIL = "HAVN <onboarding@resend.dev>";
 
 export const sendTestEmail = async (to: string) => {
   const { data, error } = await resend.emails.send({
     from: FROM_EMAIL,
     to,
-    subject: "CloudForge Email Test",
+    subject: "HAVN Email Test",
     html: `
-      <h2>CloudForge Email Verification</h2>
+      <h2>HAVN Email Verification</h2>
       <p>Your email service is working correctly.</p>
-      <p>This is a test email from CloudForge.</p>
+      <p>This is a test email from HAVN.</p>
     `,
   });
 
@@ -35,13 +35,13 @@ export const sendVerificationEmail = async (
   const { data, error } = await resend.emails.send({
     from: FROM_EMAIL,
     to,
-    subject: "Verify your CloudForge email",
+    subject: "Verify your HAVN email",
     html: `
       <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
-        <h2>Verify your CloudForge email</h2>
+        <h2>Verify your HAVN email</h2>
 
         <p>
-          Thanks for creating your CloudForge account.
+          Thanks for creating your HAVN account.
           Please verify your email address to activate your account.
         </p>
 
@@ -66,7 +66,7 @@ export const sendVerificationEmail = async (
         </p>
 
         <p>
-          If you did not create a CloudForge account, you can ignore this email.
+          If you did not create a HAVN account, you can ignore this email.
         </p>
       </div>
     `,

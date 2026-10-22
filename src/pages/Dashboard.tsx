@@ -125,6 +125,7 @@ const mapBackendProjectToProject = (bp: BackendProject): Project => {
     status,
     url: bp.repositoryUrl ?? "",
     updatedAt: formatRelativeTime(bp.updatedAt),
+    updatedAtRaw: bp.updatedAt,
     deploymentsCount: bp.deploymentsCount ?? 0,
     latestDeployment: bp.latestDeployment || null,
   };
@@ -434,6 +435,9 @@ export default function Dashboard() {
       }
       const mapped = data.map(mapBackendProjectToProject);
       setProjects(mapped);
+      if (mapped.length > 0) {
+        setNewEnvProject((prev) => prev || mapped[0].name);
+      }
 
       const projectsWithDeployments = data.filter(
         (p) => (p.deploymentsCount ?? 0) > 0,
@@ -798,13 +802,14 @@ export default function Dashboard() {
 
   const handleAddEnvVar = (e: FormEvent) => {
     e.preventDefault();
-    if (!newEnvKey.trim() || !newEnvValue.trim() || !newEnvProject) return;
+    const effectiveProject = newEnvProject || (projects.length > 0 ? projects[0].name : "");
+    if (!newEnvKey.trim() || !newEnvValue.trim() || !effectiveProject) return;
 
     const newVar = {
       id: `ev-${Date.now()}`,
       key: newEnvKey.toUpperCase().replace(/[^A-Z0-9_]/g, ""),
       value: newEnvValue,
-      project: newEnvProject,
+      project: effectiveProject,
     };
 
     setEnvVars((prev) => [...prev, newVar]);
@@ -987,8 +992,8 @@ export default function Dashboard() {
         return (b.deploymentsCount || 0) - (a.deploymentsCount || 0);
       }
       // 'updated'
-      const timeA = a.updatedAt ? new Date(a.updatedAt).getTime() : 0;
-      const timeB = b.updatedAt ? new Date(b.updatedAt).getTime() : 0;
+      const timeA = a.updatedAtRaw ? new Date(a.updatedAtRaw).getTime() : 0;
+      const timeB = b.updatedAtRaw ? new Date(b.updatedAtRaw).getTime() : 0;
       return timeB - timeA;
     });
 
@@ -1870,7 +1875,7 @@ export default function Dashboard() {
                 >
                   <div className="md:col-span-3">
                     <select
-                      value={newEnvProject}
+                      value={newEnvProject || (projects[0]?.name ?? "")}
                       onChange={(e) => setNewEnvProject(e.target.value)}
                       className="bg-white/75 focus:bg-white dark:bg-[#12151a] dark:focus:bg-[#12151a] border border-white/90 dark:border-[#282d37] focus:border-blue-500 rounded-xl px-4 py-2.5 text-xs text-slate-900 dark:text-[#f1f3f5] font-semibold focus:outline-none w-full cursor-pointer shadow-2xs"
                     >
