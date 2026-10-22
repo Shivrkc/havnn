@@ -436,17 +436,19 @@ export const BuildLogModal: React.FC<BuildLogModalProps> = ({
 
         {/* AI Assistant View - Preserved across tab switches */}
         <div className={`flex-1 min-h-0 flex flex-col ${activeModalTab === 'ai' ? '' : 'hidden'}`}>
-          <HavnAiAssistant
-            deploymentId={deploymentId}
-            deploymentStatus={status}
-            projectName={projectName || deployment?.repositoryName}
-            onSelectSequence={(seq) => {
-              setActiveModalTab('console');
-              setSearchQuery(String(seq));
-            }}
-            isFullscreen={false}
-            isActive={activeModalTab === 'ai'}
-          />
+          {deploymentId && (
+            <HavnAiAssistant
+              deploymentId={deploymentId}
+              deploymentStatus={status}
+              projectName={projectName || deployment?.repositoryName}
+              onSelectSequence={(seq) => {
+                setActiveModalTab('console');
+                setSearchQuery(String(seq));
+              }}
+              isFullscreen={false}
+              isActive={activeModalTab === 'ai'}
+            />
+          )}
         </div>
 
         {/* Terminal Console View - Preserved across tab switches */}

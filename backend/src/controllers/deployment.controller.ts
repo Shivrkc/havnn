@@ -89,7 +89,11 @@ export const createDeployment = async (req: AuthRequest, res: Response) => {
             ? customBranch.trim()
             : project.branch || "main";
 
-        await validateBranchName(targetBranch);
+        try {
+          await validateBranchName(targetBranch);
+        } catch (branchErr: any) {
+          throw { status: 400, message: branchErr.message || "Invalid branch name." };
+        }
 
         // Sanitize dockerfilePath
         let targetDockerfilePath = "Dockerfile";

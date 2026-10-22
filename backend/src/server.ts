@@ -9,7 +9,7 @@ import { deploymentWorker } from "./services/deployment.worker";
 const PORT = process.env.PORT || 5000;
 
 app.listen(PORT, async () => {
-  console.log(`🚀 CloudForge Backend running on http://localhost:${PORT}`);
+  console.log(`🚀 HAVN Backend running on http://localhost:${PORT}`);
   try {
     await deploymentWorker.start();
     console.log(`👷 Deployment Worker (${deploymentWorker.workerId}) active`);

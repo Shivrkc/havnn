@@ -17,7 +17,7 @@ export default function ProtectedRoute({
     const checkAuth = async () => {
       try {
         const params = new URLSearchParams(window.location.search);
-        if (params.get('preview') === 'true') {
+        if (import.meta.env.DEV && params.get('preview') === 'true') {
           setIsAuthenticated(true);
           setLoading(false);
           return;
