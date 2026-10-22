@@ -4,9 +4,11 @@ import {
   AI_RATE_LIMIT_WINDOW_MS,
   DEFAULT_GEMINI_MODEL,
   MAX_USER_AI_REQUESTS_PER_MINUTE,
+  UNSUPPORTED_SCOPE_RESPONSE,
 } from "../constants/ai.constants";
 import { queryDeploymentAi, AiAction, AiMode } from "../services/ai.service";
 import { aiCacheService } from "../services/ai-cache.service";
+import { classifyQuestionScope } from "../services/ai-scope.router";
 
 /**
  * In-memory sliding-window rate limiter per user ID.
@@ -72,12 +74,36 @@ export const queryDeploymentAiHandler = async (req: AuthRequest, res: Response) 
     const validActions: AiAction[] = ["summary", "analysis", "optimization", "learn", "custom"];
     const selectedAction: AiAction = validActions.includes(action) ? action : "analysis";
 
-    // 3. Validate Custom Question
+    // 3. Validate Custom Question & Scope Guard
     if (selectedAction === "custom") {
       if (!question || typeof question !== "string" || question.trim().length === 0) {
         return res.status(400).json({
           success: false,
           message: "A non-empty question is required when action is 'custom'.",
+        });
+      }
+
+      // Early rejection of unsupported topics: Zero Gemini calls, zero rate-limit consumption
+      const scopeResult = classifyQuestionScope(question);
+      if (scopeResult.scope === "unsupported") {
+        return res.status(200).json({
+          success: true,
+          data: {
+            deploymentId,
+            mode: selectedMode,
+            action: selectedAction,
+            question: question.trim(),
+            answer: UNSUPPORTED_SCOPE_RESPONSE,
+            scope: "unsupported",
+            citedSequences: [],
+            citationsValidated: true,
+            model: "local-scope-guard",
+            contextStats: {
+              totalLogs: 0,
+              selectedLogs: 0,
+            },
+            cached: false,
+          },
         });
       }
     }

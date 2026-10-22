@@ -16,6 +16,7 @@ export interface AiQueryResultData {
   action: AiAction;
   question?: string;
   answer: string;
+  scope?: "deployment" | "learning" | "unsupported";
   citedSequences: number[];
   invalidCitations?: number[];
   citationsValidated?: boolean;

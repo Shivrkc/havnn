@@ -8,13 +8,18 @@ import {
   CUSTOM_EXPERT_SYSTEM_PROMPT,
   DEFAULT_GEMINI_MODEL,
   EXPERT_SYSTEM_PROMPT,
+  LEARNING_BEGINNER_SYSTEM_PROMPT,
+  LEARNING_EXPERT_SYSTEM_PROMPT,
   MAX_OUTPUT_TOKENS,
+  UNSUPPORTED_SCOPE_RESPONSE,
 } from "../constants/ai.constants";
 import { buildDeploymentAiContext } from "./ai-context.builder";
 import { aiCacheService } from "./ai-cache.service";
+import { AiScope, classifyQuestionScope } from "./ai-scope.router";
 
 export type AiMode = "beginner" | "expert";
 export type AiAction = "summary" | "analysis" | "optimization" | "learn" | "custom";
+export type { AiScope } from "./ai-scope.router";
 
 export interface QueryDeploymentAiOptions {
   mode: AiMode;
@@ -29,6 +34,7 @@ export interface AiQueryResult {
   action: AiAction;
   question?: string;
   answer: string;
+  scope?: AiScope;
   citedSequences: number[];
   invalidCitations?: number[];
   citationsValidated: boolean;
@@ -344,7 +350,34 @@ export async function queryDeploymentAi(
     throw notFoundError;
   }
 
-  // 2. Check in-memory TTL Cache (if not bypassing cache)
+  // 2. Classify scope for custom queries
+  const scopeResult =
+    action === "custom" && question
+      ? classifyQuestionScope(question)
+      : { scope: "deployment" as AiScope, confidence: 1.0, reason: "Preset action" };
+  const scope: AiScope = scopeResult.scope;
+
+  // 3. Early local refusal for UNSUPPORTED queries (zero Gemini calls, zero context building)
+  if (scope === "unsupported") {
+    return {
+      deploymentId,
+      mode,
+      action,
+      question,
+      answer: UNSUPPORTED_SCOPE_RESPONSE,
+      scope: "unsupported",
+      citedSequences: [],
+      citationsValidated: true,
+      model: "local-scope-guard",
+      contextStats: {
+        totalLogs: 0,
+        selectedLogs: 0,
+      },
+      cached: false,
+    };
+  }
+
+  // 4. Check in-memory TTL Cache (if not bypassing cache)
   if (!bypassCache) {
     const cached = aiCacheService.get(deploymentId, mode, action, question);
     if (cached) {
@@ -369,30 +402,58 @@ export async function queryDeploymentAi(
 
       return {
         ...cached,
+        scope,
         cached: true,
       };
     }
   }
 
-  // 3. Fetch all logs for this deployment
-  const allLogs = await prisma.buildLog.findMany({
-    where: { deploymentId },
-    orderBy: { sequence: "asc" },
-  });
+  // 5. Build prompt and context based on Scope
+  let systemInstruction: string;
+  let prompt: string;
+  let totalAvailableLogs = 0;
+  let selectedLogCount = 0;
+  let logSequenceSet = new Set<number>();
 
-  // 4. Build bounded, secret-sanitized context
-  const context = buildDeploymentAiContext(deployment, allLogs);
+  if (scope === "learning") {
+    // LEARNING: Do NOT build 30,000 char log context.
+    systemInstruction =
+      mode === "beginner" ? LEARNING_BEGINNER_SYSTEM_PROMPT : LEARNING_EXPERT_SYSTEM_PROMPT;
 
-  // 5. Select mode system prompt (using dedicated open-ended prompts for custom questions)
-  const systemInstruction =
-    action === "custom"
-      ? (mode === "beginner" ? CUSTOM_BEGINNER_SYSTEM_PROMPT : CUSTOM_EXPERT_SYSTEM_PROMPT)
-      : (mode === "beginner" ? BEGINNER_SYSTEM_PROMPT : EXPERT_SYSTEM_PROMPT);
+    prompt = `TECHNICAL LEARNING INQUIRY:
+"${question}"
 
-  // 6. Construct user prompt for model
-  const prompt = buildActionPrompt(action, mode, context.formattedContext, question);
+EXPLANATION LEVEL: ${mode.toUpperCase()}
 
-  // 7. Execute model call via active client
+TASK:
+Provide a clear, accurate, and comprehensive explanation of the requested technical topic.
+${
+  mode === "beginner"
+    ? "Use simple, accessible language, intuitive analogies, and clear examples without confusing jargon."
+    : "Provide in-depth architectural mechanics, precise technical terminology, and practical code or config examples."
+}
+Answer the technical inquiry directly without referencing unrelated build logs.`;
+  } else {
+    // DEPLOYMENT: Fetch all logs for this deployment and build secret-sanitized context
+    const allLogs = await prisma.buildLog.findMany({
+      where: { deploymentId },
+      orderBy: { sequence: "asc" },
+    });
+    logSequenceSet = new Set(allLogs.map((l) => l.sequence));
+
+    const context = buildDeploymentAiContext(deployment, allLogs);
+    totalAvailableLogs = context.totalAvailableLogs;
+    selectedLogCount = context.selectedLogCount;
+
+    systemInstruction =
+      action === "custom"
+        ? (mode === "beginner" ? CUSTOM_BEGINNER_SYSTEM_PROMPT : CUSTOM_EXPERT_SYSTEM_PROMPT)
+        : (mode === "beginner" ? BEGINNER_SYSTEM_PROMPT : EXPERT_SYSTEM_PROMPT);
+
+    prompt = buildActionPrompt(action, mode, context.formattedContext, question);
+  }
+
+  // 6. Execute model call via active client
   const modelName = process.env.GEMINI_MODEL || DEFAULT_GEMINI_MODEL;
   let answer: string;
 
@@ -423,10 +484,11 @@ export async function queryDeploymentAi(
         err.message.includes("UNAVAILABLE")
       ));
 
-    // Custom questions must ONLY fallback to their own exact question cache entry, never another question or summary
-    let cachedFallback = !bypassCache ? aiCacheService.get(deploymentId, mode, action, question) : null;
-    if (!cachedFallback && !bypassCache && action !== "custom") {
-      cachedFallback = aiCacheService.getAnyForDeployment(deploymentId, mode, action);
+    // Custom questions must ONLY fallback to their own exact question cache entry, never another question or summary.
+    // Check exact entry first (even if bypassCache was true for the live attempt, we can fall back to it on outage).
+    let cachedFallback = aiCacheService.get(deploymentId, mode, action, question);
+    if (!cachedFallback && action !== "custom") {
+      cachedFallback = aiCacheService.getAnyForDeployment(deploymentId, undefined, action);
     }
 
     if (cachedFallback && isProviderUnavailableOrQuota) {
@@ -451,6 +513,7 @@ export async function queryDeploymentAi(
 
       return {
         ...cachedFallback,
+        scope,
         cached: true,
         warning: `Live AI service temporarily unavailable (${err?.code || "high demand"}). Displaying verified cached diagnosis from ${new Date(cachedFallback.cachedAt).toLocaleTimeString()}.`,
       };
@@ -467,8 +530,8 @@ export async function queryDeploymentAi(
       latencyMs,
       status: "PROVIDER_ERROR",
       model: modelName,
-      totalLogs: context.totalAvailableLogs,
-      selectedLogs: context.selectedLogCount,
+      totalLogs: totalAvailableLogs,
+      selectedLogs: selectedLogCount,
       citedSequences: [],
       invalidCitations: [],
       citationsValidated: false,
@@ -486,8 +549,7 @@ export async function queryDeploymentAi(
     throw emptyErr;
   }
 
-  // 8. Extract and validate sequence citations against actual logs
-  const logSequenceSet = new Set(allLogs.map((l) => l.sequence));
+  // 7. Extract and validate sequence citations against actual logs
   const { citedSequences, invalidCitations, citationsValidated } = extractAndValidateCitations(
     answer,
     logSequenceSet
@@ -495,20 +557,21 @@ export async function queryDeploymentAi(
 
   const latencyMs = Date.now() - startTime;
 
-  // 9. Store in cache
+  // 8. Store in cache
   const resultData = {
     deploymentId,
     mode,
     action,
     question,
     answer,
+    scope,
     citedSequences,
     invalidCitations,
     citationsValidated,
     model: modelName,
     contextStats: {
-      totalLogs: context.totalAvailableLogs,
-      selectedLogs: context.selectedLogCount,
+      totalLogs: totalAvailableLogs,
+      selectedLogs: selectedLogCount,
     },
   };
 
@@ -531,8 +594,8 @@ export async function queryDeploymentAi(
     latencyMs,
     status: "SUCCESS",
     model: modelName,
-    totalLogs: context.totalAvailableLogs,
-    selectedLogs: context.selectedLogCount,
+    totalLogs: totalAvailableLogs,
+    selectedLogs: selectedLogCount,
     citedSequences,
     invalidCitations,
     citationsValidated,

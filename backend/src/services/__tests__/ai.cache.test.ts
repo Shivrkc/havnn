@@ -34,13 +34,22 @@ async function runAiCacheTests() {
     generateContent: async (params) => {
       providerCallCount++;
       lastCapturedParams = params;
-      if (params.prompt.includes('USER\'S EXACT QUESTION:\n"What is Docker?"')) {
+      if (
+        params.prompt.includes('USER\'S EXACT QUESTION:\n"What is Docker?"') ||
+        params.prompt.includes('TECHNICAL LEARNING INQUIRY:\n"What is Docker?"')
+      ) {
         return "Docker is an open-source platform that enables developers to automate application deployment in lightweight containers.";
       }
-      if (params.prompt.includes('USER\'S EXACT QUESTION:\n"What is Kubernetes?"')) {
+      if (
+        params.prompt.includes('USER\'S EXACT QUESTION:\n"What is Kubernetes?"') ||
+        params.prompt.includes('TECHNICAL LEARNING INQUIRY:\n"What is Kubernetes?"')
+      ) {
         return "Kubernetes is an open-source container orchestration engine for automating deployment, scaling, and operations of application containers.";
       }
-      if (params.prompt.includes('USER\'S EXACT QUESTION:\n"Why did my build fail?"')) {
+      if (
+        params.prompt.includes('USER\'S EXACT QUESTION:\n"Why did my build fail?"') ||
+        params.prompt.includes('TECHNICAL LEARNING INQUIRY:\n"Why did my build fail?"')
+      ) {
         return "The build failed because of an error at [Seq #2] during execution.";
       }
       return `### Technical Diagnosis\nDocker build completed successfully.\n\n### Evidence\n- [Seq #2] Node 18 base image\n- [Seq #3] Working directory /app\n- [Seq #999] Hallucinated sequence`;
@@ -232,7 +241,7 @@ async function runAiCacheTests() {
     assert.strictEqual(resDocker.action, "custom");
     assert.strictEqual(resDocker.question, "What is Docker?");
     assert.notStrictEqual(resDocker.answer, summaryCheck.answer, "Docker answer must not be Summary");
-    assert(lastCapturedParams.systemInstruction.includes("CUSTOM_BEGINNER") || lastCapturedParams.systemInstruction.includes("custom question"), "Must use custom prompt instruction");
+    assert(lastCapturedParams.systemInstruction.includes("CUSTOM_BEGINNER") || lastCapturedParams.systemInstruction.includes("custom question") || lastCapturedParams.systemInstruction.includes("technical learning educator"), "Must use custom prompt instruction");
 
     // 3. Custom: What is Kubernetes?
     const resK8s = await queryDeploymentAi(deploymentA.id, user.id, {
@@ -345,9 +354,19 @@ async function runAiCacheTests() {
     const fallbackResult = await queryDeploymentAi(deploymentA.id, user.id, {
       mode: "expert",
       action: "summary",
+      bypassCache: true,
     });
     assert.strictEqual(fallbackResult.cached, true, "Must serve cached diagnosis during provider outage");
     assert(fallbackResult.answer.length > 0, "Must contain previously cached answer");
+    assert(fallbackResult.warning && fallbackResult.warning.includes("Live AI service temporarily unavailable"), "Must contain fallback warning");
+
+    // Also test mode fallback: requesting beginner summary when only expert summary was cached
+    const modeFallbackResult = await queryDeploymentAi(deploymentA.id, user.id, {
+      mode: "beginner",
+      action: "summary",
+    });
+    assert.strictEqual(modeFallbackResult.cached, true, "Must serve cached diagnosis across modes for same action during outage");
+    assert(modeFallbackResult.warning && modeFallbackResult.warning.includes("Live AI service temporarily unavailable"), "Must contain fallback warning banner");
     console.log("  ✓ Test 8 passed: Gracefully falls back to cached diagnosis during provider outage\n");
 
     // --------------------------------------------------------------------------
