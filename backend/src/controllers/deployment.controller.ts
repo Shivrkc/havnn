@@ -4,6 +4,15 @@ import prisma from "../lib/prisma";
 import { deploymentWorker, syncProjectStatus } from "../services/deployment.worker";
 import { validateBranchName, validateRepositoryUrl } from "../services/git.service";
 import { LogStream } from "@prisma/client";
+import {
+  inspectContainerState,
+  stopDockerContainer,
+  getContainerRuntimeLogs,
+  startApplicationContainer,
+  probeApplicationReadiness,
+  inspectDockerImageSize,
+} from "../services/docker.service";
+import { DEFAULT_INTERNAL_PORT } from "../constants/build.constants";
 
 /**
  * POST /api/projects/:projectId/deployments
@@ -71,7 +80,7 @@ export const createDeployment = async (req: AuthRequest, res: Response) => {
           SELECT COUNT(*)::bigint as count
           FROM "Deployment"
           WHERE "projectId" = ${projectId}
-            AND "status" IN ('QUEUED'::"DeploymentStatus", 'INITIALIZING'::"DeploymentStatus", 'BUILDING'::"DeploymentStatus");
+            AND "status" IN ('QUEUED'::"DeploymentStatus", 'INITIALIZING'::"DeploymentStatus", 'BUILDING'::"DeploymentStatus", 'STARTING'::"DeploymentStatus");
         `;
 
         const activeCount = Number(activeCountResult[0]?.count ?? 0);
@@ -214,6 +223,10 @@ export const getProjectDeployments = async (req: AuthRequest, res: Response) => 
           commitAuthor: true,
           imageTag: true,
           dockerfilePath: true,
+          containerId: true,
+          hostPort: true,
+          internalPort: true,
+          localUrl: true,
           startedAt: true,
           completedAt: true,
           durationMs: true,
@@ -270,6 +283,10 @@ export const getDeploymentById = async (req: AuthRequest, res: Response) => {
         commitAuthor: true,
         imageTag: true,
         dockerfilePath: true,
+        containerId: true,
+        hostPort: true,
+        internalPort: true,
+        localUrl: true,
         startedAt: true,
         completedAt: true,
         durationMs: true,
@@ -333,7 +350,7 @@ export const getDeploymentLogs = async (req: AuthRequest, res: Response) => {
       take: limit,
     });
 
-    const isTerminal = ["BUILT", "FAILED", "CANCELLED"].includes(deployment.status);
+    const isTerminal = ["RUNNING", "STOPPED", "CRASHED", "FAILED", "CANCELLED"].includes(deployment.status);
 
     return res.status(200).json({
       success: true,
@@ -432,5 +449,254 @@ export const cancelDeployment = async (req: AuthRequest, res: Response) => {
   } catch (error) {
     console.error("Error cancelling deployment:", error);
     return res.status(500).json({ success: false, message: "Failed to cancel deployment." });
+  }
+};
+
+/**
+ * GET /api/deployments/:deploymentId/runtime
+ * Retrieves live container runtime information (URL, port, container status) with ownership verification.
+ */
+export const getDeploymentRuntime = async (req: AuthRequest, res: Response) => {
+  try {
+    const userId = req.user?.id;
+    if (!userId) {
+      return res.status(401).json({ success: false, message: "Unauthorized" });
+    }
+
+    const deploymentId = Array.isArray(req.params.deploymentId)
+      ? req.params.deploymentId[0]
+      : req.params.deploymentId;
+
+    const deployment = await prisma.deployment.findFirst({
+      where: {
+        id: deploymentId,
+        project: { userId },
+      },
+      select: {
+        id: true,
+        projectId: true,
+        status: true,
+        containerId: true,
+        hostPort: true,
+        internalPort: true,
+        localUrl: true,
+        imageTag: true,
+        createdAt: true,
+        project: {
+          select: { liveDeploymentId: true, status: true },
+        },
+      },
+    });
+
+    if (!deployment) {
+      return res.status(404).json({ success: false, message: "Deployment not found or access denied." });
+    }
+
+    let containerState: { exists: boolean; running: boolean } = { exists: false, running: false };
+    if (deployment.containerId) {
+      containerState = await inspectContainerState(deployment.containerId).catch(() => ({
+        exists: false,
+        running: false,
+      }));
+    }
+
+    return res.status(200).json({
+      success: true,
+      deployment: {
+        id: deployment.id,
+        projectId: deployment.projectId,
+        status: deployment.status,
+        containerId: deployment.containerId,
+        hostPort: deployment.hostPort,
+        internalPort: deployment.internalPort,
+        localUrl: deployment.localUrl,
+        isLive: deployment.project.liveDeploymentId === deployment.id && deployment.status === "RUNNING",
+        containerRunning: containerState.running,
+      },
+    });
+  } catch (error) {
+    console.error("Error fetching deployment runtime:", error);
+    return res.status(500).json({ success: false, message: "Failed to fetch deployment runtime status." });
+  }
+};
+
+/**
+ * GET /api/deployments/:deploymentId/runtime-logs
+ * Retrieves bounded runtime logs (last 200 lines) from the running container with token redaction.
+ */
+export const getDeploymentRuntimeLogs = async (req: AuthRequest, res: Response) => {
+  try {
+    const userId = req.user?.id;
+    if (!userId) {
+      return res.status(401).json({ success: false, message: "Unauthorized" });
+    }
+
+    const deploymentId = Array.isArray(req.params.deploymentId)
+      ? req.params.deploymentId[0]
+      : req.params.deploymentId;
+
+    const deployment = await prisma.deployment.findFirst({
+      where: {
+        id: deploymentId,
+        project: { userId },
+      },
+      select: { id: true, containerId: true, status: true },
+    });
+
+    if (!deployment) {
+      return res.status(404).json({ success: false, message: "Deployment not found or access denied." });
+    }
+
+    const containerName = `cloudforge-app-${deploymentId}`;
+    const logs = await getContainerRuntimeLogs(containerName, 200).catch(() => []);
+
+    return res.status(200).json({
+      success: true,
+      logs,
+      status: deployment.status,
+    });
+  } catch (error) {
+    console.error("Error fetching runtime logs:", error);
+    return res.status(500).json({ success: false, message: "Failed to fetch runtime logs." });
+  }
+};
+
+/**
+ * POST /api/deployments/:deploymentId/stop
+ * Gracefully stops a running application container.
+ */
+export const stopDeploymentHandler = async (req: AuthRequest, res: Response) => {
+  try {
+    const userId = req.user?.id;
+    if (!userId) {
+      return res.status(401).json({ success: false, message: "Unauthorized" });
+    }
+
+    const deploymentId = Array.isArray(req.params.deploymentId)
+      ? req.params.deploymentId[0]
+      : req.params.deploymentId;
+
+    const deployment = await prisma.deployment.findFirst({
+      where: {
+        id: deploymentId,
+        project: { userId },
+      },
+      include: { project: true },
+    });
+
+    if (!deployment) {
+      return res.status(404).json({ success: false, message: "Deployment not found or access denied." });
+    }
+
+    if (deployment.status !== "RUNNING" && deployment.status !== "STARTING") {
+      return res.status(400).json({
+        success: false,
+        message: `Cannot stop deployment in status ${deployment.status}. Only RUNNING or STARTING deployments can be stopped.`,
+      });
+    }
+
+    // Stop and remove container
+    const containerName = `cloudforge-app-${deploymentId}`;
+    await stopDockerContainer(containerName).catch(() => {});
+
+    // Update deployment status to STOPPED
+    const updated = await prisma.deployment.update({
+      where: { id: deploymentId },
+      data: {
+        status: "STOPPED",
+        completedAt: new Date(),
+      },
+    });
+
+    // If this was the active live deployment, update project status
+    if (deployment.project.liveDeploymentId === deployment.id) {
+      await prisma.project.update({
+        where: { id: deployment.projectId },
+        data: { status: "stopped" },
+      });
+    }
+
+    return res.status(200).json({
+      success: true,
+      message: "Deployment stopped successfully.",
+      deployment: updated,
+    });
+  } catch (error) {
+    console.error("Error stopping deployment:", error);
+    return res.status(500).json({ success: false, message: "Failed to stop deployment." });
+  }
+};
+
+/**
+ * POST /api/deployments/:deploymentId/restart
+ * Restarts a stopped or crashed deployment by reusing its cached Docker image when available.
+ */
+export const restartDeploymentHandler = async (
+  req: AuthRequest,
+  res: Response,
+  options?: { inspectSizeOverride?: (tag: string) => Promise<number> }
+) => {
+  try {
+    const userId = req.user?.id;
+    if (!userId) {
+      return res.status(401).json({ success: false, message: "Unauthorized" });
+    }
+
+    const deploymentId = Array.isArray(req.params.deploymentId)
+      ? req.params.deploymentId[0]
+      : req.params.deploymentId;
+
+    const deployment = await prisma.deployment.findFirst({
+      where: {
+        id: deploymentId,
+        project: { userId },
+      },
+      include: { project: true },
+    });
+
+    if (!deployment) {
+      return res.status(404).json({ success: false, message: "Deployment not found or access denied." });
+    }
+
+    if (deployment.status !== "STOPPED" && deployment.status !== "CRASHED") {
+      return res.status(400).json({
+        success: false,
+        message: `Cannot restart deployment in status ${deployment.status}. Only STOPPED or CRASHED deployments can be restarted.`,
+      });
+    }
+
+    // Atomic state transition to QUEUED to persist restart intent durably in PostgreSQL
+    const claimUpdate = await prisma.deployment.updateMany({
+      where: {
+        id: deploymentId,
+        status: { in: ["STOPPED", "CRASHED"] },
+      },
+      data: {
+        status: "QUEUED",
+        errorMessage: null,
+        exitCode: null,
+        updatedAt: new Date(),
+      },
+    });
+
+    if (claimUpdate.count === 0) {
+      return res.status(409).json({
+        success: false,
+        message: "Deployment restart is already in progress or status has changed.",
+      });
+    }
+
+    // Notify background worker pool to pick up the queued restart job
+    deploymentWorker.notify();
+
+    return res.status(202).json({
+      success: true,
+      message: "Deployment restart queued successfully.",
+      deploymentId,
+      status: "QUEUED",
+    });
+  } catch (error) {
+    console.error("Error restarting deployment:", error);
+    return res.status(500).json({ success: false, message: "Failed to restart deployment." });
   }
 };

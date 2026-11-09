@@ -53,3 +53,51 @@ export const DOCKER_INSPECT_TIMEOUT_MS = 15_000;
  * Hard timeout for docker rmi removal operations (15 seconds).
  */
 export const DOCKER_RMI_TIMEOUT_MS = 15_000;
+
+/**
+ * Default internal application HTTP port fallback.
+ */
+export const DEFAULT_INTERNAL_PORT = 3000;
+
+/**
+ * Hard timeout for container startup readiness checks (30 seconds).
+ */
+export const READINESS_TIMEOUT_MS = 30_000;
+
+/**
+ * Interval between successive HTTP readiness probes (1 second).
+ */
+export const READINESS_INTERVAL_MS = 1_000;
+
+/**
+ * Container resource limits for local PoC isolation.
+ */
+export const CONTAINER_CPU_LIMIT = "1.0";
+export const CONTAINER_MEMORY_LIMIT = "512m";
+export const CONTAINER_MEMORY_SWAP_LIMIT = "512m";
+export const CONTAINER_PIDS_LIMIT = 100;
+
+/**
+ * Timeout for graceful container termination before force killing (10 seconds).
+ */
+export const CONTAINER_STOP_TIMEOUT_SECS = 10;
+
+/**
+ * Interval for background runtime liveness reconciliation (15 seconds).
+ */
+export const RUNTIME_RECONCILE_INTERVAL_MS = 15_000;
+
+/**
+ * Lease threshold for reclaiming crashed container startup operations (30 seconds).
+ */
+export const STALE_STARTUP_LEASE_THRESHOLD_SECONDS = 30;
+
+/**
+ * Lease threshold for reclaiming full build operations (120 seconds).
+ */
+export const STALE_BUILD_LEASE_THRESHOLD_SECONDS = 120;
+
+/**
+ * TTL for distributed database reconciler coordination lock (30 seconds).
+ */
+export const RECONCILER_LOCK_TTL_MS = 30_000;

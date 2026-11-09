@@ -8,20 +8,20 @@ datasource db {
 }
 
 model User {
-  id                 String                  @id @default(cuid())
-  name               String
-  email              String                  @unique
-  password           String?
-  avatar             String?
-  provider           String                  @default("credentials")
-  emailVerified      Boolean                 @default(false)
-  verificationTokens EmailVerificationToken[]
-  projects           Project[]
-  githubAccount      GithubAccount?
-  oauthStates        GithubOauthState[]
+  id                  String                   @id @default(cuid())
+  name                String
+  email               String                   @unique
+  password            String?
+  avatar              String?
+  provider            String                   @default("credentials")
+  emailVerified       Boolean                  @default(false)
+  verificationTokens  EmailVerificationToken[]
+  projects            Project[]
+  githubAccount       GithubAccount?
+  oauthStates         GithubOauthState[]
   passwordResetTokens PasswordResetToken[]
-  createdAt          DateTime                @default(now())
-  updatedAt          DateTime                @updatedAt
+  createdAt           DateTime                 @default(now())
+  updatedAt           DateTime                 @updatedAt
 }
 
 model EmailVerificationToken {
@@ -62,19 +62,20 @@ model GithubOauthState {
 }
 
 model Project {
-  id             String       @id @default(cuid())
-  name           String
-  description    String?
-  repositoryName String?
-  repositoryUrl  String?
-  branch         String?      @default("main")
-  status         String       @default("idle")
-  userId         String
-  createdAt      DateTime     @default(now())
-  updatedAt      DateTime     @updatedAt
+  id               String   @id @default(cuid())
+  name             String
+  description      String?
+  repositoryName   String?
+  repositoryUrl    String?
+  branch           String?  @default("main")
+  status           String   @default("idle")
+  liveDeploymentId String?
+  userId           String
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
 
-  user           User         @relation(fields: [userId], references: [id], onDelete: Cascade)
-  deployments    Deployment[]
+  user        User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  deployments Deployment[]
 
   @@index([userId])
 }
@@ -96,6 +97,10 @@ enum DeploymentStatus {
   INITIALIZING
   BUILDING
   BUILT
+  STARTING
+  RUNNING
+  STOPPED
+  CRASHED
   FAILED
   CANCELLED
 }
@@ -107,34 +112,38 @@ enum LogStream {
 }
 
 model Deployment {
-  id             String           @id @default(cuid())
-  projectId      String
-  status         DeploymentStatus @default(QUEUED)
-  
-  workerId       String?
-  heartbeatAt    DateTime?
-  
+  id        String           @id @default(cuid())
+  projectId String
+  status    DeploymentStatus @default(QUEUED)
+
+  workerId    String?
+  heartbeatAt DateTime?
+
   repositoryName String
   repositoryUrl  String
   branch         String
   commitSha      String?
   commitMsg      String?
   commitAuthor   String?
-  
-  imageTag       String?
-  dockerfilePath String           @default("Dockerfile")
-  
-  startedAt      DateTime?
-  completedAt    DateTime?
-  durationMs     Int?
-  exitCode       Int?
-  errorMessage   String?
-  
-  createdAt      DateTime         @default(now())
-  updatedAt      DateTime         @updatedAt
 
-  project        Project          @relation(fields: [projectId], references: [id], onDelete: Cascade)
-  logs           BuildLog[]
+  imageTag       String?
+  dockerfilePath String  @default("Dockerfile")
+  containerId    String?
+  hostPort       Int?
+  internalPort   Int?    @default(3000)
+  localUrl       String?
+
+  startedAt    DateTime?
+  completedAt  DateTime?
+  durationMs   Int?
+  exitCode     Int?
+  errorMessage String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  project Project    @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  logs    BuildLog[]
 
   @@index([projectId])
   @@index([status])
@@ -144,14 +153,14 @@ model Deployment {
 }
 
 model BuildLog {
-  id           String     @id @default(cuid())
+  id           String    @id @default(cuid())
   deploymentId String
   line         String
-  stream       LogStream  @default(STDOUT)
+  stream       LogStream @default(STDOUT)
   sequence     Int
-  timestamp    DateTime   @default(now())
+  timestamp    DateTime  @default(now())
 
-  deployment   Deployment @relation(fields: [deploymentId], references: [id], onDelete: Cascade)
+  deployment Deployment @relation(fields: [deploymentId], references: [id], onDelete: Cascade)
 
   @@unique([deploymentId, sequence])
   @@index([deploymentId, sequence])
@@ -163,8 +172,6 @@ model OAuthState {
   provider  String
   expiresAt DateTime
   createdAt DateTime @default(now())
-
-  @@index([stateHash])
 }
 
 model OAuthExchange {
@@ -174,6 +181,12 @@ model OAuthExchange {
   user      Json
   expiresAt DateTime
   createdAt DateTime @default(now())
+}
 
-  @@index([codeHash])
+model SystemLock {
+  key        String   @id
+  holder     String
+  acquiredAt DateTime @default(now())
+  expiresAt  DateTime
+  updatedAt  DateTime @updatedAt
 }

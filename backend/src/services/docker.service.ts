@@ -1,4 +1,5 @@
 import path from "path";
+import http from "http";
 import { spawn, spawnSync } from "child_process";
 import readline from "readline";
 import prisma from "../lib/prisma";
@@ -11,6 +12,14 @@ import {
   DOCKER_RMI_TIMEOUT_MS,
   MAX_IMAGE_SIZE_BYTES,
   SCRATCH_ROOT_DIR,
+  DEFAULT_INTERNAL_PORT,
+  READINESS_TIMEOUT_MS,
+  READINESS_INTERVAL_MS,
+  CONTAINER_CPU_LIMIT,
+  CONTAINER_MEMORY_LIMIT,
+  CONTAINER_MEMORY_SWAP_LIMIT,
+  CONTAINER_PIDS_LIMIT,
+  CONTAINER_STOP_TIMEOUT_SECS,
 } from "../constants/build.constants";
 import { sanitizeErrorMessage, sanitizeLogOutput } from "../utils/sanitizer";
 
@@ -775,4 +784,604 @@ export async function executeDockerBuild(
     // Always clean up the workspace directory on completion/failure
     await cleanupWorkspace(workspaceDir);
   }
+}
+
+/**
+ * Inspects exposed ports in an image's Docker configuration metadata.
+ * Returns the lowest valid TCP port between 1 and 65535, or DEFAULT_INTERNAL_PORT (3000) fallback.
+ */
+export async function inspectImageExposedPort(
+  imageTag: string,
+  timeoutMs: number = DOCKER_INSPECT_TIMEOUT_MS
+): Promise<number> {
+  return new Promise((resolve) => {
+    let stdout = "";
+    let isSettled = false;
+
+    const child = spawn("docker", ["inspect", imageTag, "--format", "{{json .Config.ExposedPorts}}"], {
+      shell: false,
+      windowsHide: true,
+    });
+
+    const timer = setTimeout(() => {
+      if (!isSettled) {
+        isSettled = true;
+        if (child.pid) terminateProcessTree(child.pid);
+        resolve(DEFAULT_INTERNAL_PORT);
+      }
+    }, timeoutMs);
+
+    child.stdout.on("data", (chunk: Buffer) => {
+      stdout += chunk.toString("utf8");
+    });
+
+    child.on("error", () => {
+      if (!isSettled) {
+        isSettled = true;
+        clearTimeout(timer);
+        resolve(DEFAULT_INTERNAL_PORT);
+      }
+    });
+
+    child.on("close", (code) => {
+      if (!isSettled) {
+        isSettled = true;
+        clearTimeout(timer);
+        if (code === 0 && stdout.trim() && stdout.trim() !== "null") {
+          try {
+            const portsObj = JSON.parse(stdout.trim());
+            if (portsObj && typeof portsObj === "object") {
+              const parsedPorts: number[] = [];
+              for (const key of Object.keys(portsObj)) {
+                const portPart = key.split("/")[0];
+                const num = parseInt(portPart, 10);
+                if (Number.isInteger(num) && num >= 1 && num <= 65535) {
+                  parsedPorts.push(num);
+                }
+              }
+              if (parsedPorts.length > 0) {
+                parsedPorts.sort((a, b) => a - b);
+                return resolve(parsedPorts[0]);
+              }
+            }
+          } catch {
+            // fallback
+          }
+        }
+        resolve(DEFAULT_INTERNAL_PORT);
+      }
+    });
+  });
+}
+
+export interface StartContainerOptions {
+  deploymentId: string;
+  projectId: string;
+  imageTag: string;
+  internalPort?: number;
+  envVars?: Record<string, string>;
+  abortSignal?: AbortSignal;
+}
+
+export interface ContainerStartResult {
+  containerId: string;
+  containerName: string;
+  hostPort: number;
+  internalPort: number;
+  localUrl: string;
+}
+
+/**
+ * Spawns an isolated application container with least-privilege security flags,
+ * resource quotas, loopback-only dynamic port publishing, and havn labels.
+ */
+export async function startApplicationContainer(
+  options: StartContainerOptions
+): Promise<ContainerStartResult> {
+  const { deploymentId, projectId, imageTag } = options;
+  const rawPort = options.internalPort || DEFAULT_INTERNAL_PORT;
+  const internalPort =
+    Number.isInteger(rawPort) && rawPort >= 1 && rawPort <= 65535
+      ? rawPort
+      : DEFAULT_INTERNAL_PORT;
+
+  const containerName = `cloudforge-app-${deploymentId}`;
+
+  // If container with same name already exists from previous attempt, clean it first
+  await stopDockerContainer(containerName).catch(() => {});
+
+  const args: string[] = [
+    "run",
+    "-d",
+    "--name", containerName,
+    "--label", "managed-by=havn",
+    "--label", `project-id=${projectId}`,
+    "--label", `deployment-id=${deploymentId}`,
+    "-p", `127.0.0.1::${internalPort}`,
+    "--security-opt", "no-new-privileges:true",
+    "--tmpfs", "/tmp:rw,noexec,nosuid,size=64m",
+    "--memory", CONTAINER_MEMORY_LIMIT,
+    "--memory-swap", CONTAINER_MEMORY_SWAP_LIMIT,
+    "--cpus", CONTAINER_CPU_LIMIT,
+    "--pids-limit", String(CONTAINER_PIDS_LIMIT),
+    "-e", `PORT=${internalPort}`,
+    "-e", "HOST=0.0.0.0",
+  ];
+
+  if (options.envVars) {
+    for (const [key, val] of Object.entries(options.envVars)) {
+      if (/^[A-Za-z_][A-Za-z0-9_]*$/.test(key)) {
+        args.push("-e", `${key}=${val}`);
+      }
+    }
+  }
+
+  args.push(imageTag);
+
+  const containerId = await new Promise<string>((resolve, reject) => {
+    let stdout = "";
+    let stderr = "";
+    let isSettled = false;
+
+    const child = spawn("docker", args, {
+      shell: false,
+      windowsHide: true,
+    });
+
+    const timer = setTimeout(() => {
+      if (!isSettled) {
+        isSettled = true;
+        if (child.pid) terminateProcessTree(child.pid);
+        reject(new Error("docker run timed out after 30 seconds."));
+      }
+    }, 30_000);
+
+    child.stdout.on("data", (chunk: Buffer) => {
+      stdout += chunk.toString("utf8");
+    });
+    child.stderr.on("data", (chunk: Buffer) => {
+      stderr += chunk.toString("utf8");
+    });
+
+    child.on("error", (err) => {
+      if (!isSettled) {
+        isSettled = true;
+        clearTimeout(timer);
+        reject(new Error(`Failed to spawn docker run: ${err.message}`));
+      }
+    });
+
+    child.on("close", (code) => {
+      if (!isSettled) {
+        isSettled = true;
+        clearTimeout(timer);
+        if (code === 0 && stdout.trim()) {
+          resolve(stdout.trim().split("\n")[0].trim());
+        } else {
+          reject(new Error(`docker run failed with exit code ${code}: ${stderr.trim()}`));
+        }
+      }
+    });
+  });
+
+  // Inspect the dynamic host port allocated by Docker
+  const hostPort = await inspectContainerHostPort(containerName, internalPort);
+  const localUrl = `http://localhost:${hostPort}`;
+
+  return {
+    containerId,
+    containerName,
+    hostPort,
+    internalPort,
+    localUrl,
+  };
+}
+
+/**
+ * Inspects the loopback host port mapped to the internal container port.
+ */
+export async function inspectContainerHostPort(
+  containerNameOrId: string,
+  internalPort: number,
+  timeoutMs = 10_000
+): Promise<number> {
+  return new Promise((resolve, reject) => {
+    let stdout = "";
+    let stderr = "";
+    let isSettled = false;
+
+    const child = spawn("docker", ["port", containerNameOrId, `${internalPort}/tcp`], {
+      shell: false,
+      windowsHide: true,
+    });
+
+    const timer = setTimeout(() => {
+      if (!isSettled) {
+        isSettled = true;
+        if (child.pid) terminateProcessTree(child.pid);
+        reject(new Error(`docker port inspect timed out after ${timeoutMs}ms.`));
+      }
+    }, timeoutMs);
+
+    child.stdout.on("data", (chunk: Buffer) => {
+      stdout += chunk.toString("utf8");
+    });
+    child.stderr.on("data", (chunk: Buffer) => {
+      stderr += chunk.toString("utf8");
+    });
+
+    child.on("error", (err) => {
+      if (!isSettled) {
+        isSettled = true;
+        clearTimeout(timer);
+        reject(new Error(`Failed to run docker port: ${err.message}`));
+      }
+    });
+
+    child.on("close", (code) => {
+      if (!isSettled) {
+        isSettled = true;
+        clearTimeout(timer);
+        if (code === 0 && stdout.trim()) {
+          const match = stdout.trim().match(/:(\d+)$/m);
+          if (match && match[1]) {
+            const port = parseInt(match[1], 10);
+            if (Number.isInteger(port) && port >= 1 && port <= 65535) {
+              return resolve(port);
+            }
+          }
+          reject(new Error(`Could not parse mapped host port from docker port output: "${stdout.trim()}"`));
+        } else {
+          reject(new Error(`docker port failed with code ${code}: ${stderr.trim()}`));
+        }
+      }
+    });
+  });
+}
+
+/**
+ * Periodically probes http://127.0.0.1:${hostPort}/ with strict HTTP policy:
+ * - 2xx (200-299): Ready (success)
+ * - 3xx (300-399): Ready if redirect location header is provided (app server is routing)
+ * - 401, 403, 405: Ready (app server is running and enforcing auth / method restrictions)
+ * - 404: Not initially ready; requires 3 consecutive 404 responses or custom app headers to avoid false positives on unmounted SPAs
+ * - 5xx (500-599): Not ready (server crash/error)
+ * - Connection errors & timeouts: Not ready (retry within bounded window)
+ */
+export async function probeApplicationReadiness(
+  hostPort: number,
+  options?: {
+    timeoutMs?: number;
+    intervalMs?: number;
+    abortSignal?: AbortSignal;
+  }
+): Promise<{ ready: boolean; statusCode?: number; durationMs: number; error?: string }> {
+  const timeoutMs = options?.timeoutMs ?? READINESS_TIMEOUT_MS;
+  const intervalMs = options?.intervalMs ?? READINESS_INTERVAL_MS;
+  const startTime = Date.now();
+  let consecutive404Count = 0;
+
+  while (Date.now() - startTime < timeoutMs) {
+    if (options?.abortSignal?.aborted) {
+      return {
+        ready: false,
+        durationMs: Date.now() - startTime,
+        error: "Readiness probe cancelled by user.",
+      };
+    }
+
+    try {
+      const probeResult = await new Promise<{ statusCode: number; headers: http.IncomingHttpHeaders }>((resolve, reject) => {
+        const req = http.get(
+          `http://127.0.0.1:${hostPort}/`,
+          { timeout: 1500 },
+          (res) => {
+            resolve({ statusCode: res.statusCode ?? 200, headers: res.headers });
+          }
+        );
+        req.on("error", reject);
+        req.on("timeout", () => {
+          req.destroy();
+          reject(new Error("Probe request timed out."));
+        });
+      });
+
+      const { statusCode, headers } = probeResult;
+
+      // 1. 2xx Success: Definitive readiness
+      if (statusCode >= 200 && statusCode < 300) {
+        return {
+          ready: true,
+          statusCode,
+          durationMs: Date.now() - startTime,
+        };
+      }
+
+      // 2. 3xx Redirect: Ready if redirection target is emitted
+      if (statusCode >= 300 && statusCode < 400 && headers.location) {
+        return {
+          ready: true,
+          statusCode,
+          durationMs: Date.now() - startTime,
+        };
+      }
+
+      // 3. 401, 403, 405: App is running and actively enforcing endpoint constraints
+      if (statusCode === 401 || statusCode === 403 || statusCode === 405) {
+        return {
+          ready: true,
+          statusCode,
+          durationMs: Date.now() - startTime,
+        };
+      }
+
+      // 4. 404: If custom application framework header exists or 3 consecutive 404s observed, mark ready
+      if (statusCode === 404) {
+        const hasAppHeader = Boolean(headers["x-powered-by"] || headers["server"] || headers["content-type"]);
+        consecutive404Count++;
+        if (hasAppHeader || consecutive404Count >= 3) {
+          return {
+            ready: true,
+            statusCode,
+            durationMs: Date.now() - startTime,
+          };
+        }
+      } else {
+        consecutive404Count = 0;
+      }
+    } catch {
+      consecutive404Count = 0;
+      // Server not accepting connections yet
+    }
+
+    await new Promise((r) => setTimeout(r, intervalMs));
+  }
+
+  return {
+    ready: false,
+    durationMs: Date.now() - startTime,
+    error: `Readiness check timed out after ${Math.round(timeoutMs / 1000)}s on port ${hostPort}.`,
+  };
+}
+
+/**
+ * Inspects real-time state of a container (running, exitCode, oomKilled, etc.).
+ */
+export async function inspectContainerState(
+  containerNameOrId: string,
+  timeoutMs = DOCKER_INSPECT_TIMEOUT_MS
+): Promise<{
+  exists: boolean;
+  running: boolean;
+  exitCode?: number;
+  oomKilled?: boolean;
+  startedAt?: string;
+  finishedAt?: string;
+  error?: string;
+}> {
+  return new Promise((resolve) => {
+    let stdout = "";
+    let stderr = "";
+    let isSettled = false;
+
+    const child = spawn("docker", ["inspect", containerNameOrId, "--format", "{{json .State}}"], {
+      shell: false,
+      windowsHide: true,
+    });
+
+    const timer = setTimeout(() => {
+      if (!isSettled) {
+        isSettled = true;
+        if (child.pid) terminateProcessTree(child.pid);
+        resolve({ exists: false, running: false, error: "inspect timed out" });
+      }
+    }, timeoutMs);
+
+    child.stdout.on("data", (chunk: Buffer) => {
+      stdout += chunk.toString("utf8");
+    });
+
+    child.stderr.on("data", (chunk: Buffer) => {
+      stderr += chunk.toString("utf8");
+    });
+
+    child.on("error", (err) => {
+      if (!isSettled) {
+        isSettled = true;
+        clearTimeout(timer);
+        resolve({ exists: false, running: false, error: `Docker daemon unavailable: ${err.message}` });
+      }
+    });
+
+    child.on("close", (code) => {
+      if (!isSettled) {
+        isSettled = true;
+        clearTimeout(timer);
+        if (code === 0 && stdout.trim()) {
+          try {
+            const state = JSON.parse(stdout.trim());
+            return resolve({
+              exists: true,
+              running: Boolean(state.Running),
+              exitCode: typeof state.ExitCode === "number" ? state.ExitCode : undefined,
+              oomKilled: Boolean(state.OOMKilled),
+              startedAt: state.StartedAt,
+              finishedAt: state.FinishedAt,
+              error: state.Error || undefined,
+            });
+          } catch {
+            return resolve({ exists: true, running: false });
+          }
+        }
+
+        const errLower = stderr.toLowerCase();
+        if (
+          errLower.includes("failed to connect") ||
+          errLower.includes("cannot connect") ||
+          errLower.includes("daemon running") ||
+          errLower.includes("error during connect") ||
+          errLower.includes("pipe")
+        ) {
+          return resolve({ exists: false, running: false, error: "Docker daemon unavailable" });
+        }
+
+        resolve({ exists: false, running: false });
+      }
+    });
+  });
+}
+
+/**
+ * Gracefully stops then force-removes a container.
+ * Rejects with an error if stopping/removing fails so callers never silently assume success.
+ */
+export async function stopDockerContainer(
+  containerNameOrId: string,
+  timeoutSecs = CONTAINER_STOP_TIMEOUT_SECS
+): Promise<void> {
+  return new Promise((resolve, reject) => {
+    let stopStderr = "";
+    const stopChild = spawn("docker", ["stop", "-t", String(timeoutSecs), containerNameOrId], {
+      shell: false,
+      windowsHide: true,
+    });
+
+    stopChild.stderr.on("data", (chunk: Buffer) => {
+      stopStderr += chunk.toString("utf8");
+    });
+
+    const finish = () => {
+      let rmStderr = "";
+      const rmChild = spawn("docker", ["rm", "-f", containerNameOrId], {
+        shell: false,
+        windowsHide: true,
+      });
+
+      rmChild.stderr.on("data", (chunk: Buffer) => {
+        rmStderr += chunk.toString("utf8");
+      });
+
+      rmChild.on("close", (rmCode) => {
+        // Exit code 0 or container not found (already gone) is considered clean removal
+        if (rmCode === 0 || rmStderr.includes("No such container") || rmStderr.includes("not found")) {
+          resolve();
+        } else {
+          reject(new Error(`Failed to remove container ${containerNameOrId}: ${rmStderr.trim()}`));
+        }
+      });
+
+      rmChild.on("error", (err) => {
+        reject(new Error(`Failed to spawn docker rm for ${containerNameOrId}: ${err.message}`));
+      });
+    };
+
+    stopChild.on("close", finish);
+    stopChild.on("error", (err) => {
+      // Even if stop fails to spawn, attempt rm -f
+      console.warn(`[docker.service] Warning during docker stop for ${containerNameOrId}: ${err.message}`);
+      finish();
+    });
+  });
+}
+
+/**
+ * Retrieves the last N runtime stdout/stderr log lines from a container with token redaction.
+ */
+export async function getContainerRuntimeLogs(
+  containerNameOrId: string,
+  tailLines = 200,
+  timeoutMs = 5000
+): Promise<string[]> {
+  return new Promise((resolve) => {
+    let output = "";
+    let isSettled = false;
+
+    const child = spawn("docker", ["logs", "--tail", String(tailLines), containerNameOrId], {
+      shell: false,
+      windowsHide: true,
+    });
+
+    const timer = setTimeout(() => {
+      if (!isSettled) {
+        isSettled = true;
+        if (child.pid) terminateProcessTree(child.pid);
+        resolve([]);
+      }
+    }, timeoutMs);
+
+    child.stdout.on("data", (chunk: Buffer) => {
+      output += chunk.toString("utf8");
+    });
+    child.stderr.on("data", (chunk: Buffer) => {
+      output += chunk.toString("utf8");
+    });
+
+    child.on("error", () => {
+      if (!isSettled) {
+        isSettled = true;
+        clearTimeout(timer);
+        resolve([]);
+      }
+    });
+
+    child.on("close", () => {
+      if (!isSettled) {
+        isSettled = true;
+        clearTimeout(timer);
+        const lines = output
+          .split("\n")
+          .map((line) => sanitizeLogOutput(line))
+          .filter((line) => line.trim().length > 0);
+        resolve(lines);
+      }
+    });
+  });
+}
+
+/**
+ * Cleans up all HAVN-managed containers for a given project.
+ */
+export async function cleanupProjectContainers(projectId: string): Promise<string[]> {
+  return new Promise((resolve) => {
+    let stdout = "";
+    let isSettled = false;
+
+    const child = spawn(
+      "docker",
+      [
+        "ps",
+        "-a",
+        "--filter", "label=managed-by=havn",
+        "--filter", `label=project-id=${projectId}`,
+        "--format", "{{.ID}}",
+      ],
+      { shell: false, windowsHide: true }
+    );
+
+    child.stdout.on("data", (chunk: Buffer) => {
+      stdout += chunk.toString("utf8");
+    });
+
+    child.on("error", () => {
+      if (!isSettled) {
+        isSettled = true;
+        resolve([]);
+      }
+    });
+
+    child.on("close", async () => {
+      if (!isSettled) {
+        isSettled = true;
+        const containerIds = stdout
+          .split("\n")
+          .map((s) => s.trim())
+          .filter(Boolean);
+
+        for (const cid of containerIds) {
+          await stopDockerContainer(cid).catch(() => {});
+        }
+        resolve(containerIds);
+      }
+    });
+  });
 }

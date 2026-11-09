@@ -1,5 +1,5 @@
 import prisma from "../lib/prisma";
-import { deleteDockerImage } from "./docker.service";
+import { deleteDockerImage, cleanupProjectContainers } from "./docker.service";
 
 export interface CreateProjectInput {
   name: string;
@@ -53,6 +53,10 @@ export const getUserProjects = async (userId: string) => {
           imageTag: true,
           createdAt: true,
           completedAt: true,
+          containerId: true,
+          hostPort: true,
+          internalPort: true,
+          localUrl: true,
         },
       },
     },
@@ -67,6 +71,7 @@ export const getUserProjects = async (userId: string) => {
     branch: project.branch,
     status: project.status,
     userId: project.userId,
+    liveDeploymentId: project.liveDeploymentId,
     createdAt: project.createdAt,
     updatedAt: project.updatedAt,
     deploymentsCount: project._count.deployments,
@@ -96,6 +101,10 @@ export const getUserProjectById = async (id: string, userId: string) => {
           imageTag: true,
           createdAt: true,
           completedAt: true,
+          containerId: true,
+          hostPort: true,
+          internalPort: true,
+          localUrl: true,
         },
       },
     },
@@ -114,6 +123,7 @@ export const getUserProjectById = async (id: string, userId: string) => {
     branch: project.branch,
     status: project.status,
     userId: project.userId,
+    liveDeploymentId: project.liveDeploymentId,
     createdAt: project.createdAt,
     updatedAt: project.updatedAt,
     deploymentsCount: project._count.deployments,
@@ -164,12 +174,26 @@ export const deleteUserProject = async (id: string, userId: string) => {
     return null;
   }
 
-  // Prune any generated local Docker images for this project's deployments
+  // 1. Stop and remove all running/stopped HAVN containers for this project
+  await cleanupProjectContainers(id).catch((err) => {
+    console.warn(`[ProjectService] Could not cleanup containers for project ${id}:`, err);
+  });
+
+  // 2. Conservative image pruning: never remove an image still referenced by another project deployment
   for (const dep of project.deployments) {
     if (dep.imageTag) {
-      await deleteDockerImage(dep.imageTag).catch((err) => {
-        console.warn(`[ProjectService] Could not prune image ${dep.imageTag} during project deletion:`, err);
+      const otherReferences = await prisma.deployment.count({
+        where: {
+          imageTag: dep.imageTag,
+          projectId: { not: id },
+        },
       });
+
+      if (otherReferences === 0) {
+        await deleteDockerImage(dep.imageTag).catch((err) => {
+          console.warn(`[ProjectService] Could not prune image ${dep.imageTag} during project deletion:`, err);
+        });
+      }
     }
   }
 
