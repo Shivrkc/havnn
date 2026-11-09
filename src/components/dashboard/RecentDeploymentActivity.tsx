@@ -5,6 +5,10 @@ import {
   RefreshCw,
   Terminal,
   ExternalLink,
+  Square,
+  XCircle,
+  Globe,
+  Clock,
 } from "lucide-react";
 import { Deployment } from "../../types";
 
@@ -46,10 +50,14 @@ export const RecentDeploymentActivity: React.FC<
           <table className="w-full text-left border-collapse text-xs">
             <tbody>
               {recentList.map((dep) => {
-                const isReady =
-                  dep.status === "BUILT" || dep.status === "ready";
-                const isFailed =
-                  dep.status === "FAILED" || dep.status === "failed";
+                const isRunning = dep.status === "RUNNING";
+                const isStarting = dep.status === "STARTING";
+                const isBuilt = dep.status === "BUILT";
+                const isReady = dep.status === "ready";
+                const isFailed = dep.status === "FAILED" || dep.status === "failed";
+                const isCrashed = dep.status === "CRASHED";
+                const isStopped = dep.status === "STOPPED";
+                const isCancelled = dep.status === "CANCELLED";
                 const isBuilding =
                   dep.status === "BUILDING" ||
                   dep.status === "QUEUED" ||
@@ -64,16 +72,36 @@ export const RecentDeploymentActivity: React.FC<
                   >
                     {/* Status Icon */}
                     <td className="py-3 pr-3 w-8">
-                      {isReady && (
+                      {isRunning && (
+                        <div className="relative flex items-center justify-center">
+                          <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+                        </div>
+                      )}
+                      {isStarting && (
+                        <RefreshCw className="w-4 h-4 animate-spin text-sky-500" />
+                      )}
+                      {isBuilt && (
+                        <CheckCircle2 className="w-4 h-4 text-indigo-500" />
+                      )}
+                      {isReady && !isRunning && (
                         <CheckCircle2 className="w-4 h-4 text-emerald-500" />
                       )}
+                      {isStopped && (
+                        <Square className="w-3.5 h-3.5 fill-current text-zinc-400" />
+                      )}
+                      {isCrashed && (
+                        <AlertTriangle className="w-4 h-4 text-amber-500" />
+                      )}
                       {isFailed && (
-                        <AlertTriangle className="w-4 h-4 text-rose-500" />
+                        <XCircle className="w-4 h-4 text-rose-500" />
                       )}
                       {isBuilding && (
-                        <RefreshCw className="w-4 h-4 animate-spin text-amber-500" />
+                        <RefreshCw className="w-4 h-4 animate-spin text-blue-500" />
                       )}
-                      {!isReady && !isFailed && !isBuilding && (
+                      {isCancelled && (
+                        <div className="w-3.5 h-3.5 rounded-full bg-slate-300 dark:bg-slate-600" />
+                      )}
+                      {!isRunning && !isStarting && !isBuilt && !isReady && !isStopped && !isCrashed && !isFailed && !isBuilding && !isCancelled && (
                         <div className="w-4 h-4 rounded-full bg-slate-200 dark:bg-slate-700" />
                       )}
                     </td>
@@ -83,17 +111,35 @@ export const RecentDeploymentActivity: React.FC<
                       {dep.projectName}
                     </td>
 
-                    {/* Event / Commit Message */}
+                    {/* Event / Status Message */}
                     <td className="py-3 pr-4 text-slate-600 dark:text-slate-400 italic truncate max-w-[200px] sm:max-w-xs">
-                      {isReady && "Deployment succeeded"}
+                      {isRunning && (
+                        <span className="text-emerald-700 dark:text-emerald-400 font-medium not-italic flex items-center gap-1">
+                          <Globe className="w-3 h-3 text-emerald-600" />
+                          <span>Container running live</span>
+                          {dep.localUrl && <span className="font-mono text-[10px]">({dep.localUrl})</span>}
+                        </span>
+                      )}
+                      {isStarting && "Starting container & probing..."}
+                      {isBuilt && "Docker image compiled"}
+                      {isReady && !isRunning && "Deployment succeeded"}
+                      {isStopped && "Container stopped"}
+                      {isCrashed && "Container crashed"}
                       {isFailed &&
                         (dep.errorMessage
                           ? dep.errorMessage.slice(0, 45)
                           : "Build failed")}
                       {isBuilding && "Build in progress"}
-                      {!isReady &&
+                      {isCancelled && "Deployment cancelled"}
+                      {!isRunning &&
+                        !isStarting &&
+                        !isBuilt &&
+                        !isReady &&
+                        !isStopped &&
+                        !isCrashed &&
                         !isFailed &&
                         !isBuilding &&
+                        !isCancelled &&
                         (dep.commitMsg || "Deployment triggered")}
                     </td>
 

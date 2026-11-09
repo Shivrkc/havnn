@@ -1,5 +1,5 @@
 import assert from "assert";
-import { sortDeploymentsNewestFirst, mapBackendDeploymentToFrontend } from "../../pages/Dashboard";
+import { sortDeploymentsNewestFirst, mapBackendDeploymentToFrontend } from "../deployment.utils";
 import { Deployment, BackendDeployment } from "../../types";
 
 console.log("Starting Dashboard Deployment Sorting Regression Test...\n");

@@ -10,6 +10,7 @@ export interface BackendProject {
   branch: string;
   status: string;
   userId: string;
+  liveDeploymentId?: string | null;
   createdAt: string;
   updatedAt: string;
   deploymentsCount: number;
@@ -22,6 +23,10 @@ export interface BackendProject {
     imageTag?: string | null;
     createdAt: string;
     completedAt?: string | null;
+    containerId?: string | null;
+    hostPort?: number | null;
+    internalPort?: number | null;
+    localUrl?: string | null;
   } | null;
 }
 

@@ -5,6 +5,10 @@ export type DeploymentStatus =
   | 'INITIALIZING'
   | 'BUILDING'
   | 'BUILT'
+  | 'STARTING'
+  | 'RUNNING'
+  | 'STOPPED'
+  | 'CRASHED'
   | 'FAILED'
   | 'CANCELLED';
 
@@ -31,6 +35,10 @@ export interface BackendDeployment {
   commitAuthor?: string | null;
   imageTag?: string | null;
   dockerfilePath: string;
+  containerId?: string | null;
+  hostPort?: number | null;
+  internalPort?: number | null;
+  localUrl?: string | null;
   startedAt?: string | null;
   completedAt?: string | null;
   durationMs?: number | null;
@@ -64,6 +72,10 @@ export interface Deployment {
   environment: 'production' | 'preview';
   durationMs?: number | null;
   errorMessage?: string | null;
+  containerId?: string | null;
+  hostPort?: number | null;
+  internalPort?: number | null;
+  localUrl?: string | null;
 }
 
 export interface BuildLog {
@@ -83,6 +95,10 @@ export interface Project {
   updatedAt: string;
   updatedAtRaw?: string;
   deploymentsCount: number;
+  liveDeploymentId?: string | null;
+  localUrl?: string | null;
+  hostPort?: number | null;
+  internalPort?: number | null;
   latestDeployment?: {
     id: string;
     status: DeploymentStatus;
@@ -92,5 +108,46 @@ export interface Project {
     imageTag?: string | null;
     createdAt: string;
     completedAt?: string | null;
+    containerId?: string | null;
+    hostPort?: number | null;
+    internalPort?: number | null;
+    localUrl?: string | null;
   } | null;
+}
+
+export interface DeploymentRuntime {
+  id: string;
+  projectId: string;
+  status: DeploymentStatus;
+  containerId: string | null;
+  hostPort: number | null;
+  internalPort: number | null;
+  localUrl: string | null;
+  isLive: boolean;
+  containerRunning: boolean;
+}
+
+export interface DeploymentRuntimeResponse {
+  success: boolean;
+  deployment: DeploymentRuntime;
+}
+
+export interface DeploymentRuntimeLogsResponse {
+  success: boolean;
+  deploymentId: string;
+  status: DeploymentStatus;
+  logs: string[];
+}
+
+export interface StopDeploymentResponse {
+  success: boolean;
+  message: string;
+  deployment: BackendDeployment;
+}
+
+export interface RestartDeploymentResponse {
+  success: boolean;
+  message: string;
+  deploymentId: string;
+  status: 'QUEUED';
 }

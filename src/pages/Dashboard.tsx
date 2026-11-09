@@ -51,6 +51,14 @@ import {
 } from "../types";
 import { ROUTES } from "../constants/routes";
 import {
+  formatRelativeTime,
+  mapBackendDeploymentToFrontend,
+  canStopDeployment,
+  canRestartDeployment,
+  formatPortMapping,
+} from "../utils/deployment.utils";
+export { mapBackendDeploymentToFrontend };
+import {
   getProjects,
   createProject,
   deleteProject,
@@ -61,6 +69,8 @@ import {
   getProjectDeployments,
   getDeploymentById,
   getDeploymentLogs,
+  stopDeployment,
+  restartDeployment,
 } from "../services/deployment.service";
 import {
   getCurrentUser,
@@ -91,19 +101,7 @@ import { SystemStatusCard } from "../components/dashboard/SystemStatusCard";
 import { QuickActionsCard } from "../components/dashboard/QuickActionsCard";
 import { useCanvasSky } from "../utils/useCanvasSky";
 
-const formatRelativeTime = (dateString: string): string => {
-  if (!dateString) return "Just now";
-  const date = new Date(dateString);
-  if (isNaN(date.getTime())) return dateString;
-  const now = new Date();
-  const diffInSeconds = Math.floor((now.getTime() - date.getTime()) / 1000);
-  if (diffInSeconds < 60) return "Just now";
-  if (diffInSeconds < 3600) return `${Math.floor(diffInSeconds / 60)}m ago`;
-  if (diffInSeconds < 86400) return `${Math.floor(diffInSeconds / 3600)}h ago`;
-  if (diffInSeconds < 604800)
-    return `${Math.floor(diffInSeconds / 86400)}d ago`;
-  return date.toLocaleDateString();
-};
+
 
 const mapBackendProjectToProject = (bp: BackendProject): Project => {
   const repoName = bp.repositoryName ?? "";
@@ -123,10 +121,14 @@ const mapBackendProjectToProject = (bp: BackendProject): Project => {
     owner: repoName.includes("/") ? repoName.split("/")[0] : "dev-master",
     branch: bp.branch || "main",
     status,
-    url: bp.repositoryUrl ?? "",
+    url: bp.latestDeployment?.localUrl || bp.repositoryUrl || "",
     updatedAt: formatRelativeTime(bp.updatedAt),
     updatedAtRaw: bp.updatedAt,
     deploymentsCount: bp.deploymentsCount ?? 0,
+    liveDeploymentId: bp.liveDeploymentId,
+    localUrl: bp.latestDeployment?.localUrl,
+    hostPort: bp.latestDeployment?.hostPort,
+    internalPort: bp.latestDeployment?.internalPort,
     latestDeployment: bp.latestDeployment || null,
   };
 };
@@ -146,26 +148,7 @@ export const sortDeploymentsNewestFirst = (
   return getTimestamp(b) - getTimestamp(a);
 };
 
-export const mapBackendDeploymentToFrontend = (
-  bd: BackendDeployment,
-): Deployment => {
-  return {
-    id: bd.id,
-    projectId: bd.projectId,
-    projectName: bd.repositoryName || "project",
-    status: bd.status,
-    branch: bd.branch,
-    commitMsg: bd.commitMsg || "Deployment triggered",
-    commitHash: bd.commitSha ? bd.commitSha.substring(0, 7) : "pending",
-    commitAuthor: bd.commitAuthor || undefined,
-    deployedAt: formatRelativeTime(bd.createdAt),
-    createdAt: bd.createdAt,
-    url: bd.repositoryUrl || "",
-    environment: "production",
-    durationMs: bd.durationMs,
-    errorMessage: bd.errorMessage,
-  };
-};
+
 
 export default function Dashboard() {
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
@@ -595,6 +578,62 @@ export default function Dashboard() {
         });
     }
   }, [selectedRepo]);
+
+  const handleStopDeployment = useCallback(
+    async (deploymentId: string, projectName: string) => {
+      try {
+        await stopDeployment(deploymentId);
+        await reloadProjects();
+      } catch (err: any) {
+        const msg =
+          err.response?.data?.message ||
+          err.message ||
+          `Failed to stop deployment for ${projectName}.`;
+        alert(msg);
+      }
+    },
+    [reloadProjects],
+  );
+
+  const handleRestartDeployment = useCallback(
+    async (deploymentId: string, projectName: string) => {
+      try {
+        await restartDeployment(deploymentId);
+        await reloadProjects();
+      } catch (err: any) {
+        const msg =
+          err.response?.data?.message ||
+          err.message ||
+          `Failed to restart deployment for ${projectName}.`;
+        alert(msg);
+      }
+    },
+    [reloadProjects],
+  );
+
+  // Background bounded synchronization for active/in-flight deployments
+  useEffect(() => {
+    const hasActiveDeployments = projects.some((p) => {
+      const s = p.latestDeployment?.status || p.status;
+      return (
+        s === "QUEUED" ||
+        s === "INITIALIZING" ||
+        s === "BUILDING" ||
+        s === "BUILT" ||
+        s === "STARTING" ||
+        s === "queued" ||
+        s === "building"
+      );
+    });
+
+    if (!hasActiveDeployments) return;
+
+    const interval = setInterval(() => {
+      reloadProjects();
+    }, 3000);
+
+    return () => clearInterval(interval);
+  }, [projects, reloadProjects]);
 
   const handleTriggerDeploy = async (project: Project) => {
     setDeployingProjectId(project.id);
@@ -1368,6 +1407,8 @@ export default function Dashboard() {
                             onDeploy={handleTriggerDeploy}
                             onViewLogs={handleOpenDeploymentLogs}
                             onDelete={handleDeleteProject}
+                            onStopDeployment={handleStopDeployment}
+                            onRestartDeployment={handleRestartDeployment}
                             isDeploying={deployingProjectId === project.id}
                             isDeleting={deletingProjectId === project.id}
                             viewMode={projectViewMode}
@@ -1640,6 +1681,8 @@ export default function Dashboard() {
                         onDeploy={handleTriggerDeploy}
                         onViewLogs={handleOpenDeploymentLogs}
                         onDelete={handleDeleteProject}
+                        onStopDeployment={handleStopDeployment}
+                        onRestartDeployment={handleRestartDeployment}
                         isDeploying={deployingProjectId === project.id}
                         isDeleting={deletingProjectId === project.id}
                         viewMode={projectViewMode}
