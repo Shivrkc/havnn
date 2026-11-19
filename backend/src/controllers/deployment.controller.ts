@@ -612,7 +612,7 @@ export const stopDeploymentHandler = async (req: AuthRequest, res: Response) => 
     if (deployment.project.liveDeploymentId === deployment.id) {
       await prisma.project.update({
         where: { id: deployment.projectId },
-        data: { status: "stopped" },
+        data: { status: "stopped", liveDeploymentId: null },
       });
     }
 

@@ -62,21 +62,55 @@ export const getUserProjects = async (userId: string) => {
     },
   });
 
-  return projects.map((project) => ({
-    id: project.id,
-    name: project.name,
-    description: project.description,
-    repositoryName: project.repositoryName,
-    repositoryUrl: project.repositoryUrl,
-    branch: project.branch,
-    status: project.status,
-    userId: project.userId,
-    liveDeploymentId: project.liveDeploymentId,
-    createdAt: project.createdAt,
-    updatedAt: project.updatedAt,
-    deploymentsCount: project._count.deployments,
-    latestDeployment: project.deployments[0] || null,
-  }));
+  const missingLiveIds = projects
+    .map((p) => p.liveDeploymentId)
+    .filter((id) => Boolean(id && !projects.some((pr) => pr.deployments[0]?.id === id)));
+
+  const liveDeployments = missingLiveIds.length > 0
+    ? await prisma.deployment.findMany({
+        where: { id: { in: missingLiveIds } },
+        select: {
+          id: true,
+          status: true,
+          branch: true,
+          commitSha: true,
+          commitMsg: true,
+          imageTag: true,
+          createdAt: true,
+          completedAt: true,
+          containerId: true,
+          hostPort: true,
+          internalPort: true,
+          localUrl: true,
+        },
+      })
+    : [];
+
+  const liveMap = new Map(liveDeployments.map((d) => [d.id, d]));
+
+  return projects.map((project) => {
+    const latest = project.deployments[0] || null;
+    const live = project.liveDeploymentId
+      ? (latest && latest.id === project.liveDeploymentId ? latest : liveMap.get(project.liveDeploymentId) || null)
+      : null;
+
+    return {
+      id: project.id,
+      name: project.name,
+      description: project.description,
+      repositoryName: project.repositoryName,
+      repositoryUrl: project.repositoryUrl,
+      branch: project.branch,
+      status: project.status,
+      userId: project.userId,
+      liveDeploymentId: project.liveDeploymentId,
+      createdAt: project.createdAt,
+      updatedAt: project.updatedAt,
+      deploymentsCount: project._count.deployments,
+      latestDeployment: latest,
+      liveDeployment: live,
+    };
+  });
 };
 
 export const getUserProjectById = async (id: string, userId: string) => {
@@ -114,6 +148,32 @@ export const getUserProjectById = async (id: string, userId: string) => {
     return null;
   }
 
+  const latest = project.deployments[0] || null;
+  let live = null;
+  if (project.liveDeploymentId) {
+    if (latest && latest.id === project.liveDeploymentId) {
+      live = latest;
+    } else {
+      live = await prisma.deployment.findUnique({
+        where: { id: project.liveDeploymentId },
+        select: {
+          id: true,
+          status: true,
+          branch: true,
+          commitSha: true,
+          commitMsg: true,
+          imageTag: true,
+          createdAt: true,
+          completedAt: true,
+          containerId: true,
+          hostPort: true,
+          internalPort: true,
+          localUrl: true,
+        },
+      });
+    }
+  }
+
   return {
     id: project.id,
     name: project.name,
@@ -127,7 +187,8 @@ export const getUserProjectById = async (id: string, userId: string) => {
     createdAt: project.createdAt,
     updatedAt: project.updatedAt,
     deploymentsCount: project._count.deployments,
-    latestDeployment: project.deployments[0] || null,
+    latestDeployment: latest,
+    liveDeployment: live,
   };
 };
 

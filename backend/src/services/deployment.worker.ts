@@ -644,7 +644,8 @@ export class DeploymentWorker {
       exitCode?: number;
       oomKilled?: boolean;
       error?: string;
-    }>
+    }>,
+    targetOptions?: { deploymentId?: string; projectId?: string }
   ): Promise<number> {
     if (this.isReconciling) {
       return 0;
@@ -683,8 +684,18 @@ export class DeploymentWorker {
     let transitionedCount = 0;
 
     try {
+      const whereClause: { status: DeploymentStatus; id?: string; projectId?: string } = {
+        status: "RUNNING",
+      };
+      if (targetOptions?.deploymentId) {
+        whereClause.id = targetOptions.deploymentId;
+      }
+      if (targetOptions?.projectId) {
+        whereClause.projectId = targetOptions.projectId;
+      }
+
       const runningDeployments = await prisma.deployment.findMany({
-        where: { status: "RUNNING" },
+        where: whereClause,
         select: {
           id: true,
           projectId: true,

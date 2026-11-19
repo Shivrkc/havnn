@@ -131,12 +131,15 @@ async function runPhase32Tests() {
       });
 
       // Running reconciler with simulated dead container
-      const count = await deploymentWorker.reconcileRunningDeployments(async () => ({
-        exists: true,
-        running: false,
-        exitCode: 137,
-        oomKilled: true,
-      }));
+      const count = await deploymentWorker.reconcileRunningDeployments(
+        async () => ({
+          exists: true,
+          running: false,
+          exitCode: 137,
+          oomKilled: true,
+        }),
+        { deploymentId: crashedDep.id }
+      );
       assert.ok(count >= 1, "Must reconcile at least 1 dead deployment");
 
       const refreshedDep = await prisma.deployment.findUnique({ where: { id: crashedDep.id } });
@@ -188,12 +191,15 @@ async function runPhase32Tests() {
       });
 
       // Reconciler runs: olderDep is dead, but newerDep is alive!
-      await deploymentWorker.reconcileRunningDeployments(async (name) => {
-        if (name === `cloudforge-app-${newerDep.id}`) {
-          return { exists: true, running: true };
-        }
-        return { exists: true, running: false, exitCode: 1 };
-      });
+      await deploymentWorker.reconcileRunningDeployments(
+        async (name) => {
+          if (name === `cloudforge-app-${newerDep.id}`) {
+            return { exists: true, running: true };
+          }
+          return { exists: true, running: false, exitCode: 1 };
+        },
+        { projectId: testProject.id }
+      );
 
       const projAfter = await prisma.project.findUnique({ where: { id: testProject.id } });
       assert.strictEqual(
@@ -394,8 +400,8 @@ async function runPhase32Tests() {
     console.log("[TEST 10/11] Concurrency Guard Prevents Overlapping Reconciler Runs");
     {
       const [run1, run2] = await Promise.all([
-        deploymentWorker.reconcileRunningDeployments(),
-        deploymentWorker.reconcileRunningDeployments(),
+        deploymentWorker.reconcileRunningDeployments(undefined, { projectId: testProject.id }),
+        deploymentWorker.reconcileRunningDeployments(undefined, { projectId: testProject.id }),
       ]);
       // One of the overlapping runs should return 0 due to concurrency guard
       assert.ok(run1 === 0 || run2 === 0, "Overlapping reconciler execution must be prevented");
