@@ -64,15 +64,7 @@ export default function Hero({
               className="pointer-events-none absolute -left-8 sm:-left-12 top-[28%] -bottom-8 w-[120%] sm:w-[130%] max-w-xl rounded-full bg-[radial-gradient(ellipse_at_40%_50%,rgba(248,250,252,0.85)_0%,rgba(248,250,252,0.45)_50%,transparent_80%)] dark:bg-[radial-gradient(ellipse_at_40%_50%,rgba(13,15,18,0.82)_0%,rgba(13,15,18,0.48)_50%,transparent_80%)] blur-2xl -z-10"
             />
 
-            {/* Step 1: Eyebrow / Badge */}
-            <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full backdrop-blur-md bg-white/60 dark:bg-[#16191f]/80 border border-slate-200/80 dark:border-[#282d37] shadow-xs mb-5">
-              <span className="flex h-2 w-2 rounded-full bg-blue-600 dark:bg-blue-400 animate-pulse" />
-              <span className="text-xs font-semibold text-slate-800 dark:text-slate-200 tracking-wide font-mono">
-                Next-Gen Cloud Deployment
-              </span>
-            </div>
-
-            {/* Step 2: Dominant Primary Headline (Clash Display Style) */}
+            {/* Dominant Primary Headline (Clash Display Style) */}
             <h1 className="font-display text-4xl sm:text-6xl lg:text-7xl font-bold tracking-tight text-slate-900 dark:text-white leading-[1.06] mb-5 max-w-xl">
               From Code <br />
               <span className="text-blue-600 dark:text-[#7BBBFF]">

@@ -7,6 +7,7 @@ import {
   TrendingUp,
   TrendingDown,
 } from "lucide-react";
+import { AmoledLiquidGlass } from "../ui/AmoledLiquidGlass";
 
 interface DashboardMetricsProps {
   activeProjectsCount: number;
@@ -25,55 +26,57 @@ export const DashboardMetrics: React.FC<DashboardMetricsProps> = ({
 }) => {
   return (
     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-      {/* Metric 1: Active Projects */}
-      <div className="backdrop-blur-2xl bg-white/70 dark:bg-[#16191f]/80 border border-white/90 dark:border-[#282d37] rounded-3xl p-5 shadow-lg shadow-sky-950/5 dark:shadow-black/30 hover:shadow-xl transition-all duration-200 flex items-center justify-between group">
-        <div className="space-y-2">
-          <div className="flex items-center gap-2 text-slate-600 dark:text-slate-400 font-bold text-xs">
-            <div className="p-1.5 rounded-xl bg-blue-100/80 dark:bg-blue-950/60 text-blue-600 dark:text-blue-400 border border-blue-200/60 dark:border-blue-800/40">
-              <Box className="w-3.5 h-3.5" />
-            </div>
-            <span>Active Projects</span>
+      {/* Metric 1: Active Projects (PROTOTYPE: Amoled Smoked Liquid Glass) */}
+      <AmoledLiquidGlass
+        variant="card"
+        interactive={true}
+        className="p-4 sm:p-5 flex flex-col justify-between group"
+      >
+        <div className="flex items-center justify-between gap-2">
+          <span className="text-xs font-semibold text-slate-700 dark:text-slate-400">
+            Active Projects
+          </span>
+          <div className="p-1.5 rounded-lg bg-blue-500/10 text-blue-600 dark:text-blue-400 border border-blue-500/15">
+            <Box className="w-3.5 h-3.5" />
           </div>
-          <div className="text-2xl sm:text-3xl font-black text-slate-900 dark:text-[#f1f3f5] tracking-tight">
+        </div>
+        <div className="mt-3 space-y-1">
+          <div className="text-2xl sm:text-3xl font-semibold tabular-nums text-slate-900 dark:text-slate-100 tracking-tight">
             {activeProjectsCount}
           </div>
-          <div className="flex items-center gap-1 text-[11px] font-bold text-emerald-600 dark:text-emerald-400">
-            <TrendingUp className="w-3 h-3" />
+          <div className="flex items-center gap-1.5 text-xs text-slate-600 dark:text-slate-400 font-medium">
+            <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
             <span>
               {activeProjectsCount === 0
                 ? "No active projects"
                 : activeProjectsCount === 1
-                  ? "1 project deployed"
-                  : `${activeProjectsCount} projects active`}
+                  ? "1 container environment"
+                  : `${activeProjectsCount} container environments`}
             </span>
           </div>
         </div>
-
-        {/* Decorative mini bar sparkline */}
-        <div className="flex items-end gap-1 h-12 pr-1 opacity-70 group-hover:opacity-100 transition-opacity">
-          <div className="w-1.5 h-4 rounded-full bg-blue-200 dark:bg-blue-900/60" />
-          <div className="w-1.5 h-6 rounded-full bg-blue-300 dark:bg-blue-800/70" />
-          <div className="w-1.5 h-8 rounded-full bg-blue-400 dark:bg-blue-700/80" />
-          <div className="w-1.5 h-5 rounded-full bg-blue-300 dark:bg-blue-800/70" />
-          <div className="w-1.5 h-10 rounded-full bg-blue-500 dark:bg-blue-600" />
-          <div className="w-1.5 h-12 rounded-full bg-blue-600 dark:bg-blue-500" />
-        </div>
-      </div>
+      </AmoledLiquidGlass>
 
       {/* Metric 2: Total Deployments */}
-      <div className="backdrop-blur-2xl bg-white/70 dark:bg-[#16191f]/80 border border-white/90 dark:border-[#282d37] rounded-3xl p-5 shadow-lg shadow-sky-950/5 dark:shadow-black/30 hover:shadow-xl transition-all duration-200 flex items-center justify-between group">
-        <div className="space-y-2">
-          <div className="flex items-center gap-2 text-slate-600 dark:text-slate-400 font-bold text-xs">
-            <div className="p-1.5 rounded-xl bg-indigo-100/80 dark:bg-indigo-950/60 text-indigo-600 dark:text-indigo-400 border border-indigo-200/60 dark:border-indigo-800/40">
-              <Rocket className="w-3.5 h-3.5" />
-            </div>
-            <span>Total Deployments</span>
+      <AmoledLiquidGlass
+        variant="card"
+        interactive={true}
+        className="p-4 sm:p-5 flex flex-col justify-between group"
+      >
+        <div className="flex items-center justify-between gap-2">
+          <span className="text-xs font-semibold text-slate-700 dark:text-slate-400">
+            Total Deployments
+          </span>
+          <div className="p-1.5 rounded-lg bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 border border-indigo-500/15">
+            <Rocket className="w-3.5 h-3.5" />
           </div>
-          <div className="text-2xl sm:text-3xl font-black text-slate-900 dark:text-[#f1f3f5] tracking-tight">
+        </div>
+        <div className="mt-3 space-y-1">
+          <div className="text-2xl sm:text-3xl font-semibold tabular-nums text-slate-900 dark:text-slate-100 tracking-tight">
             {totalDeploymentsCount}
           </div>
-          <div className="flex items-center gap-1 text-[11px] font-bold text-emerald-600 dark:text-emerald-400">
-            <TrendingUp className="w-3 h-3" />
+          <div className="flex items-center gap-1.5 text-xs text-slate-600 dark:text-slate-400 font-medium">
+            <TrendingUp className="w-3 h-3 text-indigo-500" />
             <span>
               {totalDeploymentsCount === 0
                 ? "0 runs this period"
@@ -81,32 +84,34 @@ export const DashboardMetrics: React.FC<DashboardMetricsProps> = ({
             </span>
           </div>
         </div>
-
-        {/* Decorative mini bar sparkline */}
-        <div className="flex items-end gap-1 h-12 pr-1 opacity-70 group-hover:opacity-100 transition-opacity">
-          <div className="w-1.5 h-5 rounded-full bg-indigo-200 dark:bg-indigo-900/60" />
-          <div className="w-1.5 h-7 rounded-full bg-indigo-300 dark:bg-indigo-800/70" />
-          <div className="w-1.5 h-4 rounded-full bg-indigo-200 dark:bg-indigo-900/60" />
-          <div className="w-1.5 h-9 rounded-full bg-indigo-400 dark:bg-indigo-700/80" />
-          <div className="w-1.5 h-11 rounded-full bg-indigo-500 dark:bg-indigo-600" />
-          <div className="w-1.5 h-8 rounded-full bg-indigo-600 dark:bg-indigo-500" />
-        </div>
-      </div>
+      </AmoledLiquidGlass>
 
       {/* Metric 3: Success Rate */}
-      <div className="backdrop-blur-2xl bg-white/70 dark:bg-[#16191f]/80 border border-white/90 dark:border-[#282d37] rounded-3xl p-5 shadow-lg shadow-sky-950/5 dark:shadow-black/30 hover:shadow-xl transition-all duration-200 flex items-center justify-between group">
-        <div className="space-y-2">
-          <div className="flex items-center gap-2 text-slate-600 dark:text-slate-400 font-bold text-xs">
-            <div className="p-1.5 rounded-xl bg-emerald-100/80 dark:bg-emerald-950/60 text-emerald-600 dark:text-emerald-400 border border-emerald-200/60 dark:border-emerald-800/40">
-              <CheckCircle2 className="w-3.5 h-3.5" />
-            </div>
-            <span>Success Rate</span>
+      <AmoledLiquidGlass
+        variant="card"
+        interactive={true}
+        className="p-4 sm:p-5 flex flex-col justify-between group"
+      >
+        <div className="flex items-center justify-between gap-2">
+          <span className="text-xs font-semibold text-slate-700 dark:text-slate-400">
+            Success Rate
+          </span>
+          <div className="p-1.5 rounded-lg bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/15">
+            <CheckCircle2 className="w-3.5 h-3.5" />
           </div>
-          <div className="text-2xl sm:text-3xl font-black text-slate-900 dark:text-[#f1f3f5] tracking-tight">
+        </div>
+        <div className="mt-3 space-y-1">
+          <div className="text-2xl sm:text-3xl font-semibold tabular-nums text-slate-900 dark:text-slate-100 tracking-tight">
             {successRateText}
           </div>
-          <div className="flex items-center gap-1 text-[11px] font-bold text-emerald-600 dark:text-emerald-400">
-            <TrendingUp className="w-3 h-3" />
+          <div className="flex items-center gap-1.5 text-xs text-slate-600 dark:text-slate-400 font-medium">
+            <span
+              className={`w-1.5 h-1.5 rounded-full ${
+                successRateText !== "--" && parseInt(successRateText, 10) >= 80
+                  ? "bg-emerald-500"
+                  : "bg-slate-400"
+              }`}
+            />
             <span>
               {successRateText === "--"
                 ? "No builds recorded"
@@ -114,36 +119,27 @@ export const DashboardMetrics: React.FC<DashboardMetricsProps> = ({
             </span>
           </div>
         </div>
-
-        {/* Decorative mini wave sparkline */}
-        <div className="w-16 h-10 flex items-center justify-center opacity-70 group-hover:opacity-100 transition-opacity">
-          <svg
-            viewBox="0 0 64 32"
-            className="w-full h-full fill-none stroke-emerald-500 dark:stroke-emerald-400 stroke-2"
-          >
-            <path
-              d="M 2 24 C 12 16, 20 28, 30 18 C 40 8, 50 14, 62 6"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-            />
-          </svg>
-        </div>
-      </div>
+      </AmoledLiquidGlass>
 
       {/* Metric 4: Avg Deploy Time */}
-      <div className="backdrop-blur-2xl bg-white/70 dark:bg-[#16191f]/80 border border-white/90 dark:border-[#282d37] rounded-3xl p-5 shadow-lg shadow-sky-950/5 dark:shadow-black/30 hover:shadow-xl transition-all duration-200 flex items-center justify-between group">
-        <div className="space-y-2">
-          <div className="flex items-center gap-2 text-slate-600 dark:text-slate-400 font-bold text-xs">
-            <div className="p-1.5 rounded-xl bg-sky-100/80 dark:bg-sky-950/60 text-sky-600 dark:text-sky-400 border border-sky-200/60 dark:border-sky-800/40">
-              <Clock className="w-3.5 h-3.5" />
-            </div>
-            <span>Avg. Deploy Time</span>
+      <AmoledLiquidGlass
+        variant="card"
+        interactive={true}
+        className="p-4 sm:p-5 flex flex-col justify-between group"
+      >
+        <div className="flex items-center justify-between gap-2">
+          <span className="text-xs font-semibold text-slate-700 dark:text-slate-400">
+            Avg. Deploy Time
+          </span>
+          <div className="p-1.5 rounded-lg bg-sky-500/10 text-sky-600 dark:text-sky-400 border border-sky-500/15">
+            <Clock className="w-3.5 h-3.5" />
           </div>
-          <div className="text-2xl sm:text-3xl font-black text-slate-900 dark:text-[#f1f3f5] tracking-tight">
+        </div>
+        <div className="mt-3 space-y-1">
+          <div className="text-2xl sm:text-3xl font-semibold tabular-nums text-slate-900 dark:text-slate-100 tracking-tight">
             {avgDeployTimeText}
           </div>
-          <div className="flex items-center gap-1 text-[11px] font-bold text-sky-600 dark:text-sky-400">
-            <TrendingDown className="w-3 h-3" />
+          <div className="flex items-center gap-1.5 text-xs text-slate-600 dark:text-slate-400 font-medium font-mono">
             <span>
               {avgDeployTimeText === "--"
                 ? "Awaiting first run"
@@ -151,21 +147,7 @@ export const DashboardMetrics: React.FC<DashboardMetricsProps> = ({
             </span>
           </div>
         </div>
-
-        {/* Decorative mini wave sparkline */}
-        <div className="w-16 h-10 flex items-center justify-center opacity-70 group-hover:opacity-100 transition-opacity">
-          <svg
-            viewBox="0 0 64 32"
-            className="w-full h-full fill-none stroke-blue-500 dark:stroke-blue-400 stroke-2"
-          >
-            <path
-              d="M 2 20 C 14 26, 24 10, 36 14 C 46 18, 54 8, 62 10"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-            />
-          </svg>
-        </div>
-      </div>
+      </AmoledLiquidGlass>
     </div>
   );
 };

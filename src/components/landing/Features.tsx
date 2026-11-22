@@ -4,8 +4,7 @@ import {
   Bot,
   Terminal,
   KeyRound,
-  CheckCircle2,
-  Sparkles
+  CheckCircle2
 } from 'lucide-react';
 import { GithubLogo, DockerLogo } from '../ui/BrandIcons';
 import { motion, MotionValue, MotionStyle, useScroll, useTransform, useMotionValue } from 'motion/react';
@@ -187,11 +186,6 @@ export default function Features({
           style={{ y: headerY, opacity: headerOpacity }}
           className="text-center max-w-2xl mx-auto space-y-4"
         >
-          <div className="inline-flex items-center gap-2 backdrop-blur-md bg-white/60 dark:bg-[#16191f]/90 border border-slate-200/80 dark:border-[#282d37] rounded-full px-4 py-1 text-xs text-blue-900 dark:text-[#7BBBFF] font-bold shadow-xs">
-            <Sparkles className="w-3.5 h-3.5 text-blue-600 dark:text-[#7BBBFF]" />
-            <span>Platform Capabilities</span>
-          </div>
-
           <h2 className="font-display text-3xl sm:text-5xl font-bold text-slate-900 dark:text-white tracking-tight leading-tight">
             Everything You Need to Deploy Better
           </h2>
@@ -216,17 +210,12 @@ export default function Features({
             } bg-white/60 hover:bg-white/80 dark:bg-[#16191f]/85 dark:hover:bg-[#1e222b]/95 border border-white/80 dark:border-[#282d37] hover:border-blue-400/40 dark:hover:border-blue-500/30 rounded-3xl p-6 sm:p-8 shadow-lg shadow-sky-900/5 dark:shadow-black/30 hover:shadow-xl transition-all duration-300 flex flex-col justify-between group text-left cursor-default relative`}
           >
             <div>
-              <div className="flex items-center justify-between mb-4">
-                <div className="w-10 h-10 sm:w-11 sm:h-11 rounded-2xl bg-slate-100 dark:bg-[#1e222b] border border-slate-200/80 dark:border-[#282d37] flex items-center justify-center text-slate-800 dark:text-white group-hover:scale-105 transition-transform duration-300">
-                  <GithubLogo className="w-5 h-5 fill-current" />
-                </div>
-                <span className="text-[11px] font-mono font-bold text-blue-800 dark:text-blue-300 bg-blue-50/80 dark:bg-blue-950/60 border border-blue-200/70 dark:border-blue-800/60 px-3 py-1 rounded-full">
-                  Automated CI/CD
-                </span>
+              <div className="w-10 h-10 sm:w-11 sm:h-11 rounded-2xl bg-slate-100 dark:bg-[#1e222b] border border-slate-200/80 dark:border-[#282d37] flex items-center justify-center text-slate-800 dark:text-white group-hover:scale-105 transition-transform duration-300 mb-4 sm:mb-5">
+                <GithubLogo className="w-5 h-5 fill-current" />
               </div>
 
               <h3 className="font-display text-xl sm:text-2xl font-bold text-slate-900 dark:text-white mb-2 sm:mb-3">
-                GitHub Integration & Zero-Config Pipelines
+                GitHub Integration & Automated CI/CD Pipelines
               </h3>
 
               <p className="text-xs sm:text-sm text-slate-600 dark:text-slate-300 leading-relaxed mb-5 max-w-xl">
@@ -261,17 +250,12 @@ export default function Features({
             } bg-white/60 hover:bg-white/80 dark:bg-[#16191f]/85 dark:hover:bg-[#1e222b]/95 border border-white/80 dark:border-[#282d37] hover:border-blue-400/40 dark:hover:border-blue-500/30 rounded-3xl p-6 sm:p-8 shadow-lg shadow-sky-900/5 dark:shadow-black/30 hover:shadow-xl transition-all duration-300 flex flex-col justify-between group text-left cursor-default relative`}
           >
             <div>
-              <div className="flex items-center justify-between mb-4">
-                <div className="w-10 h-10 sm:w-11 sm:h-11 rounded-2xl bg-sky-50 dark:bg-[#1e222b] border border-sky-100 dark:border-[#282d37] flex items-center justify-center text-[#2496ED] group-hover:scale-105 transition-transform duration-300">
-                  <DockerLogo className="w-5.5 h-5.5 fill-current" />
-                </div>
-                <span className="text-[11px] font-mono font-bold text-sky-800 dark:text-sky-300 bg-sky-50/80 dark:bg-sky-950/60 border border-sky-200/70 dark:border-sky-800/60 px-3 py-1 rounded-full">
-                  Micro-VMs
-                </span>
+              <div className="w-10 h-10 sm:w-11 sm:h-11 rounded-2xl bg-sky-50 dark:bg-[#1e222b] border border-sky-100 dark:border-[#282d37] flex items-center justify-center text-[#2496ED] group-hover:scale-105 transition-transform duration-300 mb-4 sm:mb-5">
+                <DockerLogo className="w-5.5 h-5.5 fill-current" />
               </div>
 
               <h3 className="font-display text-xl sm:text-2xl font-bold text-slate-900 dark:text-white mb-2 sm:mb-3">
-                Docker Container Builder
+                Docker & Micro-VM Container Builder
               </h3>
 
               <p className="text-xs sm:text-sm text-slate-600 dark:text-slate-300 leading-relaxed mb-5">
@@ -303,17 +287,12 @@ export default function Features({
             } bg-white/60 hover:bg-white/80 dark:bg-[#16191f]/85 dark:hover:bg-[#1e222b]/95 border border-white/80 dark:border-[#282d37] hover:border-blue-400/40 dark:hover:border-blue-500/30 rounded-3xl p-6 sm:p-8 shadow-lg shadow-sky-900/5 dark:shadow-black/30 hover:shadow-xl transition-all duration-300 flex flex-col justify-between group text-left cursor-default relative`}
           >
             <div>
-              <div className="flex items-center justify-between mb-4">
-                <div className="w-10 h-10 sm:w-11 sm:h-11 rounded-2xl bg-amber-50 dark:bg-[#1e222b] border border-amber-100 dark:border-[#282d37] flex items-center justify-center text-amber-600 dark:text-amber-400 group-hover:scale-105 transition-transform duration-300">
-                  <KeyRound className="w-5 h-5" />
-                </div>
-                <span className="text-[11px] font-mono font-bold text-amber-800 dark:text-amber-300 bg-amber-50/80 dark:bg-amber-950/60 border border-amber-200/70 dark:border-amber-800/60 px-3 py-1 rounded-full">
-                  Pre-Flight Safety
-                </span>
+              <div className="w-10 h-10 sm:w-11 sm:h-11 rounded-2xl bg-amber-50 dark:bg-[#1e222b] border border-amber-100 dark:border-[#282d37] flex items-center justify-center text-amber-600 dark:text-amber-400 group-hover:scale-105 transition-transform duration-300 mb-4 sm:mb-5">
+                <KeyRound className="w-5 h-5" />
               </div>
 
               <h3 className="font-display text-xl sm:text-2xl font-bold text-slate-900 dark:text-white mb-2 sm:mb-3">
-                Environment Variable Validation
+                Pre-Flight Environment Variable Validation
               </h3>
 
               <p className="text-xs sm:text-sm text-slate-600 dark:text-slate-300 leading-relaxed mb-5">
@@ -351,17 +330,12 @@ export default function Features({
             } bg-white/60 hover:bg-white/80 dark:bg-[#16191f]/85 dark:hover:bg-[#1e222b]/95 border border-white/80 dark:border-[#282d37] hover:border-blue-400/40 dark:hover:border-blue-500/30 rounded-3xl p-6 sm:p-8 shadow-lg shadow-sky-900/5 dark:shadow-black/30 hover:shadow-xl transition-all duration-300 flex flex-col justify-between group text-left cursor-default relative`}
           >
             <div>
-              <div className="flex items-center justify-between mb-4">
-                <div className="w-10 h-10 sm:w-11 sm:h-11 rounded-2xl bg-indigo-50 dark:bg-[#1e222b] border border-indigo-100 dark:border-[#282d37] flex items-center justify-center text-indigo-600 dark:text-[#B8A9FF] group-hover:scale-105 transition-transform duration-300">
-                  <Terminal className="w-5 h-5" />
-                </div>
-                <span className="text-[11px] font-mono font-bold text-indigo-800 dark:text-[#B8A9FF] bg-indigo-50/80 dark:bg-indigo-950/60 border border-indigo-200/70 dark:border-indigo-800/60 px-3 py-1 rounded-full">
-                  AI Diagnostics
-                </span>
+              <div className="w-10 h-10 sm:w-11 sm:h-11 rounded-2xl bg-indigo-50 dark:bg-[#1e222b] border border-indigo-100 dark:border-[#282d37] flex items-center justify-center text-indigo-600 dark:text-[#B8A9FF] group-hover:scale-105 transition-transform duration-300 mb-4 sm:mb-5">
+                <Terminal className="w-5 h-5" />
               </div>
 
               <h3 className="font-display text-xl sm:text-2xl font-bold text-slate-900 dark:text-white mb-2 sm:mb-3">
-                Deployment Logs & HAVN AI Assistant
+                Deployment Logs & HAVN AI Diagnostics
               </h3>
 
               <p className="text-xs sm:text-sm text-slate-600 dark:text-slate-300 leading-relaxed mb-5 max-w-xl">

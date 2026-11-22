@@ -18,7 +18,6 @@ import {
   restartDeployment,
 } from '../services/deployment.service';
 import { HavnAiAssistant } from '../components/dashboard/HavnAiAssistant';
-import { HavnClouds } from '../components/landing/HavnClouds';
 import { ThemeToggle } from '../components/ui/ThemeToggle';
 
 const MAX_RENDER_LINES = 2500;
@@ -507,10 +506,7 @@ export default function DeploymentConsolePage() {
 
   return (
     <div className="h-screen w-screen overflow-hidden flex flex-col bg-gradient-to-b from-[#f2f7fd] via-[#ebf3fc] to-[#f4f8fe] dark:from-[#0a0c0e] dark:via-[#0d0f12] dark:to-[#12151a] text-slate-800 dark:text-slate-100 select-text relative font-sans transition-colors duration-200">
-      {/* Subtle Atmospheric Havn Clouds in the Background */}
-      <div className="absolute inset-0 pointer-events-none z-0 overflow-hidden opacity-30 dark:opacity-20">
-        <HavnClouds speed={0.2} />
-      </div>
+
 
       {/* Soft Sky Ambient Radial Glows */}
       <div className="absolute inset-0 overflow-hidden pointer-events-none z-0">

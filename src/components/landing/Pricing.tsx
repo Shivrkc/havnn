@@ -273,11 +273,6 @@ export default function Pricing() {
         
         {/* Header content block */}
         <div className="text-center max-w-3xl mx-auto space-y-4">
-          <div className="inline-flex items-center gap-2 backdrop-blur-md bg-white/50 dark:bg-slate-900/60 border border-white/80 dark:border-white/15 rounded-full px-4 py-1.5 text-xs text-blue-900 dark:text-blue-300 font-bold shadow-xs">
-            <Sparkles className="w-3.5 h-3.5 text-blue-600 dark:text-blue-400" />
-            <span>FLEXIBLE SCALE INFRASTRUCTURE</span>
-          </div>
-
           <h2 className="text-4xl sm:text-5xl font-extrabold text-slate-900 dark:text-white tracking-tight leading-tight">
             Predictable resource bounds.
           </h2>

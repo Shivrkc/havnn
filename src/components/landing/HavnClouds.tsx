@@ -133,6 +133,7 @@ export const HavnClouds: React.FC<HavnCloudsProps> = ({
     }
 
     // IntersectionObserver to pause Three.js render loop when off-screen and resume when visible
+    let isElementVisible = true;
     let observer: IntersectionObserver | null = null;
     if (typeof IntersectionObserver !== 'undefined') {
       observer = new IntersectionObserver(
@@ -140,10 +141,11 @@ export const HavnClouds: React.FC<HavnCloudsProps> = ({
           entries.forEach((entry) => {
             const effect = vantaEffectRef.current as any;
             if (!effect) return;
+            isElementVisible = entry.isIntersecting;
             const currentReducedMotion = !import.meta.env.DEV && mediaQuery ? mediaQuery.matches : false;
             if (currentReducedMotion) return;
 
-            if (entry.isIntersecting) {
+            if (isElementVisible && !document.hidden) {
               // Resume Three.js render loop
               if (!effect.req && typeof effect.animationLoop === 'function') {
                 effect.prevNow = null;
@@ -163,7 +165,28 @@ export const HavnClouds: React.FC<HavnCloudsProps> = ({
       observer.observe(element);
     }
 
+    const handleVisibility = () => {
+      const effect = vantaEffectRef.current as any;
+      if (!effect) return;
+      const currentReducedMotion = !import.meta.env.DEV && mediaQuery ? mediaQuery.matches : false;
+      if (currentReducedMotion) return;
+
+      if (!document.hidden && isElementVisible) {
+        if (!effect.req && typeof effect.animationLoop === 'function') {
+          effect.prevNow = null;
+          effect.animationLoop();
+        }
+      } else {
+        if (effect.req) {
+          window.cancelAnimationFrame(effect.req);
+          effect.req = null;
+        }
+      }
+    };
+    document.addEventListener('visibilitychange', handleVisibility);
+
     return () => {
+      document.removeEventListener('visibilitychange', handleVisibility);
       if (observer) {
         observer.disconnect();
       }

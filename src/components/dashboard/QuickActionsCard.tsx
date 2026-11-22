@@ -1,6 +1,7 @@
 import React from "react";
 import { Plus, Database, Globe } from "lucide-react";
 import { GithubLogo } from "../ui/BrandIcons";
+import { AmoledLiquidGlass } from "../ui/AmoledLiquidGlass";
 
 interface QuickActionsCardProps {
   onNewProject: () => void;
@@ -16,8 +17,8 @@ export const QuickActionsCard: React.FC<QuickActionsCardProps> = ({
   onManageDomains,
 }) => {
   return (
-    <div className="backdrop-blur-2xl bg-white/75 dark:bg-[#16191f]/85 border border-white/90 dark:border-[#282d37] rounded-3xl p-5 shadow-lg shadow-sky-950/5 dark:shadow-black/30 space-y-3">
-      <h3 className="text-xs font-extrabold text-slate-900 dark:text-[#f1f3f5] tracking-tight">
+    <AmoledLiquidGlass variant="card" className="p-4 sm:p-5 space-y-3">
+      <h3 className="text-xs font-semibold text-slate-900 dark:text-slate-100 tracking-tight">
         Quick Actions
       </h3>
 
@@ -26,15 +27,15 @@ export const QuickActionsCard: React.FC<QuickActionsCardProps> = ({
         <button
           type="button"
           onClick={onNewProject}
-          className="p-3 rounded-2xl bg-white/60 dark:bg-[#1e222b]/60 border border-slate-200/60 dark:border-[#282d37] hover:bg-blue-50/60 dark:hover:bg-[#252a35] hover:border-blue-300 dark:hover:border-blue-700 transition-all text-left group cursor-pointer"
+          className="p-3 rounded-xl bg-white/35 dark:bg-[#181d28]/70 border border-white/45 dark:border-white/[0.06] hover:bg-white/55 dark:hover:bg-[#1e2535] hover:border-[#1453E6]/40 dark:hover:border-[#1453E6]/50 transition-colors shadow-[inset_0_1px_0_0_rgba(255,255,255,0.7),0_2px_6px_-2px_rgba(12,50,110,0.04)] focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-[#1453E6]/40 text-left cursor-pointer group"
         >
-          <div className="w-7 h-7 rounded-xl bg-blue-100/80 dark:bg-blue-950/60 text-blue-600 dark:text-blue-400 flex items-center justify-center mb-1.5 group-hover:scale-105 transition-transform">
-            <Plus className="w-4 h-4" />
+          <div className="w-7 h-7 rounded-lg bg-[#1453E6]/10 text-[#1453E6] dark:text-blue-400 border border-[#1453E6]/15 flex items-center justify-center mb-1.5">
+            <Plus className="w-3.5 h-3.5" />
           </div>
-          <p className="text-xs font-bold text-slate-900 dark:text-[#f1f3f5] truncate">
+          <p className="text-xs font-medium text-slate-900 dark:text-slate-100 truncate">
             New Project
           </p>
-          <p className="text-[10px] text-slate-400 dark:text-slate-500 truncate">
+          <p className="text-[11px] text-slate-500 dark:text-slate-400 truncate">
             Deploy application
           </p>
         </button>
@@ -43,15 +44,15 @@ export const QuickActionsCard: React.FC<QuickActionsCardProps> = ({
         <button
           type="button"
           onClick={onConnectRepository}
-          className="p-3 rounded-2xl bg-white/60 dark:bg-[#1e222b]/60 border border-slate-200/60 dark:border-[#282d37] hover:bg-slate-100/60 dark:hover:bg-[#252a35] hover:border-slate-300 dark:hover:border-slate-600 transition-all text-left group cursor-pointer"
+          className="p-3 rounded-xl bg-white/35 dark:bg-[#181d28]/70 border border-white/45 dark:border-white/[0.06] hover:bg-white/55 dark:hover:bg-[#1f2533] hover:border-white/80 dark:hover:border-white/[0.14] transition-colors shadow-[inset_0_1px_0_0_rgba(255,255,255,0.7),0_2px_6px_-2px_rgba(12,50,110,0.04)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-500/40 text-left cursor-pointer group"
         >
-          <div className="w-7 h-7 rounded-xl bg-slate-900 dark:bg-[#1e222b] text-white flex items-center justify-center mb-1.5 group-hover:scale-105 transition-transform">
+          <div className="w-7 h-7 rounded-lg bg-slate-200/80 dark:bg-[#252b3b] text-slate-800 dark:text-slate-200 border border-slate-300/40 dark:border-white/[0.08] flex items-center justify-center mb-1.5">
             <GithubLogo className="w-3.5 h-3.5 fill-current" />
           </div>
-          <p className="text-xs font-bold text-slate-900 dark:text-[#f1f3f5] truncate">
+          <p className="text-xs font-medium text-slate-900 dark:text-slate-100 truncate">
             Connect Repo
           </p>
-          <p className="text-[10px] text-slate-400 dark:text-slate-500 truncate">
+          <p className="text-[11px] text-slate-500 dark:text-slate-400 truncate">
             Link GitHub repo
           </p>
         </button>
@@ -60,15 +61,15 @@ export const QuickActionsCard: React.FC<QuickActionsCardProps> = ({
         <button
           type="button"
           onClick={onAddDatabase}
-          className="p-3 rounded-2xl bg-white/60 dark:bg-[#1e222b]/60 border border-slate-200/60 dark:border-[#282d37] hover:bg-blue-50/60 dark:hover:bg-[#252a35] hover:border-blue-300 dark:hover:border-blue-700 transition-all text-left group cursor-pointer"
+          className="p-3 rounded-xl bg-white/35 dark:bg-[#181d28]/70 border border-white/45 dark:border-white/[0.06] hover:bg-white/55 dark:hover:bg-[#22213a] hover:border-indigo-300/60 dark:hover:border-indigo-700/50 transition-colors shadow-[inset_0_1px_0_0_rgba(255,255,255,0.7),0_2px_6px_-2px_rgba(12,50,110,0.04)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-500/40 text-left cursor-pointer group"
         >
-          <div className="w-7 h-7 rounded-xl bg-indigo-100/80 dark:bg-indigo-950/60 text-indigo-600 dark:text-indigo-400 flex items-center justify-center mb-1.5 group-hover:scale-105 transition-transform">
+          <div className="w-7 h-7 rounded-lg bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 border border-indigo-500/15 flex items-center justify-center mb-1.5">
             <Database className="w-3.5 h-3.5" />
           </div>
-          <p className="text-xs font-bold text-slate-900 dark:text-[#f1f3f5] truncate">
+          <p className="text-xs font-medium text-slate-900 dark:text-slate-100 truncate">
             Add Database
           </p>
-          <p className="text-[10px] text-slate-400 dark:text-slate-500 truncate">
+          <p className="text-[11px] text-slate-500 dark:text-slate-400 truncate">
             PostgreSQL instance
           </p>
         </button>
@@ -77,19 +78,19 @@ export const QuickActionsCard: React.FC<QuickActionsCardProps> = ({
         <button
           type="button"
           onClick={onManageDomains}
-          className="p-3 rounded-2xl bg-white/60 dark:bg-[#1e222b]/60 border border-slate-200/60 dark:border-[#282d37] hover:bg-sky-50/60 dark:hover:bg-[#252a35] hover:border-sky-300 dark:hover:border-sky-700 transition-all text-left group cursor-pointer"
+          className="p-3 rounded-xl bg-white/35 dark:bg-[#181d28]/70 border border-white/45 dark:border-white/[0.06] hover:bg-white/55 dark:hover:bg-[#1b2738] hover:border-sky-300/60 dark:hover:border-sky-700/50 transition-colors shadow-[inset_0_1px_0_0_rgba(255,255,255,0.7),0_2px_6px_-2px_rgba(12,50,110,0.04)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-500/40 text-left cursor-pointer group"
         >
-          <div className="w-7 h-7 rounded-xl bg-sky-100/80 dark:bg-sky-950/60 text-sky-600 dark:text-sky-400 flex items-center justify-center mb-1.5 group-hover:scale-105 transition-transform">
+          <div className="w-7 h-7 rounded-lg bg-sky-500/10 text-sky-600 dark:text-sky-400 border border-sky-500/15 flex items-center justify-center mb-1.5">
             <Globe className="w-3.5 h-3.5" />
           </div>
-          <p className="text-xs font-bold text-slate-900 dark:text-[#f1f3f5] truncate">
+          <p className="text-xs font-medium text-slate-900 dark:text-slate-100 truncate">
             Manage Domains
           </p>
-          <p className="text-[10px] text-slate-400 dark:text-slate-500 truncate">
+          <p className="text-[11px] text-slate-500 dark:text-slate-400 truncate">
             Configure domains
           </p>
         </button>
       </div>
-    </div>
+    </AmoledLiquidGlass>
   );
 };

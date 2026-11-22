@@ -1,21 +1,28 @@
-import { useEffect } from "react";
+import { useEffect, Suspense, lazy } from "react";
 import { Routes, Route, useLocation } from "react-router-dom";
 import { ROUTES } from "./constants/routes";
 
 import Navbar from "./components/layout/Navbar";
-
-import CinematicLanding from "./components/landing/CinematicLanding";
-
-import Login from "./pages/Login";
-import Signup from "./pages/Signup";
-import VerifyEmail from "./pages/VerifyEmail";
-import ResetPassword from "./pages/ResetPassword";
-import ForgotPassword from "./pages/ForgotPassword";
-import Dashboard from "./pages/Dashboard";
-import Profile from "./pages/Profile";
-import DeploymentConsolePage from "./pages/DeploymentConsolePage";
 import ProtectedRoute from "./components/auth/ProtectedRoute";
-import OAuthCallback from "./pages/OAuthCallback";
+
+const CinematicLanding = lazy(() => import("./components/landing/CinematicLanding"));
+const Login = lazy(() => import("./pages/Login"));
+const Signup = lazy(() => import("./pages/Signup"));
+const VerifyEmail = lazy(() => import("./pages/VerifyEmail"));
+const ResetPassword = lazy(() => import("./pages/ResetPassword"));
+const ForgotPassword = lazy(() => import("./pages/ForgotPassword"));
+const Dashboard = lazy(() => import("./pages/Dashboard"));
+const Profile = lazy(() => import("./pages/Profile"));
+const DeploymentConsolePage = lazy(() => import("./pages/DeploymentConsolePage"));
+const OAuthCallback = lazy(() => import("./pages/OAuthCallback"));
+
+function RouteLoadingFallback() {
+  return (
+    <div className="flex-1 flex items-center justify-center min-h-[50vh]">
+      <div className="w-6 h-6 border-2 border-blue-600/30 border-t-blue-600 rounded-full animate-spin" />
+    </div>
+  );
+}
 export default function App() {
   const location = useLocation();
 
@@ -54,6 +61,7 @@ export default function App() {
       <Navbar scrollToSection={scrollToSection} />
 
       {/* Render Active View via React Router v7 */}
+      <Suspense fallback={<RouteLoadingFallback />}>
       <Routes>
         <Route
           path={ROUTES.HOME}
@@ -144,6 +152,7 @@ export default function App() {
           }
         />
       </Routes>
+      </Suspense>
     </div>
   );
 }

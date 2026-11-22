@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect } from 'react';
-import { HelpCircle, Plus, Minus, ArrowUpRight } from 'lucide-react';
+import { Plus, Minus, ArrowUpRight } from 'lucide-react';
 import { GithubLogo } from '../ui/BrandIcons';
 import { motion, AnimatePresence, useScroll, useTransform } from 'motion/react';
 import { EASE_PREMIUM, useMotionEnvironment } from './motionSystem';
@@ -75,7 +75,7 @@ export default function Faq() {
       const listH = listRef.current.scrollHeight;
       const vpH = viewportRef.current.clientHeight;
       const travel = Math.max(0, listH - vpH + 36);
-      setMaxTravel(travel);
+      setMaxTravel((prev) => (Math.abs(prev - travel) > 1 ? travel : prev));
     };
 
     updateTravel();
@@ -115,11 +115,6 @@ export default function Faq() {
 
           {/* LEFT COLUMN: Eyebrow + Heading + Subtitle + Reassurance (Firmly anchored) */}
           <div className="lg:col-span-5 text-left space-y-5">
-            <div className="inline-flex items-center gap-2 backdrop-blur-md bg-white/60 dark:bg-[#16191f]/90 border border-slate-200/80 dark:border-[#282d37] rounded-full px-4 py-1 text-xs text-blue-900 dark:text-[#7BBBFF] font-bold shadow-xs">
-              <HelpCircle className="w-3.5 h-3.5 text-blue-600 dark:text-[#7BBBFF]" />
-              <span>Got Questions?</span>
-            </div>
-
             <h2 className="font-display text-3xl sm:text-5xl font-bold text-slate-900 dark:text-white tracking-tight leading-tight">
               Frequently Asked Questions
             </h2>

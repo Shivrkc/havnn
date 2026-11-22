@@ -1,6 +1,7 @@
 import React, { useState, useMemo } from "react";
 import { ChevronRight, ArrowUpRight, BarChart2 } from "lucide-react";
 import { Deployment } from "../../types";
+import { AmoledLiquidGlass } from "../ui/AmoledLiquidGlass";
 
 interface DeploymentActivityChartProps {
   deployments: Deployment[];
@@ -132,19 +133,20 @@ export const DeploymentActivityChart: React.FC<
     activeTooltipIndex !== null ? coords[activeTooltipIndex] : null;
 
   return (
-    <div
-      className={`backdrop-blur-2xl bg-white/75 dark:bg-[#16191f]/85 border border-white/90 dark:border-[#282d37] rounded-3xl p-5 shadow-lg shadow-sky-950/5 dark:shadow-black/30 space-y-3.5 ${isDetailed ? "p-6 sm:p-7" : ""}`}
+    <AmoledLiquidGlass
+      variant="panel"
+      className={`p-4 sm:p-5 space-y-3.5 ${isDetailed ? "p-6 sm:p-7" : ""}`}
     >
       {/* Header with Title, Range Selector & View Analytics link */}
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div className="flex items-center gap-2">
           {isDetailed && (
-            <div className="w-8 h-8 rounded-xl bg-blue-100/80 dark:bg-blue-950/60 text-blue-600 dark:text-blue-400 border border-blue-200/60 dark:border-blue-800/40 flex items-center justify-center shrink-0">
+            <div className="w-8 h-8 rounded-lg bg-sky-50 dark:bg-sky-950/40 text-sky-600 dark:text-sky-400 border border-sky-200/50 dark:border-sky-800/30 flex items-center justify-center shrink-0">
               <BarChart2 className="w-4 h-4" />
             </div>
           )}
           <div>
-            <h3 className="text-xs font-extrabold text-slate-900 dark:text-[#f1f3f5] tracking-tight flex items-center gap-1.5">
+            <h3 className="text-xs font-semibold text-slate-900 dark:text-slate-100 tracking-tight flex items-center gap-1.5">
               <span>
                 {isDetailed
                   ? "Deployment Cadence & Frequency"
@@ -152,7 +154,7 @@ export const DeploymentActivityChart: React.FC<
               </span>
             </h3>
             {isDetailed && (
-              <p className="text-[11px] text-slate-500 dark:text-slate-400 font-medium">
+              <p className="text-[11px] text-slate-500 dark:text-slate-400 font-normal">
                 Temporal pipeline throughput and execution volume over time
               </p>
             )}
@@ -162,7 +164,7 @@ export const DeploymentActivityChart: React.FC<
         {/* Interactive Controls */}
         <div className="flex items-center gap-2">
           {/* Compact Date Range Tabs */}
-          <div className="flex items-center p-0.5 bg-slate-100/80 dark:bg-[#12151a]/80 border border-slate-200/60 dark:border-[#282d37] rounded-xl text-[10px] font-bold font-mono">
+          <div className="flex items-center p-0.5 bg-white/50 dark:bg-white/[0.04] border border-white/50 dark:border-white/[0.06] rounded-lg text-[10px] font-mono shadow-2xs">
             {(["7d", "14d", "30d", "90d"] as DateRange[]).map((r) => (
               <button
                 key={r}
@@ -171,10 +173,10 @@ export const DeploymentActivityChart: React.FC<
                   setSelectedRange(r);
                   setHoveredIndex(null);
                 }}
-                className={`px-2 py-1 rounded-lg transition-all cursor-pointer ${
+                className={`px-2 py-0.5 rounded-md transition-colors cursor-pointer focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-sky-500/40 ${
                   selectedRange === r
-                    ? "bg-blue-600 text-white shadow-xs"
-                    : "text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200"
+                    ? "bg-sky-600 text-white shadow-xs font-medium"
+                    : "text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200"
                 }`}
               >
                 {r.toUpperCase()}
@@ -187,7 +189,7 @@ export const DeploymentActivityChart: React.FC<
             <button
               type="button"
               onClick={onViewAnalytics}
-              className="text-xs font-bold text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 transition-colors flex items-center gap-0.5 cursor-pointer ml-1"
+              className="text-xs font-medium text-sky-600 dark:text-sky-400 hover:text-sky-700 dark:hover:text-sky-300 hover:underline transition-colors flex items-center gap-0.5 cursor-pointer ml-1 focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-sky-500/40 rounded-sm"
               title="Open detailed analytics"
             >
               <span>View Analytics</span>
@@ -198,7 +200,7 @@ export const DeploymentActivityChart: React.FC<
               <button
                 type="button"
                 onClick={onViewAll}
-                className="text-slate-400 hover:text-blue-600 dark:hover:text-blue-400 transition-colors cursor-pointer"
+                className="text-slate-400 hover:text-sky-600 dark:hover:text-sky-400 transition-colors cursor-pointer focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-sky-500/40 rounded-sm"
                 title="View full deployment history"
               >
                 <ChevronRight className="w-4 h-4" />
@@ -225,8 +227,8 @@ export const DeploymentActivityChart: React.FC<
               x2="0"
               y2="1"
             >
-              <stop offset="0%" stopColor="#2563eb" stopOpacity="0.30" />
-              <stop offset="100%" stopColor="#2563eb" stopOpacity="0.0" />
+              <stop offset="0%" stopColor="#0284c7" stopOpacity="0.25" />
+              <stop offset="100%" stopColor="#0284c7" stopOpacity="0.0" />
             </linearGradient>
           </defs>
 
@@ -266,7 +268,7 @@ export const DeploymentActivityChart: React.FC<
           <path
             d={linePath}
             fill="none"
-            stroke="#2563eb"
+            stroke="#0284c7"
             strokeWidth={isDetailed ? "3" : "2.5"}
             strokeLinecap="round"
             strokeLinejoin="round"
@@ -400,6 +402,6 @@ export const DeploymentActivityChart: React.FC<
           {totalInPeriod} {totalInPeriod === 1 ? "total run" : "total runs"}
         </span>
       </div>
-    </div>
+    </AmoledLiquidGlass>
   );
 };

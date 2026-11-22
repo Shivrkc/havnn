@@ -441,23 +441,23 @@ export const BuildLogModal: React.FC<BuildLogModalProps> = ({
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-slate-900/40 dark:bg-black/70 backdrop-blur-md animate-fade-in">
-      <div className="bg-white/95 dark:bg-[#12151a]/95 backdrop-blur-xl border border-sky-200/80 dark:border-[#282d37] rounded-3xl w-full max-w-4xl h-[88vh] max-h-[850px] min-h-[520px] overflow-hidden shadow-2xl flex flex-col motion-safe:animate-fade-in-up text-slate-800 dark:text-slate-100">
+      <div className="bg-white/85 dark:bg-[#07080B]/90 backdrop-blur-2xl border border-white/80 dark:border-white/[0.12] shadow-[inset_0_1px_0_0_rgba(255,255,255,0.95),0_24px_64px_-12px_rgba(15,23,42,0.18)] dark:shadow-[inset_0_1px_0_0_rgba(255,255,255,0.15),0_24px_64px_0_rgba(0,0,0,0.85)] rounded-2xl w-full max-w-4xl h-[88vh] max-h-[850px] min-h-[520px] overflow-hidden flex flex-col motion-safe:animate-fade-in-up text-slate-800 dark:text-slate-100">
         {/* Compact Header */}
-        <div className="px-4 sm:px-6 py-2.5 border-b border-sky-200/60 dark:border-[#282d37] flex items-center justify-between bg-white/80 dark:bg-[#16191f]/80 backdrop-blur-md shrink-0">
+        <div className="px-4 sm:px-6 py-2.5 border-b border-slate-200/50 dark:border-white/[0.08] flex items-center justify-between bg-white/70 dark:bg-[#0A0D12]/80 backdrop-blur-md shrink-0">
           <div className="space-y-0.5">
             <div className="flex items-center gap-2">
-              <Terminal className="w-4 h-4 text-blue-600 dark:text-blue-400" />
-              <h3 className="text-sm font-bold text-slate-900 dark:text-white tracking-wide">
+              <Terminal className="w-4 h-4 text-sky-600 dark:text-sky-400" />
+              <h3 className="text-sm font-semibold text-slate-900 dark:text-slate-100 tracking-wide">
                 Build & Deployment Console
               </h3>
               {/* Status Badge */}
               {renderStatusBadge()}
             </div>
             <p className="text-xs text-slate-500 dark:text-slate-400 flex items-center gap-2">
-              <span className="font-semibold text-slate-700 dark:text-slate-200">{projectName || deployment?.repositoryName || 'Deployment'}</span>
+              <span className="font-medium text-slate-700 dark:text-slate-200">{projectName || deployment?.repositoryName || 'Deployment'}</span>
               {deployment?.branch && (
-                <span className="flex items-center gap-1 font-mono text-[11px] text-blue-700 bg-blue-50 dark:text-blue-300 dark:bg-blue-950/60 px-2 py-0.5 rounded border border-blue-200 dark:border-blue-800/60">
-                  <GitBranch className="w-3 h-3 text-blue-600 dark:text-blue-400" /> {deployment.branch}
+                <span className="flex items-center gap-1 font-mono text-[11px] text-sky-700 bg-sky-50 dark:text-sky-300 dark:bg-sky-950/60 px-2 py-0.5 rounded border border-sky-200 dark:border-sky-800/60">
+                  <GitBranch className="w-3 h-3 text-sky-600 dark:text-sky-400" /> {deployment.branch}
                 </span>
               )}
               {deployment?.commitSha && (
@@ -474,7 +474,7 @@ export const BuildLogModal: React.FC<BuildLogModalProps> = ({
                 type="button"
                 onClick={handleStop}
                 disabled={isStopping}
-                className="text-xs text-rose-700 hover:text-rose-800 bg-rose-50 hover:bg-rose-100 border border-rose-200 dark:text-rose-300 dark:hover:text-rose-200 dark:bg-rose-950/40 dark:hover:bg-rose-900/50 dark:border-rose-800/60 rounded-xl px-2.5 py-1.5 transition-all flex items-center gap-1 cursor-pointer disabled:opacity-50 font-semibold shadow-2xs"
+                className="text-xs text-rose-700 hover:text-rose-800 bg-rose-50 hover:bg-rose-100 border border-rose-200 dark:text-rose-300 dark:hover:text-rose-200 dark:bg-rose-950/40 dark:hover:bg-rose-900/50 dark:border-rose-800/60 rounded-lg px-2.5 py-1.5 transition-colors flex items-center gap-1 cursor-pointer disabled:opacity-50 font-medium focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-rose-500/40"
                 title="Stop container"
               >
                 {isStopping ? <RefreshCw className="w-3 h-3 animate-spin text-rose-600" /> : <Square className="w-3 h-3 fill-current text-rose-600" />}
@@ -487,7 +487,7 @@ export const BuildLogModal: React.FC<BuildLogModalProps> = ({
                 type="button"
                 onClick={handleRestart}
                 disabled={isRestarting}
-                className="text-xs text-white bg-emerald-600 hover:bg-emerald-500 rounded-xl px-3 py-1.5 transition-all flex items-center gap-1 cursor-pointer disabled:opacity-50 font-semibold shadow-md shadow-emerald-600/20"
+                className="text-xs text-white bg-emerald-600 hover:bg-emerald-500 rounded-lg px-3 py-1.5 transition-colors flex items-center gap-1 cursor-pointer disabled:opacity-50 font-medium shadow-xs focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-emerald-500/40"
                 title="Restart container"
               >
                 {isRestarting ? <RefreshCw className="w-3 h-3 animate-spin" /> : <RotateCw className="w-3 h-3" />}
@@ -499,7 +499,7 @@ export const BuildLogModal: React.FC<BuildLogModalProps> = ({
                 type="button"
                 onClick={handleCancel}
                 disabled={isCancelling}
-                className="text-xs text-rose-600 hover:text-rose-700 bg-rose-50 hover:bg-rose-100 border border-rose-200 dark:text-rose-400 dark:hover:text-rose-300 dark:bg-rose-950/40 dark:hover:bg-rose-900/50 dark:border-rose-800/60 rounded-xl px-2.5 py-1.5 transition-all flex items-center gap-1.5 cursor-pointer disabled:opacity-50"
+                className="text-xs text-rose-600 hover:text-rose-700 bg-rose-50 hover:bg-rose-100 border border-rose-200 dark:text-rose-400 dark:hover:text-rose-300 dark:bg-rose-950/40 dark:hover:bg-rose-900/50 dark:border-rose-800/60 rounded-lg px-2.5 py-1.5 transition-colors flex items-center gap-1.5 cursor-pointer disabled:opacity-50 font-medium focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-rose-500/40"
               >
                 {isCancelling ? <RefreshCw className="w-3 h-3 animate-spin" /> : <ShieldAlert className="w-3.5 h-3.5" />}
                 <span className="hidden sm:inline">Cancel Run</span>
@@ -514,7 +514,7 @@ export const BuildLogModal: React.FC<BuildLogModalProps> = ({
                 onClose();
                 navigate(`/dashboard/deployments/${deploymentId}`);
               }}
-              className="p-1.5 text-slate-500 hover:text-slate-800 dark:text-slate-400 dark:hover:text-white rounded-xl hover:bg-slate-100 dark:hover:bg-[#1e222b] transition-colors cursor-pointer border border-transparent hover:border-slate-200 dark:hover:border-[#282d37]"
+              className="p-1.5 text-slate-500 hover:text-slate-800 dark:text-slate-400 dark:hover:text-white rounded-lg hover:bg-slate-100 dark:hover:bg-white/[0.06] transition-colors cursor-pointer border border-transparent hover:border-slate-200 dark:hover:border-white/[0.08] focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-sky-500/40"
               title="Open dedicated full-page deployment console"
               aria-label="Open dedicated full-page deployment console"
             >
@@ -528,7 +528,7 @@ export const BuildLogModal: React.FC<BuildLogModalProps> = ({
             <button
               type="button"
               onClick={onClose}
-              className="p-1.5 text-slate-500 hover:text-slate-800 dark:text-slate-400 dark:hover:text-white rounded-xl hover:bg-slate-100 dark:hover:bg-[#1e222b] transition-colors cursor-pointer border border-transparent hover:border-slate-200 dark:hover:border-[#282d37]"
+              className="p-1.5 text-slate-500 hover:text-slate-800 dark:text-slate-400 dark:hover:text-white rounded-lg hover:bg-slate-100 dark:hover:bg-white/[0.06] transition-colors cursor-pointer border border-transparent hover:border-slate-200 dark:hover:border-white/[0.08] focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-sky-500/40"
               title="Close"
               aria-label="Close deployment console"
             >

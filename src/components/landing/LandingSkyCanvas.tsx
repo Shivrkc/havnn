@@ -195,7 +195,20 @@ export default function LandingSkyCanvas({
       observer.observe(canvas.parentElement);
     }
 
+    const handleVisibility = () => {
+      if (document.hidden) {
+        if (animationFrameId) {
+          cancelAnimationFrame(animationFrameId);
+        }
+      } else if (isVisible && !prefersReducedMotion) {
+        cancelAnimationFrame(animationFrameId);
+        animationFrameId = requestAnimationFrame(render);
+      }
+    };
+    document.addEventListener('visibilitychange', handleVisibility);
+
     return () => {
+      document.removeEventListener('visibilitychange', handleVisibility);
       observer.disconnect();
       if (animationFrameId) {
         cancelAnimationFrame(animationFrameId);

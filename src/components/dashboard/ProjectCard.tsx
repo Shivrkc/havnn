@@ -21,6 +21,7 @@ import {
 import { GithubLogo } from "../ui/BrandIcons";
 import { Project } from "../../types";
 import { getEligibleRestartDeployment, getProjectLiveRuntime } from "../../utils/deployment.utils";
+import { AmoledLiquidGlass } from "../ui/AmoledLiquidGlass";
 
 interface ProjectCardProps {
   project: Project;
@@ -149,78 +150,78 @@ export const ProjectCard: React.FC<ProjectCardProps> = ({
   };
 
   const renderStatusBadge = () => {
-    if (isLiveRunning) {
-      return (
-        <span className="flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 border border-emerald-500/20 text-[10px] font-bold">
-          <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
-          Running
-        </span>
-      );
-    }
     if (isStarting) {
       return (
-        <span className="flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-sky-500/10 text-sky-700 dark:text-sky-400 border border-sky-500/20 text-[10px] font-bold">
-          <RefreshCw className="w-3 h-3 animate-spin text-sky-600 dark:text-sky-400" />
-          Starting...
+        <span className="flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-sky-500/10 text-sky-700 dark:text-sky-300 border border-sky-500/20 text-[11px] font-medium">
+          <RefreshCw className="w-3 h-3 animate-spin text-sky-600 dark:text-sky-400 shrink-0" />
+          <span>Starting...</span>
         </span>
       );
     }
     if (isImageCompiled) {
       return (
         <span
-          className="flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-indigo-500/10 text-indigo-700 dark:text-indigo-400 border border-indigo-500/20 text-[10px] font-bold"
+          className="flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-indigo-500/10 text-indigo-700 dark:text-indigo-300 border border-indigo-500/20 text-[11px] font-medium"
           title="Docker image compiled. Container not started yet."
         >
-          <CheckCircle2 className="w-3 h-3 text-indigo-600 dark:text-indigo-400" />
-          Image Compiled
+          <CheckCircle2 className="w-3 h-3 text-indigo-600 dark:text-indigo-400 shrink-0" />
+          <span>Image Compiled</span>
         </span>
       );
     }
     if (isBuilding) {
       return (
-        <span className="flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-blue-500/10 text-blue-700 dark:text-blue-400 border border-blue-500/20 text-[10px] font-bold">
-          <RefreshCw className="w-3 h-3 animate-spin text-blue-600 dark:text-blue-400" />
-          {effectiveStatus === "QUEUED" || project.status === "queued" ? "Queued" : "Building"}
+        <span className="flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-blue-500/10 text-blue-700 dark:text-blue-300 border border-blue-500/20 text-[11px] font-medium">
+          <RefreshCw className="w-3 h-3 animate-spin text-blue-600 dark:text-blue-400 shrink-0" />
+          <span>{effectiveStatus === "QUEUED" || project.status === "queued" ? "Queued" : "Building"}</span>
         </span>
       );
     }
     if (isStopped) {
       return (
-        <span className="flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-zinc-500/10 text-zinc-700 dark:text-zinc-400 border border-zinc-500/20 text-[10px] font-bold">
-          <Square className="w-2.5 h-2.5 fill-current text-zinc-500" />
-          Stopped
+        <span className="flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-zinc-500/10 text-zinc-700 dark:text-zinc-300 border border-zinc-500/20 text-[11px] font-medium">
+          <Square className="w-2.5 h-2.5 fill-current text-zinc-500 shrink-0" />
+          <span>Stopped</span>
         </span>
       );
     }
     if (isCrashed) {
       return (
         <span
-          className="flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-amber-500/15 text-amber-800 dark:text-amber-300 border border-amber-500/30 text-[10px] font-bold"
+          className="flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-amber-500/15 text-amber-800 dark:text-amber-300 border border-amber-500/30 text-[11px] font-medium"
           title="Application container exited unexpectedly"
         >
-          <AlertTriangle className="w-3 h-3 text-amber-600 dark:text-amber-400" />
-          Crashed
+          <AlertTriangle className="w-3 h-3 text-amber-600 dark:text-amber-400 shrink-0" />
+          <span>Crashed</span>
         </span>
       );
     }
     if (isFailed) {
       return (
-        <span className="flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-rose-500/10 text-rose-700 dark:text-rose-400 border border-rose-500/20 text-[10px] font-bold">
-          <XCircle className="w-3 h-3 text-rose-600 dark:text-rose-400" />
-          Failed
+        <span className="flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-rose-500/10 text-rose-700 dark:text-rose-300 border border-rose-500/20 text-[11px] font-medium">
+          <XCircle className="w-3 h-3 text-rose-600 dark:text-rose-400 shrink-0" />
+          <span>Failed</span>
         </span>
       );
     }
     if (isCancelled) {
       return (
-        <span className="flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-slate-100 dark:bg-slate-800/60 border border-slate-300 dark:border-slate-700 text-slate-700 dark:text-slate-300 text-[10px] font-bold">
-          Cancelled
+        <span className="flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-slate-100 dark:bg-slate-800/60 border border-slate-300/60 dark:border-slate-700 text-slate-700 dark:text-slate-300 text-[11px] font-medium">
+          <span>Cancelled</span>
+        </span>
+      );
+    }
+    if (hasLiveRuntime || effectiveStatus === "RUNNING" || project.status === "ready") {
+      return (
+        <span className="flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-emerald-500/10 text-emerald-700 dark:text-emerald-300 border border-emerald-500/20 text-[11px] font-medium">
+          <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 motion-safe:animate-pulse shrink-0" />
+          <span>Running</span>
         </span>
       );
     }
     return (
-      <span className="flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-slate-100 dark:bg-slate-800/60 border border-slate-300 dark:border-slate-700 text-slate-600 dark:text-slate-400 text-[10px] font-bold">
-        Idle
+      <span className="flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-slate-100 dark:bg-slate-800/60 border border-slate-300/60 dark:border-slate-700 text-slate-600 dark:text-slate-400 text-[11px] font-medium">
+        <span>Idle</span>
       </span>
     );
   };
@@ -230,20 +231,35 @@ export const ProjectCard: React.FC<ProjectCardProps> = ({
   // -------------------------------------------------------------
   if (viewMode === "list") {
     return (
-      <div className="backdrop-blur-2xl bg-white/75 hover:bg-white/90 dark:bg-[#16191f]/85 dark:hover:bg-[#1e222b] border border-white/90 dark:border-[#282d37] rounded-2xl p-4 shadow-sm hover:shadow-md transition-all duration-200 flex flex-col sm:flex-row sm:items-center justify-between gap-4 group">
-        <div className="flex items-center gap-3.5 min-w-0">
-          <div className="w-9 h-9 rounded-xl bg-blue-100/80 dark:bg-blue-950/60 text-blue-600 dark:text-blue-400 border border-blue-200/60 dark:border-blue-800/40 flex items-center justify-center shrink-0">
+      <AmoledLiquidGlass
+        variant="toolbar"
+        interactive={true}
+        selected={isSelected}
+        onClick={() => onSelect?.(project)}
+        className="p-3.5 flex flex-col sm:flex-row sm:items-center justify-between gap-3 group"
+      >
+        <div className="flex items-center gap-3 min-w-0">
+          <div className="w-8 h-8 rounded-lg bg-blue-500/10 text-blue-600 dark:text-blue-400 border border-blue-500/15 flex items-center justify-center shrink-0">
             <FileCode className="w-4 h-4" />
           </div>
           <div className="min-w-0 space-y-1">
-            <div className="flex items-center gap-2.5 flex-wrap">
-              <h3 className="font-extrabold text-sm text-slate-900 dark:text-[#f1f3f5] truncate">
+            <div className="flex items-center gap-2 flex-wrap">
+              <h3 className="font-semibold text-sm text-slate-900 dark:text-slate-100 truncate group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors">
                 {project.name}
               </h3>
+              {hasLiveRuntime && isFailed && (
+                <span className="flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-emerald-500/10 text-emerald-700 dark:text-emerald-300 border border-emerald-500/20 text-[11px] font-medium">
+                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 motion-safe:animate-pulse shrink-0" />
+                  <span>Live: Running</span>
+                </span>
+              )}
               {renderStatusBadge()}
-              {isLiveRunning && localUrl && (
-                <div className="flex items-center gap-1 bg-emerald-500/10 px-2 py-0.5 rounded-md border border-emerald-500/20 text-[11px] font-mono font-bold text-emerald-700 dark:text-emerald-300">
-                  <Globe className="w-3 h-3 text-emerald-600" />
+              {hasLiveRuntime && localUrl && (
+                <div
+                  onClick={(e) => e.stopPropagation()}
+                  className="flex items-center gap-1.5 bg-emerald-500/[0.08] dark:bg-emerald-950/30 px-2 py-0.5 rounded-md border border-emerald-500/20 text-[11px] font-mono font-medium text-emerald-700 dark:text-emerald-300"
+                >
+                  <Globe className="w-3 h-3 text-emerald-600 shrink-0" />
                   <a
                     href={localUrl}
                     target="_blank"
@@ -256,7 +272,7 @@ export const ProjectCard: React.FC<ProjectCardProps> = ({
                   <button
                     type="button"
                     onClick={(e) => handleCopyUrl(e, localUrl)}
-                    className="ml-1 text-emerald-600 hover:text-emerald-800 dark:hover:text-emerald-200"
+                    className="ml-0.5 text-emerald-600 hover:text-emerald-800 dark:hover:text-emerald-200 focus-visible:outline-none"
                     title="Copy URL"
                   >
                     {urlCopied ? <Check className="w-3 h-3" /> : <Copy className="w-3 h-3" />}
@@ -264,17 +280,17 @@ export const ProjectCard: React.FC<ProjectCardProps> = ({
                 </div>
               )}
             </div>
-            <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-[11px] text-slate-500 dark:text-slate-400 font-medium">
+            <div className="flex flex-wrap items-center gap-x-3.5 gap-y-1 text-xs text-slate-500 dark:text-slate-400">
               <span className="flex items-center gap-1">
                 <GithubLogo className="w-3 h-3 fill-current shrink-0" />
-                {project.repo || "No repository"}
+                <span className="truncate max-w-[140px] sm:max-w-[200px]">{project.repo || "No repository"}</span>
               </span>
-              <span className="flex items-center gap-1 font-mono text-[10px]">
-                <GitBranch className="w-3 h-3" />
-                {project.branch || "main"}
+              <span className="flex items-center gap-1 font-mono text-[11px]">
+                <GitBranch className="w-3 h-3 text-slate-400" />
+                <span>{project.branch || "main"}</span>
               </span>
-              <span>Updated {project.updatedAt}</span>
-              <span>
+              <span className="text-[11px] tabular-nums">Updated {project.updatedAt}</span>
+              <span className="text-[11px] tabular-nums">
                 {project.deploymentsCount}{" "}
                 {project.deploymentsCount === 1 ? "Deploy" : "Deploys"}
               </span>
@@ -282,14 +298,15 @@ export const ProjectCard: React.FC<ProjectCardProps> = ({
           </div>
         </div>
 
-        <div className="flex items-center justify-between sm:justify-end gap-2.5 shrink-0">
+        <div className="flex items-center justify-between sm:justify-end gap-2 shrink-0">
           {project.latestDeployment && (
             <button
               type="button"
-              onClick={() =>
-                onViewLogs(project.latestDeployment!.id, project.name)
-              }
-              className="text-blue-600 dark:text-blue-400 hover:text-blue-700 font-mono text-xs font-bold hover:underline cursor-pointer flex items-center gap-1 bg-blue-50 dark:bg-blue-950/40 px-2.5 py-1.5 rounded-lg border border-blue-200/60 dark:border-blue-900/40"
+              onClick={(e) => {
+                e.stopPropagation();
+                onViewLogs(project.latestDeployment!.id, project.name);
+              }}
+              className="text-blue-600 dark:text-blue-400 hover:text-blue-700 font-mono text-xs font-semibold hover:underline cursor-pointer flex items-center gap-1 bg-blue-500/10 dark:bg-blue-950/40 px-2.5 py-1 rounded-lg border border-blue-500/20 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500/40"
             >
               <span>
                 {project.latestDeployment.commitSha
@@ -306,7 +323,7 @@ export const ProjectCard: React.FC<ProjectCardProps> = ({
               type="button"
               onClick={handleStop}
               disabled={isStopping}
-              className="py-1.5 px-3 bg-rose-50 hover:bg-rose-100 dark:bg-rose-950/40 dark:hover:bg-rose-900/50 text-rose-700 dark:text-rose-300 border border-rose-200 dark:border-rose-800/60 rounded-xl text-xs font-bold flex items-center gap-1.5 cursor-pointer disabled:opacity-50"
+              className="py-1 px-2.5 bg-rose-500/10 hover:bg-rose-500/15 dark:bg-rose-950/30 dark:hover:bg-rose-900/40 text-rose-700 dark:text-rose-300 border border-rose-500/20 rounded-lg text-xs font-medium flex items-center gap-1.5 cursor-pointer disabled:opacity-50 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-rose-500/40"
               title="Stop container"
             >
               {isStopping ? <RefreshCw className="w-3 h-3 animate-spin text-rose-600" /> : <Square className="w-3 h-3 fill-current text-rose-600" />}
@@ -315,13 +332,13 @@ export const ProjectCard: React.FC<ProjectCardProps> = ({
           )}
 
           {/* Quick Restart Control */}
-          {canRestart && (
+          {canRestart && eligibleRestartDeployment && (
             <button
               type="button"
               onClick={handleRestart}
               disabled={isRestarting}
-              className="py-1.5 px-3 bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl text-xs font-bold transition-all shadow-md shadow-emerald-600/20 flex items-center gap-1.5 cursor-pointer disabled:opacity-50"
-              title="Restart container"
+              className="py-1 px-3 bg-emerald-600 hover:bg-emerald-500 text-white rounded-lg text-xs font-medium transition-colors shadow-2xs flex items-center gap-1.5 cursor-pointer disabled:opacity-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500/40"
+              title={`Restart ${eligibleRestartDeployment.status.toLowerCase()} container`}
             >
               {isRestarting ? <RefreshCw className="w-3 h-3 animate-spin" /> : <RotateCw className="w-3 h-3" />}
               <span>Restart</span>
@@ -332,8 +349,11 @@ export const ProjectCard: React.FC<ProjectCardProps> = ({
           {isBuilding && project.latestDeployment && (
             <button
               type="button"
-              onClick={() => onViewLogs(project.latestDeployment!.id, project.name)}
-              className="py-1.5 px-3 bg-amber-500/10 hover:bg-amber-500/20 text-amber-700 dark:text-amber-400 border border-amber-500/20 rounded-xl text-xs font-bold flex items-center gap-1.5 cursor-pointer"
+              onClick={(e) => {
+                e.stopPropagation();
+                onViewLogs(project.latestDeployment!.id, project.name);
+              }}
+              className="py-1 px-3 bg-amber-500/10 hover:bg-amber-500/20 text-amber-700 dark:text-amber-400 border border-amber-500/20 rounded-lg text-xs font-medium flex items-center gap-1.5 cursor-pointer transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-500/40"
             >
               <RefreshCw className="w-3 h-3 animate-spin text-amber-600 dark:text-amber-400" />
               <span>View Logs</span>
@@ -341,12 +361,15 @@ export const ProjectCard: React.FC<ProjectCardProps> = ({
           )}
 
           {/* Primary Action Button (Deploy / Redeploy / Retry) */}
-          {!isBuilding && !(isStopped && onRestartDeployment) && !(isCrashed && onRestartDeployment) && (
+          {!isBuilding && (!canRestart || isFailed) && (
             <button
               type="button"
-              onClick={() => onDeploy(project)}
+              onClick={(e) => {
+                e.stopPropagation();
+                onDeploy(project);
+              }}
               disabled={isDeploying}
-              className="py-1.5 px-3.5 bg-blue-600 hover:bg-blue-500 text-white rounded-xl text-xs font-bold transition-all shadow-md shadow-blue-600/20 flex items-center gap-1.5 cursor-pointer disabled:opacity-50"
+              className="py-1 px-3 bg-[#1453E6] hover:bg-[#1249cc] text-white rounded-lg text-xs font-medium transition-colors shadow-md shadow-[#1453E6]/25 flex items-center gap-1.5 cursor-pointer disabled:opacity-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#1453E6]/40"
             >
               {isDeploying ? (
                 <RefreshCw className="w-3 h-3 animate-spin" />
@@ -364,13 +387,13 @@ export const ProjectCard: React.FC<ProjectCardProps> = ({
             <button
               type="button"
               onClick={() => setShowMenu((prev) => !prev)}
-              className="p-1.5 text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 rounded-xl hover:bg-slate-100 dark:hover:bg-[#1e222b] transition-colors cursor-pointer"
+              className="p-1.5 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 rounded-lg hover:bg-white/60 dark:hover:bg-white/[0.06] transition-colors cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-400"
               title="More options"
             >
               <MoreVertical className="w-3.5 h-3.5" />
             </button>
             {showMenu && (
-              <div className="absolute right-0 top-full mt-1 z-40 w-40 bg-white dark:bg-[#16191f] border border-slate-200 dark:border-[#282d37] rounded-2xl shadow-xl p-1 text-xs space-y-0.5">
+              <div className="absolute right-0 top-full mt-1 z-40 w-40 bg-white/85 dark:bg-[#07080B]/95 border border-white/80 dark:border-white/[0.12] shadow-[inset_0_1px_0_0_rgba(255,255,255,0.95),0_16px_40px_0_rgba(15,23,42,0.12)] dark:shadow-[inset_0_1px_0_0_rgba(255,255,255,0.14),0_16px_48px_0_rgba(0,0,0,0.85)] rounded-xl backdrop-blur-2xl p-1 text-xs space-y-0.5">
                 {project.latestDeployment && (
                   <button
                     type="button"
@@ -378,7 +401,7 @@ export const ProjectCard: React.FC<ProjectCardProps> = ({
                       setShowMenu(false);
                       onViewLogs(project.latestDeployment!.id, project.name);
                     }}
-                    className="w-full text-left px-2.5 py-1.5 rounded-lg text-slate-700 dark:text-slate-300 hover:bg-blue-50 dark:hover:bg-[#1e222b] hover:text-blue-600 font-semibold flex items-center gap-2 cursor-pointer"
+                    className="w-full text-left px-2.5 py-1.5 rounded-lg text-slate-700 dark:text-slate-300 hover:bg-blue-50 dark:hover:bg-white/[0.06] hover:text-blue-600 font-medium flex items-center gap-2 cursor-pointer"
                   >
                     <Terminal className="w-3.5 h-3.5" />
                     View Console
@@ -390,7 +413,7 @@ export const ProjectCard: React.FC<ProjectCardProps> = ({
                     setShowMenu(false);
                     onDeploy(project);
                   }}
-                  className="w-full text-left px-2.5 py-1.5 rounded-lg text-slate-700 dark:text-slate-300 hover:bg-blue-50 dark:hover:bg-[#1e222b] hover:text-blue-600 font-semibold flex items-center gap-2 cursor-pointer"
+                  className="w-full text-left px-2.5 py-1.5 rounded-lg text-slate-700 dark:text-slate-300 hover:bg-blue-50 dark:hover:bg-white/[0.06] hover:text-blue-600 font-medium flex items-center gap-2 cursor-pointer"
                 >
                   <Play className="w-3.5 h-3.5" />
                   New Deployment
@@ -402,7 +425,7 @@ export const ProjectCard: React.FC<ProjectCardProps> = ({
                     onDelete(project.id, project.name);
                   }}
                   disabled={isDeleting}
-                  className="w-full text-left px-2.5 py-1.5 rounded-lg text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-950/40 font-semibold flex items-center gap-2 cursor-pointer disabled:opacity-50"
+                  className="w-full text-left px-2.5 py-1.5 rounded-lg text-rose-600 dark:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-950/40 font-medium flex items-center gap-2 cursor-pointer disabled:opacity-50"
                 >
                   <Trash className="w-3.5 h-3.5" />
                   Delete Project
@@ -411,7 +434,7 @@ export const ProjectCard: React.FC<ProjectCardProps> = ({
             )}
           </div>
         </div>
-      </div>
+      </AmoledLiquidGlass>
     );
   }
 
@@ -419,19 +442,25 @@ export const ProjectCard: React.FC<ProjectCardProps> = ({
   // GRID VIEW
   // -------------------------------------------------------------
   return (
-    <div className="backdrop-blur-2xl bg-white/75 hover:bg-white/90 dark:bg-[#16191f]/85 dark:hover:bg-[#1e222b] border border-white/90 dark:border-[#282d37] rounded-3xl p-5 space-y-4 shadow-lg shadow-sky-950/5 dark:shadow-black/30 hover:shadow-xl transition-all duration-200 group flex flex-col justify-between relative">
-      <div className="space-y-3.5">
+    <AmoledLiquidGlass
+      variant="card"
+      interactive={true}
+      selected={isSelected}
+      onClick={() => onSelect?.(project)}
+      className="p-4 sm:p-5 space-y-4 group flex flex-col justify-between"
+    >
+      <div className="space-y-3">
         {/* Top Header: Icon + Name + Status */}
         <div className="flex items-start justify-between gap-2.5">
           <div className="flex items-center gap-2.5 truncate flex-1 min-w-0">
-            <div className="w-8 h-8 rounded-xl bg-blue-100/80 dark:bg-blue-950/60 text-blue-600 dark:text-blue-400 border border-blue-200/60 dark:border-blue-800/40 flex items-center justify-center shrink-0">
+            <div className="w-8 h-8 rounded-lg bg-sky-50 dark:bg-sky-950/40 text-sky-600 dark:text-sky-400 border border-sky-200/50 dark:border-sky-800/30 flex items-center justify-center shrink-0">
               <FileCode className="w-4 h-4" />
             </div>
             <div className="truncate min-w-0">
-              <h3 className="font-extrabold text-sm text-slate-900 dark:text-[#f1f3f5] truncate group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors">
+              <h3 className="font-semibold text-sm text-slate-900 dark:text-slate-100 truncate group-hover:text-sky-600 dark:group-hover:text-sky-400 transition-colors">
                 {project.name}
               </h3>
-              <div className="flex items-center gap-1 text-[11px] text-slate-500 dark:text-slate-400 font-medium truncate">
+              <div className="flex items-center gap-1 text-[11px] text-slate-500 dark:text-slate-400 font-medium truncate font-mono">
                 <GithubLogo className="w-3 h-3 fill-current shrink-0" />
                 <span className="truncate">
                   {project.repo || "No repository"}
@@ -441,21 +470,31 @@ export const ProjectCard: React.FC<ProjectCardProps> = ({
           </div>
 
           {/* Status Badge */}
-          <div className="shrink-0">
+          <div className="shrink-0 flex items-center gap-1.5">
+            {hasLiveRuntime && isFailed && (
+              <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 border border-emerald-500/20 text-[11px] font-medium tracking-wide">
+                <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
+                Live: Running
+              </span>
+            )}
             {renderStatusBadge()}
           </div>
         </div>
 
         {/* Live Application URL Card (Shown when RUNNING and localUrl exists) */}
-        {isLiveRunning && localUrl && (
-          <div className="flex items-center justify-between gap-2 px-3 py-2 rounded-2xl bg-emerald-500/10 dark:bg-emerald-950/30 border border-emerald-500/20 text-xs">
+        {hasLiveRuntime && localUrl && (
+          <div
+            onClick={(e) => e.stopPropagation()}
+            className="flex items-center justify-between gap-2 px-3 py-2 rounded-xl bg-emerald-500/[0.07] dark:bg-emerald-950/25 border border-emerald-500/20 text-xs"
+          >
             <div className="flex items-center gap-1.5 min-w-0">
               <Globe className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400 shrink-0" />
+              <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse shrink-0" />
               <a
                 href={localUrl}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="font-mono text-[11px] font-bold text-emerald-700 dark:text-emerald-300 hover:underline truncate"
+                className="font-mono text-[11px] font-medium text-emerald-700 dark:text-emerald-300 hover:underline truncate focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-emerald-500/40 rounded-sm"
                 title={`Open live app at ${localUrl}`}
               >
                 {localUrl}
@@ -470,7 +509,7 @@ export const ProjectCard: React.FC<ProjectCardProps> = ({
               <button
                 type="button"
                 onClick={(e) => handleCopyUrl(e, localUrl)}
-                className="p-1 rounded text-emerald-700 dark:text-emerald-300 hover:bg-emerald-100 dark:hover:bg-emerald-900/50 transition-colors"
+                className="p-1 rounded-md text-emerald-700 dark:text-emerald-300 hover:bg-emerald-500/15 transition-colors focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-emerald-500/40"
                 title="Copy URL"
               >
                 {urlCopied ? (
@@ -483,7 +522,7 @@ export const ProjectCard: React.FC<ProjectCardProps> = ({
                 href={localUrl}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="p-1 rounded text-emerald-700 dark:text-emerald-300 hover:bg-emerald-100 dark:hover:bg-emerald-900/50 transition-colors"
+                className="p-1 rounded-md text-emerald-700 dark:text-emerald-300 hover:bg-emerald-500/15 transition-colors focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-emerald-500/40"
                 title="Open in new tab"
               >
                 <ExternalLink className="w-3.5 h-3.5" />
@@ -494,37 +533,38 @@ export const ProjectCard: React.FC<ProjectCardProps> = ({
 
         {/* Starting Progress Indicator */}
         {isStarting && (
-          <div className="flex items-center gap-2 px-3 py-2 rounded-2xl bg-sky-500/10 dark:bg-sky-950/30 border border-sky-500/20 text-xs text-sky-700 dark:text-sky-300">
+          <div className="flex items-center gap-2 px-3 py-2 rounded-xl bg-sky-500/10 dark:bg-sky-950/30 border border-sky-500/20 text-xs text-sky-700 dark:text-sky-300">
             <RefreshCw className="w-3.5 h-3.5 animate-spin text-sky-600 shrink-0" />
             <span className="text-[11px] font-medium">Starting container & probing readiness...</span>
           </div>
         )}
 
         {/* Branch & Updated Info */}
-        <div className="flex items-center justify-between gap-2 text-[11px] pt-1 border-t border-slate-100 dark:border-[#282d37]/60">
-          <div className="flex items-center gap-1 text-slate-600 dark:text-slate-400 font-mono text-[10px] bg-slate-100/80 dark:bg-[#1e222b] px-2 py-0.5 rounded-md min-w-0 shrink">
+        <div className="flex items-center justify-between gap-2 text-[11px] pt-1.5 border-t border-slate-100 dark:border-white/[0.06]">
+          <div className="flex items-center gap-1 text-slate-600 dark:text-slate-400 font-mono text-[10px] bg-white/50 dark:bg-white/[0.04] border border-white/60 dark:border-white/[0.06] shadow-2xs px-2 py-0.5 rounded-md min-w-0 shrink">
             <GitBranch className="w-3 h-3 text-slate-500 shrink-0" />
             <span className="truncate max-w-[140px] sm:max-w-[180px]">
               {project.branch || "main"}
             </span>
           </div>
-          <span className="text-[10px] text-slate-400 dark:text-slate-500 shrink-0">
+          <span className="text-[10px] text-slate-400 dark:text-slate-500 shrink-0 font-mono tabular-nums">
             {project.updatedAt}
           </span>
         </div>
 
         {/* Latest Run & Commit SHA */}
-        <div className="flex items-center justify-between gap-2 text-xs bg-slate-50/80 dark:bg-[#12151a]/60 px-3 py-2 rounded-2xl border border-slate-100 dark:border-[#282d37]/40">
-          <span className="text-[11px] font-semibold text-slate-500 dark:text-slate-400 shrink-0">
+        <div className="flex items-center justify-between gap-2 text-xs bg-white/45 dark:bg-white/[0.02] px-3 py-2 rounded-xl border border-white/50 dark:border-white/[0.06] shadow-2xs">
+          <span className="text-[11px] font-medium text-slate-500 dark:text-slate-400 shrink-0">
             Latest Run
           </span>
           {project.latestDeployment ? (
             <button
               type="button"
-              onClick={() =>
-                onViewLogs(project.latestDeployment!.id, project.name)
-              }
-              className="text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 font-mono text-[11px] font-bold hover:underline cursor-pointer flex items-center gap-1 shrink-0"
+              onClick={(e) => {
+                e.stopPropagation();
+                onViewLogs(project.latestDeployment!.id, project.name);
+              }}
+              className="text-sky-600 dark:text-sky-400 hover:text-sky-700 dark:hover:text-sky-300 font-mono text-[11px] font-medium hover:underline cursor-pointer flex items-center gap-1 shrink-0 focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-sky-500/40 rounded-sm"
             >
               <span>
                 {project.latestDeployment.commitSha
@@ -542,13 +582,13 @@ export const ProjectCard: React.FC<ProjectCardProps> = ({
       </div>
 
       {/* Card Footer: Deployments Count & Actions */}
-      <div className="flex items-center justify-between gap-2 pt-2.5 border-t border-slate-100 dark:border-[#282d37]">
+      <div className="flex items-center justify-between gap-2 pt-3 border-t border-slate-100 dark:border-white/[0.06]">
         {/* Left: Deployment Count */}
         <div className="min-w-0 flex-1 flex flex-col justify-center">
-          <span className="text-xs font-bold text-slate-900 dark:text-slate-100 leading-tight">
+          <span className="text-xs font-semibold text-slate-900 dark:text-slate-100 leading-tight tabular-nums">
             {project.deploymentsCount}
           </span>
-          <span className="text-[10px] font-medium text-slate-500 dark:text-slate-400 leading-tight truncate">
+          <span className="text-[10px] font-normal text-slate-500 dark:text-slate-400 leading-tight truncate">
             {project.deploymentsCount === 1 ? "Deployment" : "Deployments"}
           </span>
         </div>
@@ -561,7 +601,7 @@ export const ProjectCard: React.FC<ProjectCardProps> = ({
               type="button"
               onClick={handleStop}
               disabled={isStopping}
-              className="py-1.5 px-2.5 bg-rose-50 hover:bg-rose-100 dark:bg-rose-950/40 dark:hover:bg-rose-900/50 text-rose-700 dark:text-rose-300 border border-rose-200 dark:border-rose-800/60 rounded-xl text-xs font-bold transition-all flex items-center gap-1 cursor-pointer disabled:opacity-50"
+              className="py-1.5 px-2.5 bg-rose-50 hover:bg-rose-100 dark:bg-rose-950/30 dark:hover:bg-rose-900/40 text-rose-700 dark:text-rose-300 border border-rose-200 dark:border-rose-800/50 rounded-lg text-xs font-medium transition-colors flex items-center gap-1 cursor-pointer disabled:opacity-50 focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-rose-500/40"
               title="Stop application container"
             >
               {isStopping ? <RefreshCw className="w-3 h-3 animate-spin text-rose-600" /> : <Square className="w-3 h-3 fill-current text-rose-600" />}
@@ -569,14 +609,14 @@ export const ProjectCard: React.FC<ProjectCardProps> = ({
             </button>
           )}
 
-          {/* Quick Restart Button (for STOPPED or CRASHED) */}
-          {canRestart && (
+          {/* Quick Restart Button (for eligible STOPPED or CRASHED deployment) */}
+          {canRestart && eligibleRestartDeployment && (
             <button
               type="button"
               onClick={handleRestart}
               disabled={isRestarting}
-              className="py-1.5 px-3 bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl text-xs font-bold transition-all shadow-md shadow-emerald-600/20 flex items-center gap-1.5 cursor-pointer disabled:opacity-50"
-              title="Restart container"
+              className="py-1.5 px-3 bg-emerald-600 hover:bg-emerald-500 text-white rounded-lg text-xs font-medium transition-colors shadow-xs flex items-center gap-1.5 cursor-pointer disabled:opacity-50 focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-emerald-500/40"
+              title={`Restart ${eligibleRestartDeployment.status.toLowerCase()} container`}
             >
               {isRestarting ? <RefreshCw className="w-3 h-3 animate-spin" /> : <RotateCw className="w-3 h-3" />}
               <span>Restart</span>
@@ -587,12 +627,13 @@ export const ProjectCard: React.FC<ProjectCardProps> = ({
           {isBuilding && project.latestDeployment && (
             <button
               type="button"
-              onClick={() => {
+              onClick={(e) => {
+                e.stopPropagation();
                 if (project.latestDeployment) {
                   onViewLogs(project.latestDeployment.id, project.name);
                 }
               }}
-              className="py-1.5 px-3 bg-amber-500/10 hover:bg-amber-500/20 text-amber-700 dark:text-amber-400 border border-amber-500/20 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer shrink-0"
+              className="py-1.5 px-3 bg-amber-500/10 hover:bg-amber-500/20 text-amber-700 dark:text-amber-400 border border-amber-500/20 rounded-lg text-xs font-medium transition-colors flex items-center gap-1.5 cursor-pointer shrink-0 focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-amber-500/40"
             >
               <RefreshCw className="w-3 h-3 animate-spin text-amber-600 dark:text-amber-400" />
               <span>View Logs</span>
@@ -600,12 +641,15 @@ export const ProjectCard: React.FC<ProjectCardProps> = ({
           )}
 
           {/* Deploy / Redeploy / Retry Button */}
-          {!isBuilding && !(isStopped && onRestartDeployment) && !(isCrashed && onRestartDeployment) && (
+          {!isBuilding && (!canRestart || isFailed) && (
             <button
               type="button"
-              onClick={() => onDeploy(project)}
+              onClick={(e) => {
+                e.stopPropagation();
+                onDeploy(project);
+              }}
               disabled={isDeploying}
-              className="py-1.5 px-3 bg-blue-600 hover:bg-blue-500 text-white rounded-xl text-xs font-bold transition-all shadow-md shadow-blue-600/20 hover:shadow-lg flex items-center gap-1.5 cursor-pointer disabled:opacity-50 shrink-0"
+              className="py-1.5 px-3 bg-[#1453E6] hover:bg-[#1249cc] text-white rounded-lg text-xs font-medium transition-colors shadow-md shadow-[#1453E6]/25 flex items-center gap-1.5 cursor-pointer disabled:opacity-50 shrink-0 focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-[#1453E6]/40"
             >
               {isDeploying ? (
                 <RefreshCw className="w-3 h-3 animate-spin" />
@@ -622,8 +666,11 @@ export const ProjectCard: React.FC<ProjectCardProps> = ({
           <div ref={menuRef} className="relative shrink-0">
             <button
               type="button"
-              onClick={() => setShowMenu((prev) => !prev)}
-              className="p-1.5 text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 rounded-xl hover:bg-slate-100 dark:hover:bg-[#1e222b] transition-colors cursor-pointer"
+              onClick={(e) => {
+                e.stopPropagation();
+                setShowMenu((prev) => !prev);
+              }}
+              className="p-1.5 text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 rounded-lg hover:bg-white/60 dark:hover:bg-white/[0.06] transition-colors cursor-pointer focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-sky-500/40"
               title="More options"
             >
               <MoreVertical className="w-3.5 h-3.5" />
@@ -635,7 +682,7 @@ export const ProjectCard: React.FC<ProjectCardProps> = ({
                   className="fixed inset-0 z-30"
                   onClick={() => setShowMenu(false)}
                 />
-                <div className="absolute right-0 bottom-full mb-1 z-40 w-40 bg-white dark:bg-[#16191f] border border-slate-200 dark:border-[#282d37] rounded-2xl shadow-xl p-1 text-xs space-y-0.5">
+                <div className="absolute right-0 bottom-full mb-1 z-40 w-40 bg-white/85 dark:bg-[#07080B]/95 backdrop-blur-2xl border border-white/80 dark:border-white/[0.12] shadow-[inset_0_1px_0_0_rgba(255,255,255,0.95),0_16px_40px_0_rgba(15,23,42,0.12)] dark:shadow-[inset_0_1px_0_0_rgba(255,255,255,0.14),0_16px_48px_0_rgba(0,0,0,0.85)] rounded-xl p-1 text-xs space-y-0.5">
                   {project.latestDeployment && (
                     <button
                       type="button"
@@ -643,7 +690,7 @@ export const ProjectCard: React.FC<ProjectCardProps> = ({
                         setShowMenu(false);
                         onViewLogs(project.latestDeployment!.id, project.name);
                       }}
-                      className="w-full text-left px-2.5 py-1.5 rounded-lg text-slate-700 dark:text-slate-300 hover:bg-blue-50 dark:hover:bg-[#1e222b] hover:text-blue-600 font-semibold flex items-center gap-2 cursor-pointer"
+                      className="w-full text-left px-2.5 py-1.5 rounded-lg text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-white/[0.06] hover:text-sky-600 dark:hover:text-sky-400 font-medium flex items-center gap-2 cursor-pointer focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-sky-500/40"
                     >
                       <Terminal className="w-3.5 h-3.5" />
                       View Console
@@ -655,7 +702,7 @@ export const ProjectCard: React.FC<ProjectCardProps> = ({
                       setShowMenu(false);
                       onDeploy(project);
                     }}
-                    className="w-full text-left px-2.5 py-1.5 rounded-lg text-slate-700 dark:text-slate-300 hover:bg-blue-50 dark:hover:bg-[#1e222b] hover:text-blue-600 font-semibold flex items-center gap-2 cursor-pointer"
+                    className="w-full text-left px-2.5 py-1.5 rounded-lg text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-white/[0.06] hover:text-sky-600 dark:hover:text-sky-400 font-medium flex items-center gap-2 cursor-pointer focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-sky-500/40"
                   >
                     <Play className="w-3.5 h-3.5" />
                     New Deployment
@@ -667,7 +714,7 @@ export const ProjectCard: React.FC<ProjectCardProps> = ({
                       onDelete(project.id, project.name);
                     }}
                     disabled={isDeleting}
-                    className="w-full text-left px-2.5 py-1.5 rounded-lg text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-950/40 font-semibold flex items-center gap-2 cursor-pointer disabled:opacity-50"
+                    className="w-full text-left px-2.5 py-1.5 rounded-lg text-rose-600 dark:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-950/40 font-medium flex items-center gap-2 cursor-pointer disabled:opacity-50 focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-rose-500/40"
                   >
                     <Trash className="w-3.5 h-3.5" />
                     Delete Project
@@ -678,6 +725,6 @@ export const ProjectCard: React.FC<ProjectCardProps> = ({
           </div>
         </div>
       </div>
-    </div>
+    </AmoledLiquidGlass>
   );
 };

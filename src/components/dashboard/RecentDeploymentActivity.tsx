@@ -11,29 +11,38 @@ import {
   Clock,
 } from "lucide-react";
 import { Deployment } from "../../types";
+import { AmoledLiquidGlass } from "../ui/AmoledLiquidGlass";
 
 interface RecentDeploymentActivityProps {
   deployments: Deployment[];
   onViewLogs: (deploymentId: string, projectName: string) => void;
   onViewAllDeployments: () => void;
+  onSelectDeployment?: (deployment: Deployment) => void;
+  selectedDeploymentId?: string | null;
 }
 
 export const RecentDeploymentActivity: React.FC<
   RecentDeploymentActivityProps
-> = ({ deployments, onViewLogs, onViewAllDeployments }) => {
+> = ({
+  deployments,
+  onViewLogs,
+  onViewAllDeployments,
+  onSelectDeployment,
+  selectedDeploymentId,
+}) => {
   const recentList = deployments.slice(0, 5);
 
   return (
-    <div className="backdrop-blur-2xl bg-white/75 dark:bg-[#16191f]/85 border border-white/90 dark:border-[#282d37] rounded-3xl p-5 sm:p-6 shadow-lg shadow-sky-950/5 dark:shadow-black/30 space-y-4">
+    <AmoledLiquidGlass variant="panel" className="p-4 sm:p-5 space-y-3.5">
       {/* Header */}
       <div className="flex items-center justify-between">
-        <h3 className="text-sm sm:text-base font-extrabold text-slate-900 dark:text-[#f1f3f5] tracking-tight">
+        <h3 className="text-sm font-semibold text-slate-900 dark:text-slate-100 tracking-tight">
           Recent Deployment Activity
         </h3>
         <button
           type="button"
           onClick={onViewAllDeployments}
-          className="text-xs font-bold text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 hover:underline cursor-pointer flex items-center gap-1"
+          className="text-xs font-medium text-sky-600 dark:text-sky-400 hover:text-sky-700 dark:hover:text-sky-300 hover:underline cursor-pointer flex items-center gap-1 focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-sky-500/40 rounded-sm"
         >
           <span>View all</span>
           <ExternalLink className="w-3 h-3" />
@@ -42,7 +51,7 @@ export const RecentDeploymentActivity: React.FC<
 
       {/* Activity Table */}
       {recentList.length === 0 ? (
-        <div className="p-8 text-center text-xs text-slate-400 dark:text-slate-500 font-semibold bg-slate-50/50 dark:bg-[#12151a]/40 rounded-2xl border border-dashed border-slate-200 dark:border-[#282d37]">
+        <div className="p-8 text-center text-xs text-slate-400 dark:text-slate-500 font-normal bg-white/40 dark:bg-white/[0.02] rounded-xl border border-dashed border-white/60 dark:border-white/[0.08] shadow-2xs">
           No deployment activity recorded yet.
         </div>
       ) : (
@@ -64,57 +73,67 @@ export const RecentDeploymentActivity: React.FC<
                   dep.status === "INITIALIZING" ||
                   dep.status === "building";
 
+                const isSelected = selectedDeploymentId === dep.id;
+
                 return (
                   <tr
                     key={dep.id}
-                    onClick={() => onViewLogs(dep.id, dep.projectName)}
-                    className="border-b border-slate-100 dark:border-[#282d37]/50 hover:bg-blue-50/40 dark:hover:bg-[#1e222b]/50 transition-colors cursor-pointer group last:border-none"
+                    onClick={() =>
+                      onSelectDeployment
+                        ? onSelectDeployment(dep)
+                        : onViewLogs(dep.id, dep.projectName)
+                    }
+                    className={`border-b border-slate-100 dark:border-white/[0.05] hover:bg-slate-50/80 dark:hover:bg-white/[0.03] transition-colors cursor-pointer group last:border-none ${
+                      isSelected
+                        ? "bg-sky-500/[0.07] dark:bg-sky-500/10"
+                        : ""
+                    }`}
                   >
                     {/* Status Icon */}
-                    <td className="py-3 pr-3 w-8">
+                    <td className="py-2.5 pr-3 w-8">
                       {isRunning && (
                         <div className="relative flex items-center justify-center">
-                          <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+                          <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
                         </div>
                       )}
                       {isStarting && (
-                        <RefreshCw className="w-4 h-4 animate-spin text-sky-500" />
+                        <RefreshCw className="w-3.5 h-3.5 animate-spin text-sky-500" />
                       )}
                       {isBuilt && (
-                        <CheckCircle2 className="w-4 h-4 text-indigo-500" />
+                        <CheckCircle2 className="w-3.5 h-3.5 text-indigo-500" />
                       )}
                       {isReady && !isRunning && (
-                        <CheckCircle2 className="w-4 h-4 text-emerald-500" />
+                        <CheckCircle2 className="w-3.5 h-3.5 text-emerald-500" />
                       )}
                       {isStopped && (
-                        <Square className="w-3.5 h-3.5 fill-current text-zinc-400" />
+                        <Square className="w-3 h-3 fill-current text-zinc-400" />
                       )}
                       {isCrashed && (
-                        <AlertTriangle className="w-4 h-4 text-amber-500" />
+                        <AlertTriangle className="w-3.5 h-3.5 text-amber-500" />
                       )}
                       {isFailed && (
-                        <XCircle className="w-4 h-4 text-rose-500" />
+                        <XCircle className="w-3.5 h-3.5 text-rose-500" />
                       )}
                       {isBuilding && (
-                        <RefreshCw className="w-4 h-4 animate-spin text-blue-500" />
+                        <RefreshCw className="w-3.5 h-3.5 animate-spin text-sky-500" />
                       )}
                       {isCancelled && (
-                        <div className="w-3.5 h-3.5 rounded-full bg-slate-300 dark:bg-slate-600" />
+                        <div className="w-3 h-3 rounded-full bg-slate-300 dark:bg-slate-600" />
                       )}
                       {!isRunning && !isStarting && !isBuilt && !isReady && !isStopped && !isCrashed && !isFailed && !isBuilding && !isCancelled && (
-                        <div className="w-4 h-4 rounded-full bg-slate-200 dark:bg-slate-700" />
+                        <div className="w-3.5 h-3.5 rounded-full bg-slate-200 dark:bg-slate-700" />
                       )}
                     </td>
 
                     {/* Project Name */}
-                    <td className="py-3 pr-4 font-bold text-slate-900 dark:text-[#f1f3f5] truncate max-w-[140px] group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors">
+                    <td className="py-2.5 pr-4 font-semibold text-xs text-slate-900 dark:text-slate-100 truncate max-w-[140px] group-hover:text-sky-600 dark:group-hover:text-sky-400 transition-colors">
                       {dep.projectName}
                     </td>
 
                     {/* Event / Status Message */}
-                    <td className="py-3 pr-4 text-slate-600 dark:text-slate-400 italic truncate max-w-[200px] sm:max-w-xs">
+                    <td className="py-2.5 pr-4 text-slate-600 dark:text-slate-400 truncate max-w-[200px] sm:max-w-xs text-[11px]">
                       {isRunning && (
-                        <span className="text-emerald-700 dark:text-emerald-400 font-medium not-italic flex items-center gap-1">
+                        <span className="text-emerald-700 dark:text-emerald-400 font-medium flex items-center gap-1">
                           <Globe className="w-3 h-3 text-emerald-600" />
                           <span>Container running live</span>
                           {dep.localUrl && <span className="font-mono text-[10px]">({dep.localUrl})</span>}
@@ -144,26 +163,33 @@ export const RecentDeploymentActivity: React.FC<
                     </td>
 
                     {/* Commit SHA Pill */}
-                    <td className="py-3 pr-4">
+                    <td className="py-2.5 pr-4">
                       {dep.commitHash && dep.commitHash !== "pending" ? (
-                        <span className="font-mono text-[11px] font-bold text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-950/60 px-2 py-0.5 rounded-md border border-blue-200/60 dark:border-blue-900/60">
+                        <span className="font-mono text-[10px] text-slate-600 dark:text-slate-300 bg-slate-100/80 dark:bg-white/[0.04] px-1.5 py-0.5 rounded border border-slate-200/50 dark:border-white/[0.06]">
                           {dep.commitHash}
                         </span>
                       ) : (
-                        <span className="text-[11px] text-slate-400 font-mono">
+                        <span className="text-[10px] text-slate-400 font-mono">
                           --
                         </span>
                       )}
                     </td>
 
                     {/* Relative Time */}
-                    <td className="py-3 pr-3 text-right font-medium text-slate-500 dark:text-slate-400 text-[11px] whitespace-nowrap">
+                    <td className="py-2.5 pr-3 text-right font-mono tabular-nums text-slate-400 dark:text-slate-500 text-[10px] whitespace-nowrap">
                       {dep.deployedAt}
                     </td>
 
                     {/* Action Icon */}
-                    <td className="py-3 text-right w-8">
-                      <Terminal className="w-3.5 h-3.5 text-slate-400 group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors ml-auto" />
+                    <td
+                      className="py-2.5 text-right w-8"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        onViewLogs(dep.id, dep.projectName);
+                      }}
+                      title="Open full build console"
+                    >
+                      <Terminal className="w-3.5 h-3.5 text-slate-400 group-hover:text-sky-600 dark:group-hover:text-sky-400 transition-colors ml-auto" />
                     </td>
                   </tr>
                 );
@@ -172,6 +198,6 @@ export const RecentDeploymentActivity: React.FC<
           </table>
         </div>
       )}
-    </div>
+    </AmoledLiquidGlass>
   );
 };

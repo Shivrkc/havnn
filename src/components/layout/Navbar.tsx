@@ -26,8 +26,21 @@ export default function Navbar({ scrollToSection }: NavbarProps) {
   const isAuthApp = isDashboard || isProfile;
 
   useEffect(() => {
+    let prev = typeof window !== 'undefined' ? window.scrollY > 20 : false;
+    let ticking = false;
+
     const handleScroll = () => {
-      setIsScrolled(window.scrollY > 20);
+      if (!ticking) {
+        requestAnimationFrame(() => {
+          const current = window.scrollY > 20;
+          if (current !== prev) {
+            prev = current;
+            setIsScrolled(current);
+          }
+          ticking = false;
+        });
+        ticking = true;
+      }
     };
 
     window.addEventListener("scroll", handleScroll, { passive: true });

@@ -1,24 +1,42 @@
+import React from "react";
 import { Link } from "react-router-dom";
 
 interface LogoProps {
   showVersion?: boolean;
   className?: string;
+  variant?: "default" | "white";
+  collapsed?: boolean;
+  to?: string;
+  onClick?: (e: React.MouseEvent) => void;
 }
 
 export default function Logo({
   showVersion = false,
   className = "",
+  variant = "default",
+  collapsed = false,
+  to = "/",
+  onClick,
 }: LogoProps) {
+  const isWhite = variant === "white";
+
   return (
     <Link
-      to="/"
-      className={`flex items-center gap-3 group ${className}`}
+      to={to}
+      onClick={onClick}
+      className={`flex items-center ${collapsed ? "justify-center" : "gap-3"} group select-none ${className}`}
       aria-label="HAVN Home"
     >
       {/* Cloud Logo */}
-      <div className="relative flex h-10 w-10 items-center justify-center rounded-xl bg-blue-600/10 dark:bg-white/20 border border-blue-600/20 dark:border-white/30 shadow-[0_4px_16px_rgba(0,0,0,0.06)] dark:shadow-[0_4px_16px_rgba(255,255,255,0.15)] backdrop-blur-md transition-all duration-300 group-hover:scale-105">
+      <div
+        className={`relative flex h-10 w-10 shrink-0 items-center justify-center rounded-xl transition-all duration-300 group-hover:scale-105 ${
+          isWhite
+            ? "bg-white/20 border border-white/30 text-white shadow-xs backdrop-blur-md"
+            : "bg-[#155DFC]/10 dark:bg-[#155DFC]/20 border border-[#155DFC]/20 dark:border-[#155DFC]/30 shadow-xs backdrop-blur-md"
+        }`}
+      >
         <svg
-          className="h-6 w-6 text-blue-600 dark:text-white"
+          className={`h-6 w-6 ${isWhite ? "text-white" : "text-[#155DFC] dark:text-[#155DFC]"}`}
           viewBox="0 0 24 24"
           fill="currentColor"
           xmlns="http://www.w3.org/2000/svg"
@@ -28,23 +46,35 @@ export default function Logo({
         </svg>
       </div>
 
-      {/* Brand */}
-      <div className="flex flex-col leading-none">
+      {/* Brand Wordmark */}
+      <div
+        className={`flex flex-col leading-none overflow-hidden transition-all duration-300 ${
+          collapsed
+            ? "max-w-0 opacity-0 pointer-events-none"
+            : "max-w-[140px] opacity-100"
+        }`}
+      >
         <div className="flex items-center gap-2">
-          <span className="text-[28px] font-medium tracking-tight text-slate-900 dark:text-white">
+          <span
+            className={`text-[28px] font-medium tracking-tight whitespace-nowrap leading-none ${
+              isWhite ? "text-white" : "text-slate-900 dark:text-white"
+            }`}
+          >
             havn
           </span>
 
           {showVersion && (
-            <span className="rounded-md border border-slate-300 dark:border-white/20 bg-slate-100 dark:bg-white/10 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wider text-slate-700 dark:text-white/80">
+            <span
+              className={`rounded-md border px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wider ${
+                isWhite
+                  ? "border-white/30 bg-white/20 text-white"
+                  : "border-slate-300 dark:border-white/20 bg-slate-100 dark:bg-white/10 text-slate-700 dark:text-white/80"
+              }`}
+            >
               v1.0
             </span>
           )}
         </div>
-
-        <span className="mt-1 text-xs tracking-wide text-white/50">
-          
-        </span>
       </div>
     </Link>
   );

@@ -30,27 +30,27 @@
   --color-app-navbar: var(--color-navbar);
 }
 
-/* Light theme default design tokens */
+/* Light theme default design tokens - Apple Liquid Glass Foundation */
 :root {
   color-scheme: light;
   --color-background: #f8fafc;
   --color-foreground: #0f172a;
-  --color-surface: rgba(255, 255, 255, 0.85);
-  --color-surface-elevated: #ffffff;
-  --color-surface-hover: #f1f5f9;
-  --color-border: #e2e8f0;
-  --color-border-subtle: #f1f5f9;
+  --color-surface: rgba(255, 255, 255, 0.42);
+  --color-surface-elevated: rgba(255, 255, 255, 0.70);
+  --color-surface-hover: rgba(255, 255, 255, 0.55);
+  --color-border: rgba(255, 255, 255, 0.50);
+  --color-border-subtle: rgba(255, 255, 255, 0.30);
   --color-muted: #64748b;
-  --color-accent: #2563eb;
-  --color-accent-hover: #1d4ed8;
+  --color-accent: #155dfc;
+  --color-accent-hover: #1453e6;
   --color-accent-foreground: #ffffff;
-  --color-input: #ffffff;
-  --color-card: #ffffff;
-  --color-card-border: #e2e8f0;
-  --color-card-hover: #f8fafc;
-  --color-navbar: rgba(248, 250, 252, 0.8);
-  --color-navbar-scrolled: rgba(255, 255, 255, 0.95);
-  --color-navbar-border: #e2e8f0;
+  --color-input: rgba(255, 255, 255, 0.35);
+  --color-card: rgba(255, 255, 255, 0.42);
+  --color-card-border: rgba(255, 255, 255, 0.50);
+  --color-card-hover: rgba(255, 255, 255, 0.55);
+  --color-navbar: rgba(255, 255, 255, 0.60);
+  --color-navbar-scrolled: rgba(255, 255, 255, 0.80);
+  --color-navbar-border: rgba(255, 255, 255, 0.60);
   --color-navbar-text: #0f172a;
 
   /* Navbar geometric layout tokens */
@@ -66,32 +66,32 @@
   --color-scrollbar-thumb-hover: #64748b;
 }
 
-/* Dark theme design tokens - Sophisticated Graphite & Charcoal Foundation */
+/* Dark theme design tokens - AMOLED Black Foundation & Smoked Liquid Glass */
 [data-theme="dark"],
 :root.dark {
   color-scheme: dark;
-  --color-background: #0d0f12;
+  --color-background: #030405;
   --color-foreground: #f1f3f5;
-  --color-surface: #16191f;
-  --color-surface-elevated: #1e222b;
-  --color-surface-hover: #252a35;
-  --color-border: #282d37;
-  --color-border-subtle: rgba(255, 255, 255, 0.05);
+  --color-surface: rgba(7, 8, 11, 0.65);
+  --color-surface-elevated: rgba(10, 13, 18, 0.85);
+  --color-surface-hover: rgba(14, 18, 24, 0.90);
+  --color-border: rgba(255, 255, 255, 0.08);
+  --color-border-subtle: rgba(255, 255, 255, 0.04);
   --color-muted: #9ca3af;
   --color-accent: #3b82f6;
   --color-accent-hover: #2563eb;
   --color-accent-foreground: #ffffff;
-  --color-input: #12151a;
-  --color-card: #16191f;
-  --color-card-border: #282d37;
-  --color-card-hover: #1e222b;
-  --color-navbar: rgba(22, 25, 31, 0.75);
-  --color-navbar-scrolled: rgba(13, 15, 18, 0.92);
-  --color-navbar-border: #282d37;
+  --color-input: rgba(7, 8, 11, 0.80);
+  --color-card: rgba(7, 8, 11, 0.60);
+  --color-card-border: rgba(255, 255, 255, 0.08);
+  --color-card-hover: rgba(10, 13, 18, 0.75);
+  --color-navbar: rgba(7, 8, 11, 0.70);
+  --color-navbar-scrolled: rgba(7, 8, 11, 0.90);
+  --color-navbar-border: rgba(255, 255, 255, 0.09);
   --color-navbar-text: #f1f3f5;
-  --color-scrollbar-track: #0d0f12;
-  --color-scrollbar-thumb: #282d37;
-  --color-scrollbar-thumb-hover: #374151;
+  --color-scrollbar-track: #030405;
+  --color-scrollbar-thumb: #1e222b;
+  --color-scrollbar-thumb-hover: #282d37;
 }
 
 .font-display {
@@ -150,16 +150,28 @@ body {
 
 .glass {
   background: var(--color-surface);
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
+  backdrop-filter: blur(24px) saturate(150%);
+  -webkit-backdrop-filter: blur(24px) saturate(150%);
   border: 1px solid var(--color-border);
+  box-shadow: inset 0 1px 0 0 rgba(255, 255, 255, 0.90), inset 0 0 0 1px rgba(255, 255, 255, 0.40), 0 8px 24px -4px rgba(15, 23, 42, 0.06);
+}
+
+[data-theme="dark"] .glass,
+:root.dark .glass {
+  box-shadow: inset 0 1px 0 0 rgba(255, 255, 255, 0.12), inset 0 0 0 1px rgba(255, 255, 255, 0.02), 0 8px 32px 0 rgba(0, 0, 0, 0.55);
 }
 
 .glass-header {
   background: var(--color-navbar);
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
+  backdrop-filter: blur(24px) saturate(150%);
+  -webkit-backdrop-filter: blur(24px) saturate(150%);
   border-bottom: 1px solid var(--color-border);
+  box-shadow: inset 0 1px 0 0 rgba(255, 255, 255, 0.90), 0 4px 16px -2px rgba(15, 23, 42, 0.04);
+}
+
+[data-theme="dark"] .glass-header,
+:root.dark .glass-header {
+  box-shadow: inset 0 1px 0 0 rgba(255, 255, 255, 0.14), inset 0 0 0 1px rgba(255, 255, 255, 0.03), 0 12px 36px 0 rgba(0, 0, 0, 0.60);
 }
 
 @keyframes pulse-slow {
@@ -185,6 +197,7 @@ body {
   display: flex;
   width: max-content;
   will-change: transform;
+  contain: layout paint;
   animation: techMarquee 32s linear infinite;
 }
 

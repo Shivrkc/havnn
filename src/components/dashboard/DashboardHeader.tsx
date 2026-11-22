@@ -88,6 +88,7 @@ export const DashboardHeader: React.FC<DashboardHeaderProps> = ({
     const handleKeyDown = (e: KeyboardEvent) => {
       if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "k") {
         e.preventDefault();
+        setIsNotificationsOpen(false);
         inputRef.current?.focus();
         inputRef.current?.select();
         setIsSearchFocused(true);
@@ -549,7 +550,12 @@ export const DashboardHeader: React.FC<DashboardHeaderProps> = ({
   };
 
   return (
-    <header className="w-full flex items-center justify-between gap-3 px-4 sm:px-6 py-3.5 backdrop-blur-2xl bg-white/70 dark:bg-[#16191f]/80 border border-white/90 dark:border-[#282d37] rounded-3xl shadow-lg shadow-sky-950/5 dark:shadow-black/30 transition-all relative z-30">
+    <header className="w-full flex items-center justify-between gap-3 px-4 sm:px-5 py-2.5 backdrop-blur-2xl backdrop-saturate-125 bg-white/70 dark:bg-[#07080B]/70 border border-white/70 dark:border-white/[0.09] shadow-[inset_0_1px_0_0_rgba(255,255,255,0.95),inset_0_0_0_1px_rgba(255,255,255,0.35),0_12px_32px_-4px_rgba(15,23,42,0.08),0_2px_8px_-2px_rgba(15,23,42,0.04)] dark:shadow-[inset_0_1px_0_0_rgba(255,255,255,0.14),inset_0_0_0_1px_rgba(255,255,255,0.03),0_12px_36px_0_rgba(0,0,0,0.6)] rounded-2xl transition-all relative z-30">
+      {/* Subtle Liquid Top Edge Specular Highlight */}
+      <span
+        className="absolute inset-x-0 top-0 h-[1px] bg-gradient-to-r from-transparent via-white/80 dark:via-white/20 to-transparent pointer-events-none opacity-90 dark:opacity-100 transition-opacity rounded-t-2xl"
+        aria-hidden="true"
+      />
       {/* Left: Mobile Menu Trigger + Global Search */}
       <div
         ref={searchContainerRef}
@@ -558,14 +564,14 @@ export const DashboardHeader: React.FC<DashboardHeaderProps> = ({
         <button
           type="button"
           onClick={onOpenMobileSidebar}
-          className="lg:hidden p-2 text-slate-600 dark:text-slate-300 hover:bg-white/80 dark:hover:bg-[#1e222b] rounded-xl border border-slate-200/60 dark:border-[#282d37] transition-colors cursor-pointer shrink-0"
+          className="lg:hidden p-1.5 text-slate-600 dark:text-slate-300 hover:bg-white/70 dark:hover:bg-white/[0.06] rounded-lg border border-white/60 dark:border-white/[0.08] transition-colors cursor-pointer shrink-0 focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-sky-500/40"
           aria-label="Open navigation menu"
         >
           <Menu className="w-4 h-4" />
         </button>
 
         <div className="relative w-full">
-          <Search className="w-4 h-4 text-slate-400 dark:text-slate-500 absolute left-3.5 top-1/2 -translate-y-1/2 pointer-events-none" />
+          <Search className="w-3.5 h-3.5 text-slate-400 dark:text-slate-500 absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" />
           <input
             ref={inputRef}
             type="text"
@@ -573,10 +579,10 @@ export const DashboardHeader: React.FC<DashboardHeaderProps> = ({
             onFocus={() => setIsSearchFocused(true)}
             onChange={(e) => onSearchChange(e.target.value)}
             placeholder="Search projects, deployments, databases..."
-            className="w-full pl-10 pr-20 py-2 bg-white/60 dark:bg-[#12151a]/60 border border-slate-200/80 dark:border-[#282d37] rounded-2xl text-xs text-slate-800 dark:text-slate-200 placeholder-slate-400 dark:placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-blue-500/30 focus:border-blue-500 transition-all font-medium"
+            className="w-full pl-9 pr-20 py-1.5 bg-white/35 dark:bg-white/[0.02] border border-white/50 dark:border-white/[0.06] shadow-[inset_0_1px_2px_0_rgba(12,50,110,0.04)] rounded-xl text-xs text-slate-900 dark:text-slate-100 placeholder-slate-400 dark:placeholder-slate-500 focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-sky-500/40 transition-colors font-normal"
           />
 
-          <div className="absolute right-2.5 top-1/2 -translate-y-1/2 flex items-center gap-1.5">
+          <div className="absolute right-2 top-1/2 -translate-y-1/2 flex items-center gap-1.5">
             {searchQuery && (
               <button
                 type="button"
@@ -584,14 +590,14 @@ export const DashboardHeader: React.FC<DashboardHeaderProps> = ({
                   onSearchChange("");
                   inputRef.current?.focus();
                 }}
-                className="p-1 text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 transition-colors cursor-pointer"
+                className="p-1 text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 transition-colors cursor-pointer focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-sky-500/40 rounded-sm"
                 title="Clear global search"
                 aria-label="Clear global search"
               >
                 <X className="w-3.5 h-3.5" />
               </button>
             )}
-            <div className="hidden sm:flex items-center gap-0.5 px-1.5 py-0.5 bg-slate-100 dark:bg-[#1e222b] border border-slate-200 dark:border-[#282d37] rounded-md text-[10px] font-mono text-slate-500 dark:text-slate-400 pointer-events-none">
+            <div className="hidden sm:flex items-center gap-0.5 px-1.5 py-0.5 bg-slate-100/80 dark:bg-white/[0.04] border border-slate-200/50 dark:border-white/[0.06] rounded text-[10px] font-mono text-slate-500 dark:text-slate-400 pointer-events-none">
               <span>Ctrl</span>
               <span>K</span>
             </div>
@@ -599,11 +605,11 @@ export const DashboardHeader: React.FC<DashboardHeaderProps> = ({
 
           {/* Global Search Results Palette */}
           {isSearchFocused && searchResults && (
-            <div className="absolute left-0 right-0 top-full mt-2 z-50 backdrop-blur-2xl bg-white/95 dark:bg-[#16191f]/95 border border-white/90 dark:border-[#282d37] rounded-2xl shadow-2xl shadow-sky-950/20 dark:shadow-black/50 overflow-hidden max-h-[460px] overflow-y-auto animate-fade-in divide-y divide-slate-100 dark:divide-[#282d37]/60">
+            <div className="absolute left-0 right-0 top-full mt-2 z-50 backdrop-blur-2xl bg-white/85 dark:bg-[#07080B]/95 border border-white/80 dark:border-white/[0.12] shadow-[inset_0_1px_0_0_rgba(255,255,255,0.95),0_20px_48px_-8px_rgba(15,23,42,0.12)] dark:shadow-[inset_0_1px_0_0_rgba(255,255,255,0.14),0_16px_48px_0_rgba(0,0,0,0.85)] rounded-2xl overflow-hidden max-h-[460px] overflow-y-auto animate-fade-in divide-y divide-slate-100 dark:divide-white/[0.06]">
               {searchResults.totalMatches === 0 ? (
                 <div className="p-8 text-center space-y-1.5">
                   <Search className="w-6 h-6 text-slate-400 mx-auto" />
-                  <p className="text-xs font-bold text-slate-800 dark:text-slate-200">
+                  <p className="text-xs font-semibold text-slate-800 dark:text-slate-200">
                     No results found for &ldquo;{searchQuery}&rdquo;
                   </p>
                   <p className="text-[11px] text-slate-500 dark:text-slate-400 max-w-xs mx-auto">
@@ -616,9 +622,9 @@ export const DashboardHeader: React.FC<DashboardHeaderProps> = ({
                   {/* Category: Projects */}
                   {searchResults.projects.length > 0 && (
                     <div className="p-2 space-y-1">
-                      <div className="px-2.5 py-1 text-[10px] font-extrabold uppercase tracking-wider text-slate-400 dark:text-slate-500 flex items-center justify-between">
+                      <div className="px-2.5 py-1 text-[10px] font-medium uppercase tracking-wider text-slate-400 dark:text-slate-500 flex items-center justify-between">
                         <span>Projects</span>
-                        <span className="text-[9px] bg-slate-100 dark:bg-[#1e222b] px-1.5 py-0.5 rounded">
+                        <span className="text-[9px] bg-slate-100 dark:bg-white/[0.06] px-1.5 py-0.5 rounded font-mono">
                           {searchResults.projects.length}
                         </span>
                       </div>
@@ -627,23 +633,23 @@ export const DashboardHeader: React.FC<DashboardHeaderProps> = ({
                           key={project.id}
                           type="button"
                           onClick={() => handleSelectProject(project)}
-                          className="w-full flex items-center justify-between gap-3 px-2.5 py-2 rounded-xl text-left hover:bg-blue-50/80 dark:hover:bg-[#1e222b] transition-colors cursor-pointer group"
+                          className="w-full flex items-center justify-between gap-3 px-2.5 py-2 rounded-xl text-left hover:bg-slate-100 dark:hover:bg-white/[0.06] transition-colors cursor-pointer group focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-sky-500/40"
                         >
                           <div className="flex items-center gap-2.5 min-w-0">
-                            <div className="w-7 h-7 rounded-lg bg-blue-100/80 dark:bg-blue-950/60 text-blue-600 dark:text-blue-400 border border-blue-200/60 dark:border-blue-800/40 flex items-center justify-center shrink-0">
+                            <div className="w-7 h-7 rounded-lg bg-sky-50 dark:bg-sky-950/40 text-sky-600 dark:text-sky-400 border border-sky-200/50 dark:border-sky-800/30 flex items-center justify-center shrink-0">
                               <Folder className="w-3.5 h-3.5" />
                             </div>
                             <div className="min-w-0">
-                              <p className="text-xs font-bold text-slate-900 dark:text-[#f1f3f5] truncate group-hover:text-blue-600 dark:group-hover:text-blue-400">
+                              <p className="text-xs font-semibold text-slate-900 dark:text-slate-100 truncate group-hover:text-sky-600 dark:group-hover:text-sky-400">
                                 {project.name}
                               </p>
-                              <p className="text-[10px] text-slate-500 dark:text-slate-400 truncate">
+                              <p className="text-[10px] text-slate-500 dark:text-slate-400 truncate font-mono">
                                 {project.repo || "No repo"} &bull;{" "}
                                 {project.branch}
                               </p>
                             </div>
                           </div>
-                          <span className="text-[10px] font-semibold text-slate-400 group-hover:text-blue-600 flex items-center gap-1 shrink-0">
+                          <span className="text-[10px] font-medium text-slate-400 group-hover:text-sky-600 flex items-center gap-1 shrink-0">
                             View <ChevronRight className="w-3 h-3" />
                           </span>
                         </button>
@@ -794,11 +800,11 @@ export const DashboardHeader: React.FC<DashboardHeaderProps> = ({
                 ? onTabChange("integrations")
                 : navigate(ROUTES.PROFILE)
             }
-            className="hidden sm:flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-slate-900 dark:bg-[#1e222b] text-white dark:text-slate-200 border border-slate-800 dark:border-[#282d37] text-xs font-bold cursor-pointer hover:bg-slate-800 transition-all shadow-2xs"
+            className="hidden sm:flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-slate-900 dark:bg-white/[0.06] text-white dark:text-slate-200 border border-slate-800 dark:border-white/[0.08] text-xs font-medium cursor-pointer hover:bg-slate-800 dark:hover:bg-white/[0.1] transition-colors focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-sky-500/40"
             title="Connected to GitHub (Click to manage)"
           >
             <GithubLogo className="w-3.5 h-3.5 fill-current" />
-            <span className="truncate max-w-[120px]">
+            <span className="truncate max-w-[120px] font-mono text-[11px]">
               @{githubUsername || "connected"}
             </span>
           </div>
@@ -806,7 +812,7 @@ export const DashboardHeader: React.FC<DashboardHeaderProps> = ({
           <button
             type="button"
             onClick={onConnectGithub}
-            className="hidden sm:flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-white/80 dark:bg-[#1e222b]/80 hover:bg-white dark:hover:bg-[#1e222b] text-slate-800 dark:text-slate-200 border border-slate-200/80 dark:border-[#282d37] text-xs font-bold transition-all shadow-2xs cursor-pointer"
+            className="hidden sm:flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-white/45 hover:bg-white/65 dark:bg-white/[0.04] dark:hover:bg-white/[0.08] text-slate-800 dark:text-slate-200 border border-white/55 hover:border-white/80 dark:border-white/[0.08] text-xs font-medium transition-colors cursor-pointer shadow-2xs focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-sky-500/40"
           >
             <GithubLogo className="w-3.5 h-3.5 fill-current" />
             <span>GitHub</span>
@@ -821,17 +827,17 @@ export const DashboardHeader: React.FC<DashboardHeaderProps> = ({
           <button
             type="button"
             onClick={() => setIsNotificationsOpen((prev) => !prev)}
-            className={`relative p-2 rounded-xl transition-all cursor-pointer border ${
+            className={`relative p-1.5 rounded-lg transition-colors cursor-pointer border focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-sky-500/40 ${
               isNotificationsOpen
-                ? "bg-blue-50 text-blue-600 dark:bg-[#1e222b] dark:text-blue-400 border-blue-200 dark:border-[#282d37]"
-                : "text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white hover:bg-white/60 dark:hover:bg-[#1e222b] border-transparent hover:border-slate-200/60 dark:hover:border-[#282d37]"
+                ? "bg-sky-50 text-sky-600 dark:bg-sky-950/40 dark:text-sky-400 border-sky-200 dark:border-sky-800/50"
+                : "text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-100 hover:bg-white/60 dark:hover:bg-white/[0.06] border-transparent"
             }`}
             title="System notifications"
             aria-label={`Notifications (${unreadCount} unread)`}
           >
             <Bell className="w-4 h-4" />
             {unreadCount > 0 && (
-              <span className="absolute -top-0.5 -right-0.5 min-w-[17px] h-[17px] px-1 rounded-full bg-rose-500 text-white text-[10px] font-extrabold flex items-center justify-center ring-2 ring-white dark:ring-[#16191f] shadow-xs">
+              <span className="absolute -top-0.5 -right-0.5 min-w-[16px] h-[16px] px-1 rounded-full bg-rose-500 text-white text-[9px] font-bold flex items-center justify-center ring-2 ring-white dark:ring-[#07080B]">
                 {unreadCount > 9 ? "9+" : unreadCount}
               </span>
             )}
@@ -839,15 +845,15 @@ export const DashboardHeader: React.FC<DashboardHeaderProps> = ({
 
           {/* Notifications Dropdown Palette */}
           {isNotificationsOpen && (
-            <div className="absolute right-0 top-full mt-2 w-80 sm:w-96 z-50 backdrop-blur-2xl bg-white/95 dark:bg-[#16191f]/95 border border-white/90 dark:border-[#282d37] rounded-2xl shadow-2xl shadow-sky-950/20 dark:shadow-black/50 overflow-hidden animate-fade-in divide-y divide-slate-100 dark:divide-[#282d37]/60">
+            <div className="absolute right-0 sm:right-0 max-sm:-right-12 top-full mt-2 w-80 sm:w-96 max-w-[calc(100vw-2rem)] z-50 backdrop-blur-2xl bg-white/85 dark:bg-[#07080B]/95 border border-white/80 dark:border-white/[0.12] shadow-[inset_0_1px_0_0_rgba(255,255,255,0.95),0_20px_48px_-8px_rgba(15,23,42,0.12)] dark:shadow-[inset_0_1px_0_0_rgba(255,255,255,0.14),0_16px_48px_0_rgba(0,0,0,0.85)] rounded-2xl overflow-hidden animate-fade-in divide-y divide-slate-100 dark:divide-white/[0.06]">
               {/* Header */}
-              <div className="px-4 py-3 flex items-center justify-between bg-slate-50/50 dark:bg-[#12151a]/50">
+              <div className="px-4 py-3 flex items-center justify-between bg-slate-50/60 dark:bg-white/[0.02]">
                 <div className="flex items-center gap-2">
-                  <h3 className="text-xs font-bold text-slate-900 dark:text-[#f1f3f5]">
+                  <h3 className="text-xs font-semibold text-slate-900 dark:text-slate-100">
                     Notifications
                   </h3>
                   {unreadCount > 0 && (
-                    <span className="text-[10px] font-bold px-1.5 py-0.5 rounded-full bg-blue-100 dark:bg-blue-950/80 text-blue-600 dark:text-blue-400">
+                    <span className="text-[10px] font-medium px-1.5 py-0.5 rounded-full bg-sky-100 dark:bg-sky-950/60 text-sky-700 dark:text-sky-300">
                       {unreadCount} new
                     </span>
                   )}

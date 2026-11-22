@@ -81,10 +81,10 @@ export function useMotionEnvironment() {
 
   useEffect(() => {
     const handleResize = () => {
-      setIsDesktop(window.innerWidth >= 768);
+      const nextDesktop = window.innerWidth >= 768;
+      setIsDesktop((prev) => (prev !== nextDesktop ? nextDesktop : prev));
     };
 
-    handleResize();
     window.addEventListener('resize', handleResize, { passive: true });
     return () => window.removeEventListener('resize', handleResize);
   }, []);
@@ -114,16 +114,10 @@ export function useMotionScale(): number {
 
   useEffect(() => {
     const handleResize = () => {
-      if (window.innerWidth < 640) {
-        setScale(0.4);
-      } else if (window.innerWidth < 1024) {
-        setScale(0.65);
-      } else {
-        setScale(1.0);
-      }
+      const nextScale = window.innerWidth < 640 ? 0.4 : window.innerWidth < 1024 ? 0.65 : 1.0;
+      setScale((prev) => (prev !== nextScale ? nextScale : prev));
     };
 
-    handleResize();
     window.addEventListener('resize', handleResize, { passive: true });
     return () => window.removeEventListener('resize', handleResize);
   }, []);

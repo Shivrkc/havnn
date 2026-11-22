@@ -102,10 +102,6 @@ import { SystemStatusCard } from "../components/dashboard/SystemStatusCard";
 import { QuickActionsCard } from "../components/dashboard/QuickActionsCard";
 import { useCanvasSky } from "../utils/useCanvasSky";
 
-
-
-
-
 export const sortDeploymentsNewestFirst = (
   a: Deployment,
   b: Deployment,
@@ -774,18 +770,17 @@ export default function Dashboard() {
             const hasActiveLive = Boolean(
               activeLiveDeployment &&
               activeLiveDeployment.status === "RUNNING" &&
-              activeLiveDeployment.localUrl
+              activeLiveDeployment.localUrl &&
+              !isTerminalDown
             );
 
             return {
               ...p,
               status: newStatus,
-              updatedAt: formatRelativeTime(finalDep.createdAt),
-              updatedAtRaw: finalDep.createdAt,
-              liveDeploymentId: activeLiveDeployment?.id || (isTerminalDown ? null : p.liveDeploymentId),
-              localUrl: hasActiveLive ? activeLiveDeployment!.localUrl : (isTerminalDown ? null : p.localUrl),
-              hostPort: hasActiveLive ? activeLiveDeployment!.hostPort : (isTerminalDown ? null : p.hostPort),
-              internalPort: hasActiveLive ? activeLiveDeployment!.internalPort : (isTerminalDown ? null : p.internalPort),
+              localUrl: hasActiveLive ? activeLiveDeployment?.localUrl : null,
+              hostPort: hasActiveLive ? activeLiveDeployment?.hostPort : null,
+              internalPort: hasActiveLive ? activeLiveDeployment?.internalPort : null,
+              liveDeploymentId: hasActiveLive ? activeLiveDeployment?.id : null,
               liveDeployment: activeLiveDeployment || null,
               latestDeployment: {
                 id: finalDep.id,
@@ -1092,16 +1087,32 @@ export default function Dashboard() {
   return (
     <div
       id="dashboard-workspace"
-      className="min-h-screen flex relative overflow-x-hidden font-sans selection:bg-sky-200 dark:selection:bg-slate-700 bg-gradient-to-b from-sky-50/20 via-transparent to-sky-100/20 dark:from-sky-950/20 dark:via-blue-950/25 dark:to-[#0b0e14]"
+      className="min-h-screen flex relative overflow-x-hidden font-sans selection:bg-sky-200 dark:selection:bg-slate-700 bg-slate-50/50 dark:bg-black"
     >
-      {/* Living Sky Canvas */}
+      {/* Dark Mode: Dedicated Fixed AMOLED Nebula Background Layer */}
+      <div
+        className="fixed inset-0 pointer-events-none z-0 hidden dark:block bg-black overflow-hidden"
+        aria-hidden="true"
+      >
+        <div
+          className="w-full h-full bg-cover bg-center bg-no-repeat transition-opacity duration-300"
+          style={{
+            backgroundImage: "url('/images/dashboard-amoled-nebula.jpg')",
+            backgroundPosition: "center 48%",
+          }}
+        />
+        {/* Subtle, restrained vignette overlay to preserve high text contrast while keeping golden nebula formations brilliant */}
+        <div className="absolute inset-0 bg-[radial-gradient(ellipse_100%_80%_at_50%_40%,transparent_50%,rgba(0,0,0,0.35)_100%)] pointer-events-none" />
+      </div>
+
+      {/* Living Sky Canvas (Light Mode Day Sky & Procedural Clouds) */}
       <canvas
         ref={canvasRef}
-        className="fixed inset-0 w-full h-full pointer-events-none z-0"
+        className="fixed inset-0 w-full h-full pointer-events-none z-0 dark:hidden"
       />
 
-      {/* Subtle Atmospheric Radial Depth (soft blue/sky glow in dark mode) */}
-      <div className="fixed inset-0 pointer-events-none z-0 bg-[radial-gradient(ellipse_80%_60%_at_50%_-10%,rgba(56,189,248,0.08),rgba(255,255,255,0))] dark:bg-[radial-gradient(ellipse_80%_60%_at_50%_-10%,rgba(14,165,233,0.12),rgba(11,14,20,0))]" />
+      {/* Subtle, non-intrusive daylight ambient atmosphere */}
+      <div className="fixed inset-0 pointer-events-none z-0 bg-[radial-gradient(ellipse_100%_100%_at_50%_0%,rgba(56,189,248,0.03),transparent)] dark:hidden" />
 
       {/* Persistent Glassmorphic Sidebar */}
       <DashboardSidebar
@@ -1124,7 +1135,7 @@ export default function Dashboard() {
       />
 
       {/* Main Content Shell */}
-      <div className="flex-1 flex flex-col min-w-0 lg:pl-64 relative z-20 transition-all duration-300">
+      <div className="flex-1 flex flex-col min-w-0 lg:pl-[104px] relative z-20 transition-all duration-300">
         <div className="p-4 sm:p-6 lg:p-8 max-w-7xl w-full mx-auto space-y-6">
           {/* Top Glassmorphic Header */}
           <DashboardHeader
@@ -1171,10 +1182,10 @@ export default function Dashboard() {
               {/* Header Title & Action Bar */}
               <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                 <div>
-                  <h1 className="text-2xl font-black text-slate-900 dark:text-[#f1f3f5] tracking-tight">
+                  <h1 className="text-xl sm:text-2xl font-bold text-slate-900 dark:text-slate-100 tracking-tight">
                     Overview
                   </h1>
-                  <p className="text-xs text-slate-600 dark:text-slate-400 font-semibold mt-0.5">
+                  <p className="text-xs text-slate-600 dark:text-slate-400 font-medium mt-0.5">
                     Your deployments and infrastructure at a glance
                   </p>
                 </div>
@@ -1186,14 +1197,14 @@ export default function Dashboard() {
                       value={timeframe}
                       onChange={(e) => setTimeframe(e.target.value as any)}
                       aria-label="Filter timeframe"
-                      className="appearance-none bg-white/70 dark:bg-[#16191f]/80 backdrop-blur-xl border border-slate-200/80 dark:border-[#282d37] hover:border-slate-300 dark:hover:border-slate-600 text-slate-700 dark:text-slate-200 text-xs font-bold py-2.5 pl-3.5 pr-8 rounded-xl transition-all shadow-sm cursor-pointer outline-none focus:ring-2 focus:ring-blue-500/20"
+                      className="appearance-none bg-white/65 hover:bg-white/80 dark:bg-[#07080B]/70 backdrop-blur-2xl border border-white/70 hover:border-white/90 dark:border-white/[0.09] dark:hover:border-white/[0.16] shadow-xs text-slate-700 dark:text-slate-200 text-xs font-medium py-2 pl-3 pr-8 rounded-lg transition-colors cursor-pointer outline-hidden focus-visible:ring-2 focus-visible:ring-sky-500/40"
                     >
                       <option value="7d">Last 7 days</option>
                       <option value="30d">Last 30 days</option>
                       <option value="90d">Last 90 days</option>
                       <option value="all">All time</option>
                     </select>
-                    <ChevronDown className="w-3.5 h-3.5 text-slate-500 pointer-events-none absolute right-2.5" />
+                    <ChevronDown className="w-3.5 h-3.5 text-slate-400 pointer-events-none absolute right-2.5" />
                   </div>
 
                   {/* Contextual Connect GitHub Button if not connected */}
@@ -1201,7 +1212,7 @@ export default function Dashboard() {
                     <button
                       type="button"
                       onClick={handleConnectGithubOAuth}
-                      className="bg-slate-900 hover:bg-black dark:bg-[#1e222b] dark:hover:bg-[#282d37] text-white font-bold text-xs py-2.5 px-3.5 rounded-xl transition-all shadow-md flex items-center gap-2 active:scale-[0.98] cursor-pointer"
+                      className="bg-slate-900 hover:bg-black dark:bg-white/[0.06] dark:hover:bg-white/[0.1] text-white font-medium text-xs py-2 px-3 rounded-lg transition-colors shadow-xs flex items-center gap-2 cursor-pointer focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-sky-500/40"
                       title="Connect your GitHub account"
                     >
                       <Github className="w-3.5 h-3.5" />
@@ -1209,7 +1220,7 @@ export default function Dashboard() {
                     </button>
                   )}
 
-                  {/* Solid Blue + New Project CTA (Permanent) */}
+                  {/* Solid Sky + New Project CTA */}
                   <button
                     type="button"
                     onClick={() => {
@@ -1219,7 +1230,7 @@ export default function Dashboard() {
                         handleConnectGithubOAuth();
                       }
                     }}
-                    className="bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white font-bold text-xs py-2.5 px-4 rounded-xl transition-all shadow-md shadow-blue-600/30 hover:shadow-blue-600/40 flex items-center gap-2 active:scale-[0.98] cursor-pointer"
+                    className="bg-[#1453E6] hover:bg-[#1249cc] text-white font-medium text-xs py-2 px-3.5 rounded-lg transition-colors shadow-md shadow-[#1453E6]/25 hover:shadow-lg hover:shadow-[#1453E6]/30 flex items-center gap-2 cursor-pointer focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-[#1453E6]/40 active:scale-[0.98]"
                   >
                     <Plus className="w-3.5 h-3.5" />
                     <span>New Project</span>
@@ -1244,15 +1255,15 @@ export default function Dashboard() {
                   <div className="space-y-4">
                     <div className="flex items-center justify-between">
                       <div>
-                        <h2 className="text-base font-extrabold text-slate-900 dark:text-[#f1f3f5] tracking-tight">
+                        <h2 className="text-sm font-semibold text-slate-900 dark:text-slate-100 tracking-tight">
                           Active Projects
                         </h2>
-                        <p className="text-xs text-slate-500 dark:text-slate-400 font-semibold">
+                        <p className="text-xs text-slate-600 dark:text-slate-400 font-medium">
                           Deployed codebases and container environments
                         </p>
                       </div>
                       {projects.length > 0 && (
-                        <span className="text-xs font-bold text-slate-600 dark:text-slate-400 bg-white/70 dark:bg-[#16191f]/70 px-2.5 py-1 rounded-xl border border-slate-200/60 dark:border-[#282d37]">
+                        <span className="text-xs font-mono tabular-nums text-slate-500 dark:text-slate-400 bg-white/50 dark:bg-white/[0.04] px-2.5 py-1 rounded-lg border border-white/60 dark:border-white/[0.06] shadow-2xs">
                           {displayedProjects.length} of {projects.length}{" "}
                           {projects.length === 1 ? "Project" : "Projects"}
                         </span>
@@ -1260,10 +1271,10 @@ export default function Dashboard() {
                     </div>
 
                     {/* Sub-toolbar: Search, Status Filter, Sort, Grid/List view toggle */}
-                    <div className="flex flex-wrap items-center justify-between gap-3 p-2 rounded-2xl backdrop-blur-xl bg-white/40 dark:bg-[#16191f]/40 border border-slate-200/70 dark:border-[#282d37]">
+                    <div className="flex flex-wrap items-center justify-between gap-2.5 p-1.5 rounded-xl backdrop-blur-2xl backdrop-saturate-125 bg-white/50 dark:bg-[#07080B]/60 border border-white/50 dark:border-white/[0.08] shadow-[inset_0_1px_0_0_rgba(255,255,255,0.85),inset_0_1px_2px_0_rgba(15,23,42,0.03),0_4px_16px_-2px_rgba(15,23,42,0.05)] dark:shadow-[inset_0_1px_0_0_rgba(255,255,255,0.10),0_4px_20px_0_rgba(0,0,0,0.45)]">
                       {/* Search projects */}
                       <div className="relative flex-1 min-w-[180px]">
-                        <Search className="w-3.5 h-3.5 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" />
+                        <Search className="w-3.5 h-3.5 text-slate-400 absolute left-2.5 top-1/2 -translate-y-1/2 pointer-events-none" />
                         <input
                           type="text"
                           value={searchProjectQuery}
@@ -1271,13 +1282,13 @@ export default function Dashboard() {
                             setSearchProjectQuery(e.target.value)
                           }
                           placeholder="Search projects..."
-                          className="w-full pl-9 pr-3 py-1.5 text-xs font-semibold bg-white/70 dark:bg-[#12151a]/80 text-slate-800 dark:text-slate-200 placeholder-slate-400 border border-slate-200/80 dark:border-[#282d37] rounded-xl outline-none focus:ring-2 focus:ring-blue-500/20"
+                          className="w-full pl-8 pr-3 py-1.5 text-xs font-normal bg-white/45 dark:bg-white/[0.02] text-slate-900 dark:text-slate-100 placeholder-slate-400 border border-white/50 dark:border-white/[0.06] shadow-[inset_0_1px_2px_0_rgba(15,23,42,0.03)] rounded-lg outline-hidden focus-visible:ring-2 focus-visible:ring-sky-500/40"
                         />
                         {searchProjectQuery && (
                           <button
                             type="button"
                             onClick={() => setSearchProjectQuery("")}
-                            className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 text-xs font-bold cursor-pointer"
+                            className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 text-xs cursor-pointer focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-sky-500/40 rounded-sm"
                           >
                             ✕
                           </button>
@@ -1294,7 +1305,7 @@ export default function Dashboard() {
                               setProjectStatusFilter(e.target.value as any)
                             }
                             aria-label="Filter by project status"
-                            className="appearance-none bg-white/70 dark:bg-[#12151a]/80 border border-slate-200/80 dark:border-[#282d37] text-slate-700 dark:text-slate-300 text-xs font-bold py-1.5 pl-3 pr-7 rounded-xl transition-all cursor-pointer outline-none focus:ring-2 focus:ring-blue-500/20"
+                            className="appearance-none bg-white/45 hover:bg-white/60 dark:bg-white/[0.02] border border-white/50 hover:border-white/70 dark:border-white/[0.06] shadow-[inset_0_1px_2px_0_rgba(15,23,42,0.03)] text-slate-700 dark:text-slate-300 text-xs font-medium py-1.5 pl-2.5 pr-7 rounded-lg transition-colors cursor-pointer outline-hidden focus-visible:ring-2 focus-visible:ring-sky-500/40"
                           >
                             <option value="all">All Projects</option>
                             <option value="ready">Ready</option>
@@ -1312,7 +1323,7 @@ export default function Dashboard() {
                               setProjectSortBy(e.target.value as any)
                             }
                             aria-label="Sort projects"
-                            className="appearance-none bg-white/70 dark:bg-[#12151a]/80 border border-slate-200/80 dark:border-[#282d37] text-slate-700 dark:text-slate-300 text-xs font-bold py-1.5 pl-3 pr-7 rounded-xl transition-all cursor-pointer outline-none focus:ring-2 focus:ring-blue-500/20"
+                            className="appearance-none bg-white/45 hover:bg-white/60 dark:bg-white/[0.02] border border-white/50 hover:border-white/70 dark:border-white/[0.06] shadow-[inset_0_1px_2px_0_rgba(15,23,42,0.03)] text-slate-700 dark:text-slate-300 text-xs font-medium py-1.5 pl-2.5 pr-7 rounded-lg transition-colors cursor-pointer outline-hidden focus-visible:ring-2 focus-visible:ring-sky-500/40"
                           >
                             <option value="updated">Last Updated</option>
                             <option value="name">Name (A-Z)</option>
@@ -1322,14 +1333,14 @@ export default function Dashboard() {
                         </div>
 
                         {/* Grid / List Toggle */}
-                        <div className="flex items-center p-0.5 bg-slate-200/60 dark:bg-[#12151a]/80 border border-slate-200/80 dark:border-[#282d37] rounded-xl">
+                        <div className="flex items-center p-0.5 bg-white/45 dark:bg-white/[0.04] border border-white/50 dark:border-white/[0.06] rounded-lg shadow-2xs">
                           <button
                             type="button"
                             onClick={() => setProjectViewMode("grid")}
-                            className={`p-1.5 rounded-lg transition-all cursor-pointer ${
+                            className={`p-1 rounded-md transition-colors cursor-pointer focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-sky-500/40 ${
                               projectViewMode === "grid"
-                                ? "bg-white dark:bg-[#1e222b] text-blue-600 dark:text-blue-400 shadow-sm font-bold"
-                                : "text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200"
+                                ? "bg-white/90 text-[#1453E6] dark:bg-white/[0.1] dark:text-blue-400 shadow-xs font-medium"
+                                : "text-slate-400 hover:text-slate-700 dark:hover:text-slate-200"
                             }`}
                             title="Grid View"
                             aria-label="Grid View"
@@ -1339,10 +1350,10 @@ export default function Dashboard() {
                           <button
                             type="button"
                             onClick={() => setProjectViewMode("list")}
-                            className={`p-1.5 rounded-lg transition-all cursor-pointer ${
+                            className={`p-1 rounded-md transition-colors cursor-pointer focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-sky-500/40 ${
                               projectViewMode === "list"
-                                ? "bg-white dark:bg-[#1e222b] text-blue-600 dark:text-blue-400 shadow-sm font-bold"
-                                : "text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200"
+                                ? "bg-white/90 text-[#1453E6] dark:bg-white/[0.1] dark:text-blue-400 shadow-xs font-medium"
+                                : "text-slate-400 hover:text-slate-700 dark:hover:text-slate-200"
                             }`}
                             title="List View"
                             aria-label="List View"
@@ -1354,31 +1365,31 @@ export default function Dashboard() {
                     </div>
 
                     {loadingProjects ? (
-                      <div className="text-center py-16 backdrop-blur-xl bg-white/50 dark:bg-[#16191f]/80 border border-slate-200/80 dark:border-[#282d37] rounded-3xl p-8 space-y-3">
-                        <RefreshCw className="w-8 h-8 text-blue-600 dark:text-blue-400 animate-spin mx-auto" />
-                        <p className="text-sm font-bold text-slate-800 dark:text-slate-200">
+                      <div className="text-center py-16 backdrop-blur-2xl backdrop-saturate-150 bg-white/80 dark:bg-[#07080B]/60 border border-slate-200/70 dark:border-white/[0.08] dark:shadow-[inset_0_1px_0_0_rgba(255,255,255,0.10),0_8px_32px_0_rgba(0,0,0,0.55)] rounded-2xl p-8 space-y-3">
+                        <RefreshCw className="w-7 h-7 text-[#1453E6] dark:text-blue-400 animate-spin mx-auto" />
+                        <p className="text-xs font-medium text-slate-700 dark:text-slate-300">
                           Loading projects from server...
                         </p>
                       </div>
                     ) : projectError && !isAuthError(projectError) ? (
-                      <div className="text-center py-16 backdrop-blur-xl bg-white/50 dark:bg-[#16191f]/80 border border-red-200/80 dark:border-red-900/40 rounded-3xl p-8 space-y-3">
-                        <AlertTriangle className="w-10 h-10 text-red-500 dark:text-red-400 mx-auto" />
-                        <p className="text-sm font-bold text-slate-800 dark:text-slate-200">
+                      <div className="text-center py-16 backdrop-blur-2xl backdrop-saturate-150 bg-white/80 dark:bg-[#07080B]/60 border border-rose-200/70 dark:border-rose-900/40 dark:shadow-[inset_0_1px_0_0_rgba(255,255,255,0.10)] rounded-2xl p-8 space-y-3">
+                        <AlertTriangle className="w-8 h-8 text-rose-500 dark:text-rose-400 mx-auto" />
+                        <p className="text-xs font-medium text-slate-800 dark:text-slate-200">
                           Unable to load projects
                         </p>
-                        <p className="text-xs text-red-600 dark:text-red-400 font-medium">
+                        <p className="text-xs text-rose-600 dark:text-rose-400 font-normal">
                           {projectError}
                         </p>
                       </div>
                     ) : displayedProjects.length === 0 ? (
-                      <div className="text-center py-16 backdrop-blur-xl bg-white/50 dark:bg-[#16191f]/80 border border-dashed border-slate-300 dark:border-[#282d37] rounded-3xl p-8 space-y-3">
-                        <Folder className="w-10 h-10 text-slate-400 dark:text-slate-500 mx-auto" />
-                        <p className="text-sm font-bold text-slate-800 dark:text-slate-200">
+                      <div className="text-center py-16 backdrop-blur-xl backdrop-saturate-[180%] bg-white/40 dark:bg-[#07080B]/60 border border-dashed border-white/60 dark:border-white/[0.1] shadow-[inset_0_1px_0_0_rgba(255,255,255,0.85),0_8px_24px_-4px_rgba(12,50,110,0.06)] dark:shadow-[inset_0_1px_0_0_rgba(255,255,255,0.10),0_8px_32px_0_rgba(0,0,0,0.55)] rounded-2xl p-8 space-y-3">
+                        <Folder className="w-8 h-8 text-slate-400 dark:text-slate-500 mx-auto" />
+                        <p className="text-sm font-semibold text-slate-900 dark:text-slate-100">
                           {searchProjectQuery || projectStatusFilter !== "all"
                             ? "No matching projects"
                             : "No projects deployed yet"}
                         </p>
-                        <p className="text-xs text-slate-600 dark:text-slate-400 max-w-sm mx-auto">
+                        <p className="text-xs text-slate-500 dark:text-slate-400 max-w-sm mx-auto font-normal">
                           {searchProjectQuery || projectStatusFilter !== "all"
                             ? "Try clearing your filters or searching with a different term."
                             : "Connect a GitHub repository to trigger your first cloud deployment and begin monitoring infrastructure."}
@@ -1390,7 +1401,7 @@ export default function Dashboard() {
                               setSearchProjectQuery("");
                               setProjectStatusFilter("all");
                             }}
-                            className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-slate-200 dark:bg-[#1e222b] text-slate-700 dark:text-slate-300 font-bold text-xs rounded-xl hover:bg-slate-300 dark:hover:bg-[#282d37] cursor-pointer"
+                            className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-white/60 dark:bg-white/[0.04] text-slate-700 dark:text-slate-300 font-medium text-xs rounded-lg hover:bg-white/80 dark:hover:bg-white/[0.08] cursor-pointer border border-white/60 dark:border-white/[0.06] shadow-2xs focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-sky-500/40"
                           >
                             Reset filters
                           </button>
@@ -1398,7 +1409,7 @@ export default function Dashboard() {
                           <button
                             type="button"
                             onClick={() => setIsConnectModalOpen(true)}
-                            className="inline-flex items-center gap-2 px-4 py-2 bg-blue-600 text-white font-bold text-xs rounded-xl hover:bg-blue-500 cursor-pointer shadow-md"
+                            className="inline-flex items-center gap-2 px-3.5 py-2 bg-[#1453E6] text-white font-medium text-xs rounded-lg hover:bg-[#1249cc] cursor-pointer shadow-md shadow-[#1453E6]/25 focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-[#1453E6]/40"
                           >
                             <Plus className="w-3.5 h-3.5" />
                             Deploy Your First App
@@ -1407,7 +1418,7 @@ export default function Dashboard() {
                           <button
                             type="button"
                             onClick={handleConnectGithubOAuth}
-                            className="inline-flex items-center gap-2 px-4 py-2 bg-slate-900 dark:bg-[#1e222b] text-white font-bold text-xs rounded-xl hover:bg-black cursor-pointer shadow-md"
+                            className="inline-flex items-center gap-2 px-3.5 py-2 bg-slate-900 dark:bg-white/[0.06] text-white font-medium text-xs rounded-lg hover:bg-black dark:hover:bg-white/[0.1] cursor-pointer shadow-xs focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-sky-500/40"
                           >
                             <Github className="w-3.5 h-3.5" />
                             Connect GitHub
@@ -1495,10 +1506,10 @@ export default function Dashboard() {
               {/* Header Title & Action Bar */}
               <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                 <div>
-                  <h1 className="text-2xl font-black text-slate-900 dark:text-[#f1f3f5] tracking-tight">
+                  <h1 className="text-xl sm:text-2xl font-bold text-slate-900 dark:text-slate-100 tracking-tight">
                     Projects
                   </h1>
-                  <p className="text-xs text-slate-600 dark:text-slate-400 font-semibold mt-0.5">
+                  <p className="text-xs text-slate-600 dark:text-slate-400 font-medium mt-0.5">
                     Manage your deployed applications, environments, and
                     container workloads
                   </p>
@@ -1509,7 +1520,7 @@ export default function Dashboard() {
                     <button
                       type="button"
                       onClick={handleConnectGithubOAuth}
-                      className="bg-slate-900 hover:bg-black dark:bg-[#1e222b] dark:hover:bg-[#282d37] text-white font-bold text-xs py-2.5 px-3.5 rounded-xl transition-all shadow-md flex items-center gap-2 active:scale-[0.98] cursor-pointer"
+                      className="bg-slate-900 hover:bg-black dark:bg-white/[0.06] dark:hover:bg-white/[0.1] text-white font-medium text-xs py-2 px-3 rounded-lg transition-colors shadow-xs flex items-center gap-2 cursor-pointer focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-sky-500/40"
                       title="Connect your GitHub account"
                     >
                       <Github className="w-3.5 h-3.5" />
@@ -1526,7 +1537,7 @@ export default function Dashboard() {
                         handleConnectGithubOAuth();
                       }
                     }}
-                    className="bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white font-bold text-xs py-2.5 px-4 rounded-xl transition-all shadow-md shadow-blue-600/30 hover:shadow-blue-600/40 flex items-center gap-2 active:scale-[0.98] cursor-pointer"
+                    className="bg-[#1453E6] hover:bg-[#1249cc] text-white font-medium text-xs py-2 px-3.5 rounded-lg transition-colors shadow-md shadow-[#1453E6]/25 hover:shadow-lg hover:shadow-[#1453E6]/30 flex items-center gap-2 cursor-pointer focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-[#1453E6]/40 active:scale-[0.98]"
                   >
                     <Plus className="w-3.5 h-3.5" />
                     <span>New Project</span>
@@ -1536,22 +1547,22 @@ export default function Dashboard() {
 
               {/* Sub-toolbar: Search, Status Filter, Sort, Grid/List view toggle */}
               <div className="space-y-4">
-                <div className="flex flex-wrap items-center justify-between gap-3 p-2 rounded-2xl backdrop-blur-xl bg-white/40 dark:bg-[#16191f]/40 border border-slate-200/70 dark:border-[#282d37]">
+                <div className="flex flex-wrap items-center justify-between gap-2.5 p-1.5 rounded-xl backdrop-blur-2xl backdrop-saturate-125 bg-white/50 dark:bg-[#07080B]/60 border border-white/50 dark:border-white/[0.08] shadow-[inset_0_1px_0_0_rgba(255,255,255,0.85),inset_0_1px_2px_0_rgba(12,50,110,0.04),0_4px_16px_-2px_rgba(12,50,110,0.05)] dark:shadow-[inset_0_1px_0_0_rgba(255,255,255,0.10),0_4px_20px_0_rgba(0,0,0,0.45)]">
                   {/* Search projects */}
                   <div className="relative flex-1 min-w-[180px]">
-                    <Search className="w-3.5 h-3.5 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" />
+                    <Search className="w-3.5 h-3.5 text-slate-400 absolute left-2.5 top-1/2 -translate-y-1/2 pointer-events-none" />
                     <input
                       type="text"
                       value={searchProjectQuery}
                       onChange={(e) => setSearchProjectQuery(e.target.value)}
                       placeholder="Search projects..."
-                      className="w-full pl-9 pr-3 py-1.5 text-xs font-semibold bg-white/70 dark:bg-[#12151a]/80 text-slate-800 dark:text-slate-200 placeholder-slate-400 border border-slate-200/80 dark:border-[#282d37] rounded-xl outline-none focus:ring-2 focus:ring-blue-500/20"
+                      className="w-full pl-8 pr-3 py-1.5 text-xs font-normal bg-white/45 dark:bg-white/[0.02] text-slate-900 dark:text-slate-100 placeholder-slate-400 border border-white/50 dark:border-white/[0.06] shadow-[inset_0_1px_2px_0_rgba(12,50,110,0.04)] rounded-lg outline-hidden focus-visible:ring-2 focus-visible:ring-sky-500/40"
                     />
                     {searchProjectQuery && (
                       <button
                         type="button"
                         onClick={() => setSearchProjectQuery("")}
-                        className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 text-xs font-bold cursor-pointer"
+                        className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 text-xs cursor-pointer focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-sky-500/40 rounded-sm"
                       >
                         ✕
                       </button>
@@ -1568,7 +1579,7 @@ export default function Dashboard() {
                           setProjectStatusFilter(e.target.value as any)
                         }
                         aria-label="Filter by project status"
-                        className="appearance-none bg-white/70 dark:bg-[#12151a]/80 border border-slate-200/80 dark:border-[#282d37] text-slate-700 dark:text-slate-300 text-xs font-bold py-1.5 pl-3 pr-7 rounded-xl transition-all cursor-pointer outline-none focus:ring-2 focus:ring-blue-500/20"
+                        className="appearance-none bg-white/45 hover:bg-white/60 dark:bg-white/[0.02] border border-white/50 hover:border-white/70 dark:border-white/[0.06] shadow-[inset_0_1px_2px_0_rgba(12,50,110,0.03)] text-slate-700 dark:text-slate-300 text-xs font-medium py-1.5 pl-2.5 pr-7 rounded-lg transition-colors cursor-pointer outline-hidden focus-visible:ring-2 focus-visible:ring-sky-500/40"
                       >
                         <option value="all">All Projects</option>
                         <option value="ready">Ready</option>
@@ -1586,7 +1597,7 @@ export default function Dashboard() {
                           setProjectSortBy(e.target.value as any)
                         }
                         aria-label="Sort projects"
-                        className="appearance-none bg-white/70 dark:bg-[#12151a]/80 border border-slate-200/80 dark:border-[#282d37] text-slate-700 dark:text-slate-300 text-xs font-bold py-1.5 pl-3 pr-7 rounded-xl transition-all cursor-pointer outline-none focus:ring-2 focus:ring-blue-500/20"
+                        className="appearance-none bg-white/45 hover:bg-white/60 dark:bg-white/[0.02] border border-white/50 hover:border-white/70 dark:border-white/[0.06] shadow-[inset_0_1px_2px_0_rgba(12,50,110,0.03)] text-slate-700 dark:text-slate-300 text-xs font-medium py-1.5 pl-2.5 pr-7 rounded-lg transition-colors cursor-pointer outline-hidden focus-visible:ring-2 focus-visible:ring-sky-500/40"
                       >
                         <option value="updated">Last Updated</option>
                         <option value="name">Name (A-Z)</option>
@@ -1596,14 +1607,14 @@ export default function Dashboard() {
                     </div>
 
                     {/* Grid / List Toggle */}
-                    <div className="flex items-center p-0.5 bg-slate-200/60 dark:bg-[#12151a]/80 border border-slate-200/80 dark:border-[#282d37] rounded-xl">
+                    <div className="flex items-center p-0.5 bg-white/45 dark:bg-white/[0.04] border border-white/50 dark:border-white/[0.06] rounded-lg shadow-2xs">
                       <button
                         type="button"
                         onClick={() => setProjectViewMode("grid")}
-                        className={`p-1.5 rounded-lg transition-all cursor-pointer ${
+                        className={`p-1 rounded-md transition-colors cursor-pointer focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-sky-500/40 ${
                           projectViewMode === "grid"
-                            ? "bg-white dark:bg-[#1e222b] text-blue-600 dark:text-blue-400 shadow-sm font-bold"
-                            : "text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200"
+                            ? "bg-white/90 text-[#1453E6] dark:bg-white/[0.1] dark:text-blue-400 shadow-xs font-medium"
+                            : "text-slate-400 hover:text-slate-700 dark:hover:text-slate-200"
                         }`}
                         title="Grid View"
                         aria-label="Grid View"
@@ -1613,10 +1624,10 @@ export default function Dashboard() {
                       <button
                         type="button"
                         onClick={() => setProjectViewMode("list")}
-                        className={`p-1.5 rounded-lg transition-all cursor-pointer ${
+                        className={`p-1 rounded-md transition-colors cursor-pointer focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-sky-500/40 ${
                           projectViewMode === "list"
-                            ? "bg-white dark:bg-[#1e222b] text-blue-600 dark:text-blue-400 shadow-sm font-bold"
-                            : "text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200"
+                            ? "bg-white/90 text-[#1453E6] dark:bg-white/[0.1] dark:text-blue-400 shadow-xs font-medium"
+                            : "text-slate-400 hover:text-slate-700 dark:hover:text-slate-200"
                         }`}
                         title="List View"
                         aria-label="List View"
@@ -1628,31 +1639,31 @@ export default function Dashboard() {
                 </div>
 
                 {loadingProjects ? (
-                  <div className="text-center py-20 backdrop-blur-xl bg-white/50 dark:bg-[#16191f]/80 border border-slate-200/80 dark:border-[#282d37] rounded-3xl p-8 space-y-3">
-                    <RefreshCw className="w-8 h-8 text-blue-600 dark:text-blue-400 animate-spin mx-auto" />
-                    <p className="text-sm font-bold text-slate-800 dark:text-slate-200">
+                  <div className="text-center py-20 backdrop-blur-2xl backdrop-saturate-150 bg-white/80 dark:bg-[#07080B]/60 border border-slate-200/70 dark:border-white/[0.08] dark:shadow-[inset_0_1px_0_0_rgba(255,255,255,0.10),0_8px_32px_0_rgba(0,0,0,0.55)] rounded-2xl p-8 space-y-3">
+                    <RefreshCw className="w-7 h-7 text-[#1453E6] dark:text-blue-400 animate-spin mx-auto" />
+                    <p className="text-xs font-medium text-slate-700 dark:text-slate-300">
                       Loading projects from server...
                     </p>
                   </div>
                 ) : projectError && !isAuthError(projectError) ? (
-                  <div className="text-center py-20 backdrop-blur-xl bg-white/50 dark:bg-[#16191f]/80 border border-red-200/80 dark:border-red-900/40 rounded-3xl p-8 space-y-3">
-                    <AlertTriangle className="w-10 h-10 text-red-500 dark:text-red-400 mx-auto" />
-                    <p className="text-sm font-bold text-slate-800 dark:text-slate-200">
+                  <div className="text-center py-20 backdrop-blur-2xl backdrop-saturate-150 bg-white/80 dark:bg-[#07080B]/60 border border-rose-200/70 dark:border-rose-900/40 dark:shadow-[inset_0_1px_0_0_rgba(255,255,255,0.10)] rounded-2xl p-8 space-y-3">
+                    <AlertTriangle className="w-8 h-8 text-rose-500 dark:text-rose-400 mx-auto" />
+                    <p className="text-xs font-medium text-slate-800 dark:text-slate-200">
                       Unable to load projects
                     </p>
-                    <p className="text-xs text-red-600 dark:text-red-400 font-medium">
+                    <p className="text-xs text-rose-600 dark:text-rose-400 font-normal">
                       {projectError}
                     </p>
                   </div>
                 ) : displayedProjects.length === 0 ? (
-                  <div className="text-center py-20 backdrop-blur-xl bg-white/50 dark:bg-[#16191f]/80 border border-dashed border-slate-300 dark:border-[#282d37] rounded-3xl p-8 space-y-3">
-                    <Folder className="w-10 h-10 text-slate-400 dark:text-slate-500 mx-auto" />
-                    <p className="text-sm font-bold text-slate-800 dark:text-slate-200">
+                  <div className="text-center py-20 backdrop-blur-xl backdrop-saturate-[180%] bg-white/40 dark:bg-[#07080B]/60 border border-dashed border-white/60 dark:border-white/[0.1] shadow-[inset_0_1px_0_0_rgba(255,255,255,0.85),0_8px_24px_-4px_rgba(12,50,110,0.06)] dark:shadow-[inset_0_1px_0_0_rgba(255,255,255,0.10),0_8px_32px_0_rgba(0,0,0,0.55)] rounded-2xl p-8 space-y-3">
+                    <Folder className="w-8 h-8 text-slate-400 dark:text-slate-500 mx-auto" />
+                    <p className="text-sm font-semibold text-slate-900 dark:text-slate-100">
                       {searchProjectQuery || projectStatusFilter !== "all"
                         ? "No matching projects"
                         : "No projects deployed yet"}
                     </p>
-                    <p className="text-xs text-slate-600 dark:text-slate-400 max-w-sm mx-auto">
+                    <p className="text-xs text-slate-500 dark:text-slate-400 max-w-sm mx-auto font-normal">
                       {searchProjectQuery || projectStatusFilter !== "all"
                         ? "Try clearing your filters or searching with a different term."
                         : "Connect a GitHub repository to trigger your first cloud deployment and begin monitoring infrastructure."}
@@ -1664,7 +1675,7 @@ export default function Dashboard() {
                           setSearchProjectQuery("");
                           setProjectStatusFilter("all");
                         }}
-                        className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-slate-200 dark:bg-[#1e222b] text-slate-700 dark:text-slate-300 font-bold text-xs rounded-xl hover:bg-slate-300 dark:hover:bg-[#282d37] cursor-pointer"
+                        className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-white/60 dark:bg-white/[0.04] text-slate-700 dark:text-slate-300 font-medium text-xs rounded-lg hover:bg-white/80 dark:hover:bg-white/[0.08] cursor-pointer border border-white/60 dark:border-white/[0.06] shadow-2xs focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-sky-500/40"
                       >
                         Reset filters
                       </button>
@@ -1672,7 +1683,7 @@ export default function Dashboard() {
                       <button
                         type="button"
                         onClick={() => setIsConnectModalOpen(true)}
-                        className="inline-flex items-center gap-2 px-4 py-2 bg-blue-600 text-white font-bold text-xs rounded-xl hover:bg-blue-500 cursor-pointer shadow-md"
+                        className="inline-flex items-center gap-2 px-3.5 py-2 bg-[#1453E6] text-white font-medium text-xs rounded-lg hover:bg-[#1249cc] cursor-pointer shadow-md shadow-[#1453E6]/25 focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-[#1453E6]/40"
                       >
                         <Plus className="w-3.5 h-3.5" />
                         Deploy Your First App
@@ -1681,7 +1692,7 @@ export default function Dashboard() {
                       <button
                         type="button"
                         onClick={handleConnectGithubOAuth}
-                        className="inline-flex items-center gap-2 px-4 py-2 bg-slate-900 dark:bg-[#1e222b] text-white font-bold text-xs rounded-xl hover:bg-black cursor-pointer shadow-md"
+                        className="inline-flex items-center gap-2 px-3.5 py-2 bg-slate-900 dark:bg-white/[0.06] text-white font-medium text-xs rounded-lg hover:bg-black dark:hover:bg-white/[0.1] cursor-pointer shadow-xs focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-sky-500/40"
                       >
                         <Github className="w-3.5 h-3.5" />
                         Connect GitHub

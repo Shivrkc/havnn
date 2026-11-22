@@ -1,5 +1,5 @@
 import React, { useRef, useState, useEffect } from 'react';
-import { GraduationCap, Rocket, SearchCheck, CheckCircle2, Sparkles } from 'lucide-react';
+import { GraduationCap, Rocket, SearchCheck, CheckCircle2 } from 'lucide-react';
 import { motion, MotionValue, MotionStyle, useScroll, useTransform, useMotionValue } from 'motion/react';
 import { useMotionEnvironment } from './motionSystem';
 
@@ -178,11 +178,6 @@ export default function ProductTrust({
           style={{ y: headerY, opacity: headerOpacity }}
           className="text-center max-w-2xl mx-auto space-y-4"
         >
-          <div className="inline-flex items-center gap-2 backdrop-blur-md bg-white/60 dark:bg-[#16191f]/90 border border-slate-200/80 dark:border-[#282d37] rounded-full px-4 py-1 text-xs text-blue-900 dark:text-[#7BBBFF] font-bold shadow-xs">
-            <Sparkles className="w-3.5 h-3.5 text-blue-600 dark:text-[#7BBBFF]" />
-            <span>Developer-First Philosophy</span>
-          </div>
-
           <h2 className="font-display text-3xl sm:text-5xl font-bold tracking-tight text-slate-900 dark:text-white leading-tight">
             Built for Developers Who Want to Understand Their Deployments
           </h2>
