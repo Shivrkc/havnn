@@ -53,11 +53,12 @@ import { ROUTES } from "../constants/routes";
 import {
   formatRelativeTime,
   mapBackendDeploymentToFrontend,
+  mapBackendProjectToProject,
   canStopDeployment,
   canRestartDeployment,
   formatPortMapping,
 } from "../utils/deployment.utils";
-export { mapBackendDeploymentToFrontend };
+export { mapBackendDeploymentToFrontend, mapBackendProjectToProject };
 import {
   getProjects,
   createProject,
@@ -103,35 +104,7 @@ import { useCanvasSky } from "../utils/useCanvasSky";
 
 
 
-const mapBackendProjectToProject = (bp: BackendProject): Project => {
-  const repoName = bp.repositoryName ?? "";
-  let status:
-    "ready" | "building" | "failed" | "queued" | "cancelled" | "idle" = "idle";
 
-  if (bp.status === "ready") status = "ready";
-  else if (bp.status === "building") status = "building";
-  else if (bp.status === "queued") status = "queued";
-  else if (bp.status === "failed") status = "failed";
-  else if (bp.status === "cancelled") status = "cancelled";
-
-  return {
-    id: bp.id,
-    name: bp.name,
-    repo: repoName,
-    owner: repoName.includes("/") ? repoName.split("/")[0] : "dev-master",
-    branch: bp.branch || "main",
-    status,
-    url: bp.latestDeployment?.localUrl || bp.repositoryUrl || "",
-    updatedAt: formatRelativeTime(bp.updatedAt),
-    updatedAtRaw: bp.updatedAt,
-    deploymentsCount: bp.deploymentsCount ?? 0,
-    liveDeploymentId: bp.liveDeploymentId,
-    localUrl: bp.latestDeployment?.localUrl,
-    hostPort: bp.latestDeployment?.hostPort,
-    internalPort: bp.latestDeployment?.internalPort,
-    latestDeployment: bp.latestDeployment || null,
-  };
-};
 
 export const sortDeploymentsNewestFirst = (
   a: Deployment,
@@ -611,7 +584,9 @@ export default function Dashboard() {
     [reloadProjects],
   );
 
-  // Background bounded synchronization for active/in-flight deployments
+  // Background bounded synchronization for active/in-flight deployments & runtime reconciler
+  const isReloadingRef = useRef<boolean>(false);
+
   useEffect(() => {
     const hasActiveDeployments = projects.some((p) => {
       const s = p.latestDeployment?.status || p.status;
@@ -626,11 +601,24 @@ export default function Dashboard() {
       );
     });
 
-    if (!hasActiveDeployments) return;
+    const hasLiveDeployments = projects.some((p) => {
+      const s = p.latestDeployment?.status || p.status;
+      return s === "RUNNING" || s === "ready";
+    });
 
-    const interval = setInterval(() => {
-      reloadProjects();
-    }, 3000);
+    if (!hasActiveDeployments && !hasLiveDeployments) return;
+
+    const pollIntervalMs = hasActiveDeployments ? 3000 : 15000;
+
+    const interval = setInterval(async () => {
+      if (isReloadingRef.current) return;
+      isReloadingRef.current = true;
+      try {
+        await reloadProjects();
+      } finally {
+        isReloadingRef.current = false;
+      }
+    }, pollIntervalMs);
 
     return () => clearInterval(interval);
   }, [projects, reloadProjects]);
@@ -756,19 +744,49 @@ export default function Dashboard() {
         setProjects((prev) =>
           prev.map((p) => {
             if (p.id !== finalDep.projectId) return p;
-            let newStatus:
-              | "ready"
-              | "building"
-              | "failed"
-              | "queued"
-              | "cancelled"
-              | "idle" = p.status;
-            if (finalDep.status === "BUILT") newStatus = "ready";
+            let newStatus: Project['status'] = p.status;
+            if (finalDep.status === "RUNNING" || finalDep.status === "BUILT") newStatus = "ready";
+            else if (finalDep.status === "STOPPED") newStatus = "stopped";
+            else if (finalDep.status === "CRASHED") newStatus = "crashed";
             else if (finalDep.status === "FAILED") newStatus = "failed";
             else if (finalDep.status === "CANCELLED") newStatus = "cancelled";
+
+            const isLive = finalDep.status === "RUNNING" && Boolean(finalDep.localUrl);
+            const isTerminalDown = newStatus === "stopped" || newStatus === "crashed";
+
+            const activeLiveDeployment = isLive
+              ? {
+                  id: finalDep.id,
+                  status: finalDep.status,
+                  branch: finalDep.branch,
+                  commitSha: finalDep.commitSha,
+                  commitMsg: finalDep.commitMsg,
+                  imageTag: finalDep.imageTag,
+                  createdAt: finalDep.createdAt,
+                  completedAt: finalDep.completedAt,
+                  containerId: finalDep.containerId,
+                  hostPort: finalDep.hostPort,
+                  internalPort: finalDep.internalPort,
+                  localUrl: finalDep.localUrl,
+                }
+              : (isTerminalDown ? null : p.liveDeployment);
+
+            const hasActiveLive = Boolean(
+              activeLiveDeployment &&
+              activeLiveDeployment.status === "RUNNING" &&
+              activeLiveDeployment.localUrl
+            );
+
             return {
               ...p,
               status: newStatus,
+              updatedAt: formatRelativeTime(finalDep.createdAt),
+              updatedAtRaw: finalDep.createdAt,
+              liveDeploymentId: activeLiveDeployment?.id || (isTerminalDown ? null : p.liveDeploymentId),
+              localUrl: hasActiveLive ? activeLiveDeployment!.localUrl : (isTerminalDown ? null : p.localUrl),
+              hostPort: hasActiveLive ? activeLiveDeployment!.hostPort : (isTerminalDown ? null : p.hostPort),
+              internalPort: hasActiveLive ? activeLiveDeployment!.internalPort : (isTerminalDown ? null : p.internalPort),
+              liveDeployment: activeLiveDeployment || null,
               latestDeployment: {
                 id: finalDep.id,
                 status: finalDep.status,
@@ -778,6 +796,10 @@ export default function Dashboard() {
                 imageTag: finalDep.imageTag,
                 createdAt: finalDep.createdAt,
                 completedAt: finalDep.completedAt,
+                containerId: finalDep.containerId,
+                hostPort: finalDep.hostPort,
+                internalPort: finalDep.internalPort,
+                localUrl: finalDep.localUrl,
               },
             };
           }),

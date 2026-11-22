@@ -5,6 +5,7 @@ import {
   mapBackendDeploymentToFrontend,
   canStopDeployment,
   canRestartDeployment,
+  isDeploymentLive,
   formatPortMapping,
   formatRelativeTime,
 } from '../deployment.utils';
@@ -125,5 +126,20 @@ test('Deployment Lifecycle & Runtime Mapping Tests', async (t) => {
     assert.equal(formatRelativeTime(null), 'Just now');
     assert.equal(formatRelativeTime(undefined), 'Just now');
     assert.equal(formatRelativeTime(new Date().toISOString()), 'Just now');
+  });
+
+  await t.test('Stopped and Crashed projects never project as live running', () => {
+    assert.equal(isDeploymentLive('STOPPED', 'http://localhost:3000'), false, 'Stopped deployment must never be live');
+    assert.equal(isDeploymentLive('CRASHED', 'http://localhost:3000'), false, 'Crashed deployment must never be live');
+    assert.equal(isDeploymentLive('FAILED', 'http://localhost:3000'), false, 'Failed deployment must never be live');
+    assert.equal(isDeploymentLive('RUNNING', null), false, 'Running deployment without localUrl is not live');
+    assert.equal(isDeploymentLive('RUNNING', 'http://localhost:3000'), true, 'Running deployment with localUrl is live');
+  });
+
+  await t.test('Action permissions guard duplicate and invalid transitions', () => {
+    assert.equal(canStopDeployment('STOPPED'), false);
+    assert.equal(canStopDeployment('CRASHED'), false);
+    assert.equal(canRestartDeployment('RUNNING'), false);
+    assert.equal(canRestartDeployment('STARTING'), false);
   });
 });

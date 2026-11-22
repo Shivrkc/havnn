@@ -90,7 +90,7 @@ export interface Project {
   repo: string;
   owner: string;
   branch: string;
-  status: 'ready' | 'building' | 'failed' | 'queued' | 'cancelled' | 'idle';
+  status: 'ready' | 'building' | 'failed' | 'queued' | 'cancelled' | 'idle' | 'stopped' | 'crashed';
   url: string;
   updatedAt: string;
   updatedAtRaw?: string;
@@ -100,6 +100,20 @@ export interface Project {
   hostPort?: number | null;
   internalPort?: number | null;
   latestDeployment?: {
+    id: string;
+    status: DeploymentStatus;
+    branch: string;
+    commitSha?: string | null;
+    commitMsg?: string | null;
+    imageTag?: string | null;
+    createdAt: string;
+    completedAt?: string | null;
+    containerId?: string | null;
+    hostPort?: number | null;
+    internalPort?: number | null;
+    localUrl?: string | null;
+  } | null;
+  liveDeployment?: {
     id: string;
     status: DeploymentStatus;
     branch: string;

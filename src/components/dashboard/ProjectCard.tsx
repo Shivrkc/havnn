@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect } from "react";
+import React, { useState, useRef, useEffect, useMemo } from "react";
 import {
   GitBranch,
   RefreshCw,
@@ -20,6 +20,7 @@ import {
 } from "lucide-react";
 import { GithubLogo } from "../ui/BrandIcons";
 import { Project } from "../../types";
+import { getEligibleRestartDeployment, getProjectLiveRuntime } from "../../utils/deployment.utils";
 
 interface ProjectCardProps {
   project: Project;
@@ -28,6 +29,8 @@ interface ProjectCardProps {
   onDelete: (projectId: string, projectName: string) => void;
   onStopDeployment?: (deploymentId: string, projectName: string) => Promise<void> | void;
   onRestartDeployment?: (deploymentId: string, projectName: string) => Promise<void> | void;
+  onSelect?: (project: Project) => void;
+  isSelected?: boolean;
   isDeploying?: boolean;
   isDeleting?: boolean;
   viewMode?: "grid" | "list";
@@ -40,6 +43,8 @@ export const ProjectCard: React.FC<ProjectCardProps> = ({
   onDelete,
   onStopDeployment,
   onRestartDeployment,
+  onSelect,
+  isSelected = false,
   isDeploying = false,
   isDeleting = false,
   viewMode = "grid",
@@ -64,7 +69,10 @@ export const ProjectCard: React.FC<ProjectCardProps> = ({
   }, [showMenu]);
 
   const effectiveStatus = project.latestDeployment?.status || project.status;
-  const isLiveRunning = effectiveStatus === "RUNNING";
+  const isStopped = effectiveStatus === "STOPPED" || project.status === "stopped";
+  const isCrashed = effectiveStatus === "CRASHED" || project.status === "crashed";
+  const isFailed = effectiveStatus === "FAILED" || project.status === "failed";
+  const isCancelled = effectiveStatus === "CANCELLED" || project.status === "cancelled";
   const isStarting = effectiveStatus === "STARTING";
   const isImageCompiled = effectiveStatus === "BUILT";
   const isBuilding =
@@ -73,14 +81,26 @@ export const ProjectCard: React.FC<ProjectCardProps> = ({
     effectiveStatus === "QUEUED" ||
     project.status === "building" ||
     project.status === "queued";
-  const isStopped = effectiveStatus === "STOPPED";
-  const isCrashed = effectiveStatus === "CRASHED";
-  const isFailed = effectiveStatus === "FAILED" || project.status === "failed";
-  const isCancelled = effectiveStatus === "CANCELLED" || project.status === "cancelled";
 
-  const localUrl = project.latestDeployment?.localUrl || project.localUrl;
-  const hostPort = project.latestDeployment?.hostPort || project.hostPort;
-  const internalPort = project.latestDeployment?.internalPort || project.internalPort;
+  // Determine whether this project has an active, healthy running container.
+  // Never present a STOPPED or CRASHED container as live.
+  const liveRuntime = useMemo(() => {
+    return getProjectLiveRuntime(project);
+  }, [
+    project.status,
+    project.localUrl,
+    project.hostPort,
+    project.internalPort,
+    project.liveDeploymentId,
+    project.latestDeployment,
+    project.liveDeployment,
+  ]);
+
+  const hasLiveRuntime = liveRuntime.hasLiveRuntime;
+  const localUrl = liveRuntime.localUrl;
+  const hostPort = liveRuntime.hostPort;
+  const internalPort = liveRuntime.internalPort;
+  const isLiveRunning = hasLiveRuntime;
 
   const handleCopyUrl = async (e: React.MouseEvent, url: string) => {
     e.stopPropagation();
@@ -93,12 +113,25 @@ export const ProjectCard: React.FC<ProjectCardProps> = ({
     }
   };
 
+  // Restart must target an actual eligible STOPPED or CRASHED deployment.
+  // Never target FAILED, BUILDING, RUNNING or ineligible deployments.
+  const eligibleRestartDeployment = useMemo(() => {
+    return getEligibleRestartDeployment(project);
+  }, [project.latestDeployment, project.liveDeployment]);
+
+  const canRestart = Boolean(eligibleRestartDeployment && onRestartDeployment);
+
   const handleStop = async (e: React.MouseEvent) => {
     e.stopPropagation();
-    if (!project.latestDeployment || !onStopDeployment || isStopping) return;
+    const runningTarget =
+      (project.liveDeployment?.status === "RUNNING" ? project.liveDeployment.id : null) ||
+      (project.latestDeployment?.status === "RUNNING" ? project.latestDeployment.id : null) ||
+      liveRuntime.activeLiveDeploymentId ||
+      project.liveDeploymentId;
+    if (!runningTarget || !onStopDeployment || isStopping) return;
     setIsStopping(true);
     try {
-      await onStopDeployment(project.latestDeployment.id, project.name);
+      await onStopDeployment(runningTarget, project.name);
     } finally {
       setIsStopping(false);
     }
@@ -106,10 +139,10 @@ export const ProjectCard: React.FC<ProjectCardProps> = ({
 
   const handleRestart = async (e: React.MouseEvent) => {
     e.stopPropagation();
-    if (!project.latestDeployment || !onRestartDeployment || isRestarting) return;
+    if (!eligibleRestartDeployment || !onRestartDeployment || isRestarting) return;
     setIsRestarting(true);
     try {
-      await onRestartDeployment(project.latestDeployment.id, project.name);
+      await onRestartDeployment(eligibleRestartDeployment.id, project.name);
     } finally {
       setIsRestarting(false);
     }
@@ -268,7 +301,7 @@ export const ProjectCard: React.FC<ProjectCardProps> = ({
           )}
 
           {/* Quick Stop Control */}
-          {(isLiveRunning || isStarting) && onStopDeployment && project.latestDeployment && (
+          {(hasLiveRuntime || isStarting) && onStopDeployment && (
             <button
               type="button"
               onClick={handleStop}
@@ -282,7 +315,7 @@ export const ProjectCard: React.FC<ProjectCardProps> = ({
           )}
 
           {/* Quick Restart Control */}
-          {(isStopped || isCrashed) && onRestartDeployment && project.latestDeployment && (
+          {canRestart && (
             <button
               type="button"
               onClick={handleRestart}
@@ -321,7 +354,7 @@ export const ProjectCard: React.FC<ProjectCardProps> = ({
                 <Play className="w-3 h-3 fill-current" />
               )}
               <span>
-                {isLiveRunning ? "Redeploy" : isFailed ? "Retry" : "Deploy"}
+                {isFailed ? "Retry" : hasLiveRuntime ? "Redeploy" : "Deploy"}
               </span>
             </button>
           )}
@@ -523,7 +556,7 @@ export const ProjectCard: React.FC<ProjectCardProps> = ({
         {/* Right: Actions Container */}
         <div className="flex items-center gap-1.5 shrink-0">
           {/* Quick Stop Button (for RUNNING or STARTING) */}
-          {(isLiveRunning || isStarting) && onStopDeployment && project.latestDeployment && (
+          {(hasLiveRuntime || isStarting) && onStopDeployment && (
             <button
               type="button"
               onClick={handleStop}
@@ -537,7 +570,7 @@ export const ProjectCard: React.FC<ProjectCardProps> = ({
           )}
 
           {/* Quick Restart Button (for STOPPED or CRASHED) */}
-          {(isStopped || isCrashed) && onRestartDeployment && project.latestDeployment && (
+          {canRestart && (
             <button
               type="button"
               onClick={handleRestart}
@@ -580,7 +613,7 @@ export const ProjectCard: React.FC<ProjectCardProps> = ({
                 <Play className="w-3 h-3 fill-current" />
               )}
               <span>
-                {isLiveRunning ? "Redeploy" : isFailed ? "Retry" : "Deploy"}
+                {isFailed ? "Retry" : hasLiveRuntime ? "Redeploy" : "Deploy"}
               </span>
             </button>
           )}

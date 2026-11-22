@@ -28,6 +28,20 @@ export interface BackendProject {
     internalPort?: number | null;
     localUrl?: string | null;
   } | null;
+  liveDeployment?: {
+    id: string;
+    status: DeploymentStatus;
+    branch: string;
+    commitSha?: string | null;
+    commitMsg?: string | null;
+    imageTag?: string | null;
+    createdAt: string;
+    completedAt?: string | null;
+    containerId?: string | null;
+    hostPort?: number | null;
+    internalPort?: number | null;
+    localUrl?: string | null;
+  } | null;
 }
 
 export interface CreateProjectPayload {
