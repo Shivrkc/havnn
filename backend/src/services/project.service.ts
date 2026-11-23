@@ -64,7 +64,10 @@ export const getUserProjects = async (userId: string) => {
 
   const missingLiveIds = projects
     .map((p) => p.liveDeploymentId)
-    .filter((id) => Boolean(id && !projects.some((pr) => pr.deployments[0]?.id === id)));
+    .filter(
+      (id): id is string =>
+        Boolean(id && !projects.some((pr) => pr.deployments[0]?.id === id))
+    );
 
   const liveDeployments = missingLiveIds.length > 0
     ? await prisma.deployment.findMany({
