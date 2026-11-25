@@ -1,12 +1,39 @@
 import { Resend } from "resend";
 
-const resend = new Resend(process.env.RESEND_API_KEY);
+export function getFrontendUrl(): string {
+  const raw = process.env.FRONTEND_URL?.trim();
+  if (!raw) {
+    if (process.env.NODE_ENV === "production") {
+      throw new Error("FRONTEND_URL environment variable is required in production.");
+    }
+    return "http://localhost:3000";
+  }
+  return raw.replace(/\/+$/, "");
+}
 
-const FROM_EMAIL = "HAVN <onboarding@resend.dev>";
+export function getFromEmail(): string {
+  const configured =
+    process.env.EMAIL_FROM?.trim() || process.env.RESEND_FROM_EMAIL?.trim();
+  if (configured) {
+    return configured;
+  }
+  if (process.env.NODE_ENV === "production") {
+    return "HAVN <noreply@havn.co.in>";
+  }
+  return "HAVN <onboarding@resend.dev>";
+}
+
+function getResendClient(): Resend {
+  const apiKey = process.env.RESEND_API_KEY?.trim();
+  if (!apiKey) {
+    throw new Error("RESEND_API_KEY environment variable is not configured.");
+  }
+  return new Resend(apiKey);
+}
 
 export const sendTestEmail = async (to: string) => {
-  const { data, error } = await resend.emails.send({
-    from: FROM_EMAIL,
+  const { data, error } = await getResendClient().emails.send({
+    from: getFromEmail(),
     to,
     subject: "HAVN Email Test",
     html: `
@@ -28,12 +55,12 @@ export const sendVerificationEmail = async (
   verificationToken: string
 ) => {
   const verificationUrl =
-    `${process.env.FRONTEND_URL}/verify-email?token=${encodeURIComponent(
+    `${getFrontendUrl()}/verify-email?token=${encodeURIComponent(
       verificationToken
     )}`;
 
-  const { data, error } = await resend.emails.send({
-    from: FROM_EMAIL,
+  const { data, error } = await getResendClient().emails.send({
+    from: getFromEmail(),
     to,
     subject: "Verify your HAVN email",
     html: `
@@ -84,12 +111,12 @@ export const sendPasswordResetEmail = async (
   resetToken: string
 ) => {
   const resetUrl =
-    `${process.env.FRONTEND_URL}/reset-password?token=${encodeURIComponent(
+    `${getFrontendUrl()}/reset-password?token=${encodeURIComponent(
       resetToken
     )}`;
 
-  const { data, error } = await resend.emails.send({
-    from: FROM_EMAIL,
+  const { data, error } = await getResendClient().emails.send({
+    from: getFromEmail(),
     to,
     subject: "Reset your HAVN password",
     html: `

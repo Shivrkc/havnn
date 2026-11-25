@@ -3,11 +3,32 @@ import axios from "axios";
 import prisma from "../lib/prisma";
 import { encryptToken,  decryptToken } from "../utils/crypto";
 
+export const getGithubConnectRedirectUri = (): string => {
+  return (
+    process.env.GITHUB_CONNECT_CALLBACK_URL?.trim() ||
+    "http://localhost:5000/api/github/callback"
+  );
+};
+
+function getGithubConnectClientId(): string | undefined {
+  return (
+    process.env.GITHUB_CONNECT_CLIENT_ID?.trim() ||
+    process.env.GITHUB_CLIENT_ID?.trim()
+  );
+}
+
+function getGithubConnectClientSecret(): string | undefined {
+  return (
+    process.env.GITHUB_CONNECT_CLIENT_SECRET?.trim() ||
+    process.env.GITHUB_CLIENT_SECRET?.trim()
+  );
+}
+
 /**
  * Generates a cryptographically random OAuth state for the user and stores its SHA-256 hash in DB.
  */
 export const generateConnectUrl = async (userId: string): Promise<string> => {
-  const clientId = process.env.GITHUB_CLIENT_ID;
+  const clientId = getGithubConnectClientId();
   if (!clientId) {
     throw new Error("GITHUB_CLIENT_ID environment variable is missing.");
   }
@@ -32,6 +53,7 @@ export const generateConnectUrl = async (userId: string): Promise<string> => {
 
   const params = new URLSearchParams({
     client_id: clientId,
+    redirect_uri: getGithubConnectRedirectUri(),
     scope: "repo",
     state: rawState,
     prompt: "select_account",
@@ -45,8 +67,8 @@ export const generateConnectUrl = async (userId: string): Promise<string> => {
  * exchanges authorization code for access token, fetches user profile, and saves encrypted token.
  */
 export const handleCallback = async (code: string, state: string): Promise<void> => {
-  const clientId = process.env.GITHUB_CLIENT_ID;
-  const clientSecret = process.env.GITHUB_CLIENT_SECRET;
+  const clientId = getGithubConnectClientId();
+  const clientSecret = getGithubConnectClientSecret();
 
   if (!clientId || !clientSecret) {
     throw new Error("GitHub OAuth environment variables missing.");
@@ -94,6 +116,7 @@ export const handleCallback = async (code: string, state: string): Promise<void>
       client_id: clientId,
       client_secret: clientSecret,
       code,
+      redirect_uri: getGithubConnectRedirectUri(),
     },
     {
       headers: {

@@ -56,15 +56,21 @@ export const register = async (data: RegisterData) => {
   const verificationToken = generateVerificationToken();
   const tokenHash = hashVerificationToken(verificationToken);
 
-  await prisma.emailVerificationToken.create({
-    data: {
-      tokenHash,
-      userId: user.id,
-      expiresAt: new Date(Date.now() + 30 * 60 * 1000),
-    },
-  });
+  try {
+    await prisma.emailVerificationToken.create({
+      data: {
+        tokenHash,
+        userId: user.id,
+        expiresAt: new Date(Date.now() + 30 * 60 * 1000),
+      },
+    });
 
-  await emailService.sendVerificationEmail(user.email, verificationToken);
+    await emailService.sendVerificationEmail(user.email, verificationToken);
+  } catch (err) {
+    // Prevent orphaned unverified accounts if verification email delivery fails
+    await prisma.user.delete({ where: { id: user.id } }).catch(() => {});
+    throw err;
+  }
 
   return {
     success: true,
