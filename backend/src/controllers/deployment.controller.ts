@@ -1,7 +1,11 @@
 import { Response } from "express";
 import { AuthRequest } from "../middleware/auth.middleware";
 import prisma from "../lib/prisma";
-import { deploymentWorker, syncProjectStatus } from "../services/deployment.worker";
+import {
+  deploymentWorker,
+  isDeploymentWorkerEnabled,
+  syncProjectStatus,
+} from "../services/deployment.worker";
 import { validateBranchName, validateRepositoryUrl } from "../services/git.service";
 import { LogStream } from "@prisma/client";
 import {
@@ -492,8 +496,9 @@ export const getDeploymentRuntime = async (req: AuthRequest, res: Response) => {
       return res.status(404).json({ success: false, message: "Deployment not found or access denied." });
     }
 
+    const workerEnabled = isDeploymentWorkerEnabled();
     let containerState: { exists: boolean; running: boolean } = { exists: false, running: false };
-    if (deployment.containerId) {
+    if (workerEnabled && deployment.containerId) {
       containerState = await inspectContainerState(deployment.containerId).catch(() => ({
         exists: false,
         running: false,
@@ -502,6 +507,7 @@ export const getDeploymentRuntime = async (req: AuthRequest, res: Response) => {
 
     return res.status(200).json({
       success: true,
+      workerAvailable: workerEnabled,
       deployment: {
         id: deployment.id,
         projectId: deployment.projectId,
@@ -511,7 +517,7 @@ export const getDeploymentRuntime = async (req: AuthRequest, res: Response) => {
         internalPort: deployment.internalPort,
         localUrl: deployment.localUrl,
         isLive: deployment.project.liveDeploymentId === deployment.id && deployment.status === "RUNNING",
-        containerRunning: containerState.running,
+        containerRunning: workerEnabled ? containerState.running : deployment.status === "RUNNING",
       },
     });
   } catch (error) {
@@ -547,11 +553,22 @@ export const getDeploymentRuntimeLogs = async (req: AuthRequest, res: Response) 
       return res.status(404).json({ success: false, message: "Deployment not found or access denied." });
     }
 
+    if (!isDeploymentWorkerEnabled()) {
+      return res.status(200).json({
+        success: true,
+        workerAvailable: false,
+        logs: [],
+        status: deployment.status,
+        message: "Container runtime logs are unavailable in API-only mode while the Docker runner runs remotely.",
+      });
+    }
+
     const containerName = `cloudforge-app-${deploymentId}`;
     const logs = await getContainerRuntimeLogs(containerName, 200).catch(() => []);
 
     return res.status(200).json({
       success: true,
+      workerAvailable: true,
       logs,
       status: deployment.status,
     });
@@ -595,9 +612,11 @@ export const stopDeploymentHandler = async (req: AuthRequest, res: Response) => 
       });
     }
 
-    // Stop and remove container
-    const containerName = `cloudforge-app-${deploymentId}`;
-    await stopDockerContainer(containerName).catch(() => {});
+    // Stop and remove container locally when worker execution is enabled
+    if (isDeploymentWorkerEnabled()) {
+      const containerName = `cloudforge-app-${deploymentId}`;
+      await stopDockerContainer(containerName).catch(() => {});
+    }
 
     // Update deployment status to STOPPED
     const updated = await prisma.deployment.update({

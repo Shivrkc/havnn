@@ -1,5 +1,6 @@
 import prisma from "../lib/prisma";
 import { deleteDockerImage, cleanupProjectContainers } from "./docker.service";
+import { isDeploymentWorkerEnabled } from "./deployment.worker";
 
 export interface CreateProjectInput {
   name: string;
@@ -238,25 +239,27 @@ export const deleteUserProject = async (id: string, userId: string) => {
     return null;
   }
 
-  // 1. Stop and remove all running/stopped HAVN containers for this project
-  await cleanupProjectContainers(id).catch((err) => {
-    console.warn(`[ProjectService] Could not cleanup containers for project ${id}:`, err);
-  });
+  if (isDeploymentWorkerEnabled()) {
+    // 1. Stop and remove all running/stopped HAVN containers for this project
+    await cleanupProjectContainers(id).catch((err) => {
+      console.warn(`[ProjectService] Could not cleanup containers for project ${id}:`, err);
+    });
 
-  // 2. Conservative image pruning: never remove an image still referenced by another project deployment
-  for (const dep of project.deployments) {
-    if (dep.imageTag) {
-      const otherReferences = await prisma.deployment.count({
-        where: {
-          imageTag: dep.imageTag,
-          projectId: { not: id },
-        },
-      });
-
-      if (otherReferences === 0) {
-        await deleteDockerImage(dep.imageTag).catch((err) => {
-          console.warn(`[ProjectService] Could not prune image ${dep.imageTag} during project deletion:`, err);
+    // 2. Conservative image pruning: never remove an image still referenced by another project deployment
+    for (const dep of project.deployments) {
+      if (dep.imageTag) {
+        const otherReferences = await prisma.deployment.count({
+          where: {
+            imageTag: dep.imageTag,
+            projectId: { not: id },
+          },
         });
+
+        if (otherReferences === 0) {
+          await deleteDockerImage(dep.imageTag).catch((err) => {
+            console.warn(`[ProjectService] Could not prune image ${dep.imageTag} during project deletion:`, err);
+          });
+        }
       }
     }
   }

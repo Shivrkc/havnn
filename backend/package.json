@@ -5,6 +5,9 @@
   "main": "index.js",
   "scripts": {
     "dev": "ts-node-dev --respawn --transpile-only src/server.ts",
+    "worker": "ts-node-dev --transpile-only src/worker.ts",
+    "worker:start": "node dist/worker.js",
+    "worker:stop": "node -e \"const fs=require('fs'),path=require('path');const dir=path.resolve(process.cwd(),'scratch');const pidFile=path.join(dir,'worker.pid');const stopFile=path.join(dir,'worker.stop');if(!fs.existsSync(pidFile)){console.log('No active worker PID file found.');process.exit(0);}const pid=Number(fs.readFileSync(pidFile,'utf8').trim());const alive=(p)=>{try{process.kill(p,0);return true;}catch{return false;}};if(!pid||!alive(pid)){fs.rmSync(pidFile,{force:true});fs.rmSync(stopFile,{force:true});console.log('Cleaned up stale worker PID file.');process.exit(0);}fs.mkdirSync(dir,{recursive:true});fs.writeFileSync(stopFile,String(Date.now()));if(process.platform!=='win32'){try{process.kill(pid,'SIGTERM');}catch{}}const deadline=Date.now()+4000;const wait=()=>{if(!fs.existsSync(pidFile)||!alive(pid)){fs.rmSync(pidFile,{force:true});fs.rmSync(stopFile,{force:true});console.log('Worker stopped.');process.exit(0);}if(Date.now()>=deadline){console.log('Stop signal written; worker still shutting down (PID '+pid+').');process.exit(0);}setTimeout(wait,200);};wait();\"",
     "build": "tsc",
     "start": "node dist/server.js",
     "postinstall": "prisma generate",

@@ -115,15 +115,41 @@ export class BuildLogBatcher {
     const batch = this.queue.splice(0, 50);
     this.inFlight = (async () => {
       try {
-        await prisma.buildLog.createMany({
-          data: batch.map((item) => ({
-            deploymentId: this.deploymentId,
-            line: item.line,
-            stream: item.stream,
-            sequence: item.sequence,
-            timestamp: item.timestamp,
-          })),
-        });
+        const maxAttempts = 8;
+        for (let attempt = 1; attempt <= maxAttempts; attempt++) {
+          try {
+            await prisma.buildLog.createMany({
+              data: batch.map((item) => ({
+                deploymentId: this.deploymentId,
+                line: item.line,
+                stream: item.stream,
+                sequence: item.sequence,
+                timestamp: item.timestamp,
+              })),
+            });
+            return;
+          } catch (err: any) {
+            // Rebase batch + pending queue sequences against DB max when concurrent writers (e.g., cross-process cancellation) collide
+            if (err?.code === "P2002" && attempt < maxAttempts) {
+              const maxSeqResult = await prisma.buildLog.aggregate({
+                where: { deploymentId: this.deploymentId },
+                _max: { sequence: true },
+              });
+              let nextSeq = maxSeqResult._max.sequence ?? 0;
+              for (const item of batch) {
+                nextSeq += 1;
+                item.sequence = nextSeq;
+              }
+              for (const queued of this.queue) {
+                nextSeq += 1;
+                queued.sequence = nextSeq;
+              }
+              this.sequence = nextSeq;
+              continue;
+            }
+            throw err;
+          }
+        }
       } catch (err) {
         // Put the unpersisted batch back at the front of the queue
         this.queue.unshift(...batch);
@@ -1333,6 +1359,76 @@ export async function getContainerRuntimeLogs(
           .map((line) => sanitizeLogOutput(line))
           .filter((line) => line.trim().length > 0);
         resolve(lines);
+      }
+    });
+  });
+}
+
+export interface ManagedContainerInfo {
+  containerName: string;
+  deploymentId: string;
+  state: string;
+}
+
+/**
+ * Lists all HAVN-managed containers currently tracked by the local Docker daemon.
+ * Safely returns [] if Docker is unavailable.
+ */
+export async function listManagedContainers(
+  timeoutMs = DOCKER_INSPECT_TIMEOUT_MS
+): Promise<ManagedContainerInfo[]> {
+  return new Promise((resolve) => {
+    let stdout = "";
+    let isSettled = false;
+
+    const child = spawn(
+      "docker",
+      [
+        "ps",
+        "-a",
+        "--filter", "label=managed-by=havn",
+        "--format", "{{.Names}}\t{{.Label \"deployment-id\"}}\t{{.State}}",
+      ],
+      { shell: false, windowsHide: true }
+    );
+
+    const timer = setTimeout(() => {
+      if (!isSettled) {
+        isSettled = true;
+        if (child.pid) terminateProcessTree(child.pid);
+        resolve([]);
+      }
+    }, timeoutMs);
+
+    child.stdout.on("data", (chunk: Buffer) => {
+      stdout += chunk.toString("utf8");
+    });
+
+    child.on("error", () => {
+      if (!isSettled) {
+        isSettled = true;
+        clearTimeout(timer);
+        resolve([]);
+      }
+    });
+
+    child.on("close", (code) => {
+      if (!isSettled) {
+        isSettled = true;
+        clearTimeout(timer);
+        if (code !== 0) {
+          return resolve([]);
+        }
+        const containers: ManagedContainerInfo[] = stdout
+          .split("\n")
+          .map((line) => line.trim())
+          .filter(Boolean)
+          .map((line) => {
+            const [containerName = "", deploymentId = "", state = ""] = line.split("\t");
+            return { containerName, deploymentId, state };
+          })
+          .filter((item) => item.containerName.length > 0 && item.deploymentId.length > 0);
+        resolve(containers);
       }
     });
   });

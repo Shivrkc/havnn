@@ -12,6 +12,8 @@ import {
   stopDockerContainer,
   inspectContainerState,
   inspectDockerImageSize,
+  listManagedContainers,
+  ManagedContainerInfo,
 } from "./docker.service";
 import { sanitizeErrorMessage } from "../utils/sanitizer";
 import { cleanupWorkspace } from "./git.service";
@@ -30,6 +32,26 @@ export const STALE_LEASE_THRESHOLD_SECONDS = STALE_BUILD_LEASE_THRESHOLD_SECONDS
 export const HEARTBEAT_INTERVAL_MS = 10000;
 export const SAFETY_POLL_INTERVAL_MS = 5000;
 export const RECOVERY_INTERVAL_MS = 60000;
+
+/**
+ * Determines whether background deployment worker & local Docker execution are enabled.
+ * - Explicit ENABLE_DEPLOYMENT_WORKER=false disables worker execution in all environments.
+ * - Explicit ENABLE_DEPLOYMENT_WORKER=true enables worker execution in all environments.
+ * - In NODE_ENV=production without an explicit flag, defaults to false (fail-closed for API-only hosts).
+ * - Outside production without an explicit flag, defaults to true to preserve local dev & test behavior.
+ */
+export function isDeploymentWorkerEnabled(
+  env: NodeJS.ProcessEnv = process.env
+): boolean {
+  const raw = env.ENABLE_DEPLOYMENT_WORKER?.trim().toLowerCase();
+  if (raw === "false" || raw === "0" || raw === "no") {
+    return false;
+  }
+  if (raw === "true" || raw === "1" || raw === "yes") {
+    return true;
+  }
+  return env.NODE_ENV !== "production";
+}
 
 /**
  * Synchronizes Project.status enforcing the Newest-Only Invariant:
@@ -77,12 +99,23 @@ export class DeploymentWorker {
   private activeAborts = new Map<string, AbortController>();
   private heartbeatTimers = new Map<string, NodeJS.Timeout>();
   private prepareWorkspaceFn: PrepareWorkspaceFn;
+  private inspectImageSizeFn: (tag: string) => Promise<number>;
+  private inspectExposedPortFn: (tag: string) => Promise<number>;
 
-  constructor(customWorkerId?: string, prepareWorkspaceOverride?: PrepareWorkspaceFn) {
+  constructor(
+    customWorkerId?: string,
+    prepareWorkspaceOverride?: PrepareWorkspaceFn,
+    fastPathOverrides?: {
+      inspectImageSize?: (tag: string) => Promise<number>;
+      inspectExposedPort?: (tag: string) => Promise<number>;
+    }
+  ) {
     this.workerId =
       customWorkerId ||
       `worker-${process.pid}-${Date.now()}-${Math.random().toString(36).substring(2, 7)}`;
     this.prepareWorkspaceFn = prepareWorkspaceOverride || prepareDeploymentWorkspace;
+    this.inspectImageSizeFn = fastPathOverrides?.inspectImageSize || inspectDockerImageSize;
+    this.inspectExposedPortFn = fastPathOverrides?.inspectExposedPort || inspectImageExposedPort;
   }
 
   public get stopped(): boolean {
@@ -93,17 +126,31 @@ export class DeploymentWorker {
     return !this.isStopped;
   }
 
+  public isExecutionDisabled(): boolean {
+    return this.isStopped || !isDeploymentWorkerEnabled();
+  }
+
+  public hasActiveAbort(deploymentId: string): boolean {
+    return this.activeAborts.has(deploymentId);
+  }
+
   /**
    * Starts the background worker, safety poller, crash recovery reaper, and liveness reconciler.
+   * Refuses to start when worker execution is disabled via ENABLE_DEPLOYMENT_WORKER / production API mode.
    */
   public async start(): Promise<void> {
+    if (!isDeploymentWorkerEnabled()) {
+      this.stop();
+      return;
+    }
+
     this.isStopped = false;
     await this.recoverStaleDeployments();
     await this.reconcileRunningDeployments();
 
     if (!this.safetyPollTimer) {
       this.safetyPollTimer = setInterval(() => {
-        if (this.isStopped) return;
+        if (this.isExecutionDisabled()) return;
         this.processNext().catch((err) => {
           console.error(`[DeploymentWorker ${this.workerId}] Safety poll error:`, err);
         });
@@ -112,7 +159,7 @@ export class DeploymentWorker {
 
     if (!this.recoveryTimer) {
       this.recoveryTimer = setInterval(() => {
-        if (this.isStopped) return;
+        if (this.isExecutionDisabled()) return;
         this.recoverStaleDeployments().catch((err) => {
           console.error(`[DeploymentWorker ${this.workerId}] Recovery timer error:`, err);
         });
@@ -121,7 +168,7 @@ export class DeploymentWorker {
 
     if (!this.reconcileTimer) {
       this.reconcileTimer = setInterval(() => {
-        if (this.isStopped) return;
+        if (this.isExecutionDisabled()) return;
         this.reconcileRunningDeployments().catch((err) => {
           console.error(`[DeploymentWorker ${this.workerId}] Reconciler error:`, err);
         });
@@ -165,12 +212,12 @@ export class DeploymentWorker {
    * Wakes up the worker immediately when a new deployment is queued.
    */
   public notify(): void {
-    if (this.isStopped) {
+    if (this.isExecutionDisabled()) {
       return;
     }
     if (!this.isProcessing) {
       setImmediate(() => {
-        if (this.isStopped) {
+        if (this.isExecutionDisabled()) {
           return;
         }
         this.processNext().catch((err) => {
@@ -184,12 +231,12 @@ export class DeploymentWorker {
    * Atomically claims the oldest QUEUED deployment using PostgreSQL row-locking.
    */
   public async claimNextDeployment(): Promise<Deployment | null> {
-    if (this.isStopped) {
+    if (this.isExecutionDisabled()) {
       return null;
     }
 
     return await prisma.$transaction(async (tx) => {
-      if (this.isStopped) {
+      if (this.isExecutionDisabled()) {
         return null;
       }
 
@@ -229,7 +276,7 @@ export class DeploymentWorker {
    * Main worker execution loop. Processes 1 deployment at a time.
    */
   public async processNext(): Promise<void> {
-    if (this.isProcessing || this.isStopped) {
+    if (this.isProcessing || this.isExecutionDisabled()) {
       return;
     }
 
@@ -237,7 +284,7 @@ export class DeploymentWorker {
 
     let claimedDeployment: Deployment | null = null;
     try {
-      if (this.isStopped) {
+      if (this.isExecutionDisabled()) {
         this.isProcessing = false;
         return;
       }
@@ -248,7 +295,7 @@ export class DeploymentWorker {
       return;
     }
 
-    if (!claimedDeployment || this.isStopped) {
+    if (!claimedDeployment || this.isExecutionDisabled()) {
       this.isProcessing = false;
       return;
     }
@@ -262,10 +309,10 @@ export class DeploymentWorker {
       );
     } finally {
       this.isProcessing = false;
-      // Drain remaining queued jobs only if worker is not stopped
-      if (!this.isStopped) {
+      // Drain remaining queued jobs only if worker is still enabled
+      if (!this.isExecutionDisabled()) {
         setImmediate(() => {
-          if (!this.isStopped) {
+          if (!this.isExecutionDisabled()) {
             this.processNext().catch((err) => {
               console.error(`[DeploymentWorker ${this.workerId}] Next iteration error:`, err);
             });
@@ -306,136 +353,138 @@ export class DeploymentWorker {
     const abortController = new AbortController();
     this.activeAborts.set(deploymentId, abortController);
 
-    // 3. Start 30-second heartbeat timer
-    this.startHeartbeat(deploymentId);
-
-    // Append SYSTEM claim log
-    await this.appendSystemLog(deploymentId, "[SYSTEM] Worker claimed deployment. Initializing isolated workspace...");
-
-    // Update project status to "building" using newest-only invariant
-    await syncProjectStatus(projectId, createdAt, "building");
-
-    // Fast-path: Check if this is a durable restart of an already-built cached image
-    if (deployment.imageTag) {
-      let imageExists = false;
-      try {
-        const size = await inspectDockerImageSize(deployment.imageTag);
-        imageExists = size > 0;
-      } catch {
-        imageExists = false;
-      }
-
-      if (imageExists) {
-        await this.appendSystemLog(
-          deploymentId,
-          `[SYSTEM] Cached image ${deployment.imageTag} verified in local Docker daemon. Bypassing build pipeline...`
-        );
-        const internalPort = deployment.internalPort || (await inspectImageExposedPort(deployment.imageTag));
-        await this.executeStartupAndPromotion(
-          deploymentId,
-          projectId,
-          deployment.imageTag,
-          createdAt,
-          internalPort,
-          abortController.signal
-        );
-        return;
-      } else {
-        await this.appendSystemLog(
-          deploymentId,
-          `[SYSTEM] Image ${deployment.imageTag} not found in local daemon cache. Rebuilding from repository source...`
-        );
-      }
-    }
-
-    let buildContext: any = null;
-
     try {
-      // 4. Phase 1.2: Prepare isolated workspace & clone repository
-      buildContext = await this.prepareWorkspaceFn(deploymentId, userId, {
-        abortSignal: abortController.signal,
-      });
+      // 3. Start heartbeat timer
+      this.startHeartbeat(deploymentId);
 
-      if (abortController.signal.aborted) {
-        throw new Error("Deployment cancelled by user.");
+      // Append SYSTEM claim log
+      await this.appendSystemLog(deploymentId, "[SYSTEM] Worker claimed deployment. Initializing isolated workspace...");
+
+      // Update project status to "building" using newest-only invariant
+      await syncProjectStatus(projectId, createdAt, "building");
+
+      // Fast-path: Check if this is a durable restart of an already-built cached image
+      if (deployment.imageTag) {
+        let imageExists = false;
+        try {
+          const size = await this.inspectImageSizeFn(deployment.imageTag);
+          imageExists = size > 0;
+        } catch {
+          imageExists = false;
+        }
+
+        if (imageExists) {
+          await this.appendSystemLog(
+            deploymentId,
+            `[SYSTEM] Cached image ${deployment.imageTag} verified in local Docker daemon. Bypassing build pipeline...`
+          );
+          const internalPort = deployment.internalPort || (await this.inspectExposedPortFn(deployment.imageTag));
+          await this.executeStartupAndPromotion(
+            deploymentId,
+            projectId,
+            deployment.imageTag,
+            createdAt,
+            internalPort,
+            abortController.signal
+          );
+          return;
+        } else {
+          await this.appendSystemLog(
+            deploymentId,
+            `[SYSTEM] Image ${deployment.imageTag} not found in local daemon cache. Rebuilding from repository source...`
+          );
+        }
       }
 
-      await this.appendSystemLog(
-        deploymentId,
-        `[SYSTEM] Workspace ready at commit ${buildContext.commitSha.substring(0, 7)}. Handing off to Docker Build Engine...`
-      );
+      let buildContext: any = null;
 
-      // 5. Phase 1.3: Execute Docker build
-      // Phase 1.3 consumes BuildContext (kept strictly in memory) and owns workspace cleanup in its finally block.
-      await executeDockerBuild(buildContext, githubToken, {
-        abortSignal: abortController.signal,
-      });
-
-      // 6. Post-Build Container Startup & Readiness Probing
-      const verified = await prisma.deployment.findUnique({
-        where: { id: deploymentId },
-        select: { status: true },
-      });
-
-      if (verified?.status === "BUILT") {
-        await this.appendSystemLog(deploymentId, `[SYSTEM] Image ${buildContext.imageTag} built successfully.`);
-
-        // Determine internal HTTP port from image EXPOSE metadata or default to 3000
-        const internalPort = await inspectImageExposedPort(buildContext.imageTag);
-
-        await this.executeStartupAndPromotion(
-          deploymentId,
-          projectId,
-          buildContext.imageTag,
-          createdAt,
-          internalPort,
-          abortController.signal
-        );
-      }
-    } catch (err: any) {
-      const sanitized = sanitizeErrorMessage(err, githubToken);
-      const isCancelled =
-        abortController.signal.aborted ||
-        sanitized.includes("cancelled by user") ||
-        sanitized.includes("aborted");
-
-      // Stop and remove container if started
-      await stopDockerContainer(`cloudforge-app-${deploymentId}`).catch(() => {});
-
-      // Verify current DB status to preserve terminal immutability
-      const current = await prisma.deployment.findUnique({
-        where: { id: deploymentId },
-        select: { status: true },
-      });
-
-      if (current && current.status !== "RUNNING" && current.status !== "STOPPED" && current.status !== "CANCELLED" && current.status !== "FAILED") {
-        await prisma.deployment.update({
-          where: { id: deploymentId },
-          data: {
-            status: isCancelled ? "CANCELLED" : "FAILED",
-            completedAt: new Date(),
-            exitCode: isCancelled ? 130 : 1,
-            errorMessage: sanitized,
-          },
+      try {
+        // 4. Phase 1.2: Prepare isolated workspace & clone repository
+        buildContext = await this.prepareWorkspaceFn(deploymentId, userId, {
+          abortSignal: abortController.signal,
         });
-      }
 
-      await this.appendSystemLog(
-        deploymentId,
-        isCancelled
-          ? "[SYSTEM] Deployment execution cancelled by user."
-          : `[SYSTEM] Deployment execution failed: ${sanitized}`
-      );
+        if (abortController.signal.aborted) {
+          throw new Error("Deployment cancelled by user.");
+        }
 
-      await syncProjectStatus(projectId, createdAt, isCancelled ? "cancelled" : "failed");
+        await this.appendSystemLog(
+          deploymentId,
+          `[SYSTEM] Workspace ready at commit ${buildContext.commitSha.substring(0, 7)}. Handing off to Docker Build Engine...`
+        );
 
-      // Fallback cleanup if Phase 1.2 succeeded but Phase 1.3 never ran or threw before owning cleanup
-      const workspaceDir = path.resolve(SCRATCH_ROOT_DIR, deploymentId);
-      if (fs.existsSync(workspaceDir)) {
-        await cleanupWorkspace(workspaceDir);
+        // 5. Phase 1.3: Execute Docker build
+        // Phase 1.3 consumes BuildContext (kept strictly in memory) and owns workspace cleanup in its finally block.
+        await executeDockerBuild(buildContext, githubToken, {
+          abortSignal: abortController.signal,
+        });
+
+        // 6. Post-Build Container Startup & Readiness Probing
+        const verified = await prisma.deployment.findUnique({
+          where: { id: deploymentId },
+          select: { status: true },
+        });
+
+        if (verified?.status === "BUILT") {
+          await this.appendSystemLog(deploymentId, `[SYSTEM] Image ${buildContext.imageTag} built successfully.`);
+
+          // Determine internal HTTP port from image EXPOSE metadata or default to 3000
+          const internalPort = await inspectImageExposedPort(buildContext.imageTag);
+
+          await this.executeStartupAndPromotion(
+            deploymentId,
+            projectId,
+            buildContext.imageTag,
+            createdAt,
+            internalPort,
+            abortController.signal
+          );
+        }
+      } catch (err: any) {
+        const sanitized = sanitizeErrorMessage(err, githubToken);
+        const isCancelled =
+          abortController.signal.aborted ||
+          sanitized.includes("cancelled by user") ||
+          sanitized.includes("aborted");
+
+        // Stop and remove container if started
+        await stopDockerContainer(`cloudforge-app-${deploymentId}`).catch(() => {});
+
+        // Verify current DB status to preserve terminal immutability
+        const current = await prisma.deployment.findUnique({
+          where: { id: deploymentId },
+          select: { status: true },
+        });
+
+        if (current && current.status !== "RUNNING" && current.status !== "STOPPED" && current.status !== "CANCELLED" && current.status !== "FAILED") {
+          await prisma.deployment.update({
+            where: { id: deploymentId },
+            data: {
+              status: isCancelled ? "CANCELLED" : "FAILED",
+              completedAt: new Date(),
+              exitCode: isCancelled ? 130 : 1,
+              errorMessage: sanitized,
+            },
+          });
+        }
+
+        await this.appendSystemLog(
+          deploymentId,
+          isCancelled
+            ? "[SYSTEM] Deployment execution cancelled by user."
+            : `[SYSTEM] Deployment execution failed: ${sanitized}`
+        );
+
+        await syncProjectStatus(projectId, createdAt, isCancelled ? "cancelled" : "failed");
+
+        // Fallback cleanup if Phase 1.2 succeeded but Phase 1.3 never ran or threw before owning cleanup
+        const workspaceDir = path.resolve(SCRATCH_ROOT_DIR, deploymentId);
+        if (fs.existsSync(workspaceDir)) {
+          await cleanupWorkspace(workspaceDir);
+        }
       }
     } finally {
-      // 7. Cleanup in-memory registry & heartbeat
+      // 7. Cleanup in-memory registry & heartbeat across all paths (including cached-image fast path)
       this.stopHeartbeat(deploymentId);
       this.activeAborts.delete(deploymentId);
     }
@@ -511,8 +560,11 @@ export class DeploymentWorker {
         controller.abort();
       }
 
-      // Stop candidate container if starting
-      await stopDockerContainer(`cloudforge-app-${deploymentId}`).catch(() => {});
+      // Only attempt direct local container cleanup when Docker worker runs on this host;
+      // otherwise the remote/local worker reconciles and aborts via DB heartbeat.
+      if (!this.isExecutionDisabled()) {
+        await stopDockerContainer(`cloudforge-app-${deploymentId}`).catch(() => {});
+      }
 
       await this.appendSystemLog(
         deploymentId,
@@ -544,6 +596,10 @@ export class DeploymentWorker {
    * Live deployments with active heartbeats are never touched.
    */
   public async recoverStaleDeployments(): Promise<number> {
+    if (this.isExecutionDisabled()) {
+      return 0;
+    }
+
     const now = Date.now();
     const buildCutoff = new Date(now - STALE_BUILD_LEASE_THRESHOLD_SECONDS * 1000);
     const startupCutoff = new Date(now - STALE_STARTUP_LEASE_THRESHOLD_SECONDS * 1000);
@@ -645,45 +701,47 @@ export class DeploymentWorker {
       oomKilled?: boolean;
       error?: string;
     }>,
-    targetOptions?: { deploymentId?: string; projectId?: string }
+    targetOptions?: { deploymentId?: string; projectId?: string },
+    listContainersOverride?: () => Promise<ManagedContainerInfo[]>,
+    stopOverride?: (containerName: string) => Promise<void>
   ): Promise<number> {
-    if (this.isReconciling) {
-      return 0;
-    }
-
-    // Database-level distributed lock using SystemLock lease
-    // Ensures only one worker across all instances reconciles at any given time.
-    // Does NOT hold open any database transactions during subsequent Docker inspection.
-    let lockAcquired = false;
-    const now = new Date();
-    const expiresAt = new Date(Date.now() + RECONCILER_LOCK_TTL_MS);
-
-    try {
-      const rowsUpdated = await prisma.$executeRaw`
-        INSERT INTO "SystemLock" ("key", "holder", "acquiredAt", "expiresAt", "updatedAt")
-        VALUES ('havn_reconciler', ${this.workerId}, ${now}, ${expiresAt}, ${now})
-        ON CONFLICT ("key") DO UPDATE
-        SET "holder" = ${this.workerId},
-            "acquiredAt" = ${now},
-            "expiresAt" = ${expiresAt},
-            "updatedAt" = ${now}
-        WHERE "SystemLock"."expiresAt" < ${now} OR "SystemLock"."holder" = ${this.workerId};
-      `;
-
-      lockAcquired = rowsUpdated > 0;
-    } catch (dbErr) {
-      console.error(`[DeploymentWorker ${this.workerId}] Error acquiring database reconciler lock:`, dbErr);
-      return 0;
-    }
-
-    if (!lockAcquired) {
+    if (this.isReconciling || this.isExecutionDisabled()) {
       return 0;
     }
 
     this.isReconciling = true;
+    let lockAcquired = false;
     let transitionedCount = 0;
 
     try {
+      // Database-level distributed lock using SystemLock lease
+      // Ensures only one worker across all instances reconciles at any given time.
+      // Does NOT hold open any database transactions during subsequent Docker inspection.
+      const now = new Date();
+      const expiresAt = new Date(Date.now() + RECONCILER_LOCK_TTL_MS);
+
+      try {
+        const rowsUpdated = await prisma.$executeRaw`
+          INSERT INTO "SystemLock" ("key", "holder", "acquiredAt", "expiresAt", "updatedAt")
+          VALUES ('havn_reconciler', ${this.workerId}, ${now}, ${expiresAt}, ${now})
+          ON CONFLICT ("key") DO UPDATE
+          SET "holder" = ${this.workerId},
+              "acquiredAt" = ${now},
+              "expiresAt" = ${expiresAt},
+              "updatedAt" = ${now}
+          WHERE "SystemLock"."expiresAt" < ${now} OR "SystemLock"."holder" = ${this.workerId};
+        `;
+
+        lockAcquired = rowsUpdated > 0;
+      } catch (dbErr) {
+        console.error(`[DeploymentWorker ${this.workerId}] Error acquiring database reconciler lock:`, dbErr);
+        return 0;
+      }
+
+      if (!lockAcquired) {
+        return 0;
+      }
+
       const whereClause: { status: DeploymentStatus; id?: string; projectId?: string } = {
         status: "RUNNING",
       };
@@ -770,18 +828,65 @@ export class DeploymentWorker {
           });
         }
       }
+
+      // Clean up local Docker containers whose DB records were deleted or transitioned to terminal states
+      // (e.g., stopped, cancelled, or deleted via the remote Render API while this worker was running).
+      if (!targetOptions || listContainersOverride) {
+        const listContainers = listContainersOverride || listManagedContainers;
+        const stopContainer = stopOverride || stopDockerContainer;
+        const managedContainers = await listContainers().catch(() => []);
+
+        const candidateContainers = managedContainers.filter((container) => {
+          if (this.activeAborts.has(container.deploymentId)) {
+            return false;
+          }
+          if (targetOptions?.deploymentId && container.deploymentId !== targetOptions.deploymentId) {
+            return false;
+          }
+          return true;
+        });
+
+        if (candidateContainers.length > 0) {
+          const deploymentIds = Array.from(new Set(candidateContainers.map((c) => c.deploymentId)));
+          const dbRecords = await prisma.deployment.findMany({
+            where: { id: { in: deploymentIds } },
+            select: { id: true, status: true, projectId: true },
+          });
+          const statusMap = new Map(dbRecords.map((record) => [record.id, record]));
+
+          for (const container of candidateContainers) {
+            const record = statusMap.get(container.deploymentId);
+            if (targetOptions?.projectId && record && record.projectId !== targetOptions.projectId) {
+              continue;
+            }
+            const dbStatus = record?.status;
+            const shouldRemove =
+              !dbStatus ||
+              dbStatus === "STOPPED" ||
+              dbStatus === "CANCELLED" ||
+              dbStatus === "FAILED" ||
+              dbStatus === "CRASHED";
+
+            if (shouldRemove) {
+              await stopContainer(container.containerName).catch(() => {});
+            }
+          }
+        }
+      }
     } catch (err: any) {
       console.error(`[DeploymentWorker ${this.workerId}] Error during runtime reconciliation:`, err);
     } finally {
       this.isReconciling = false;
-      try {
-        await prisma.$executeRaw`
-          UPDATE "SystemLock"
-          SET "expiresAt" = '1970-01-01T00:00:00Z'::timestamptz
-          WHERE "key" = 'havn_reconciler' AND "holder" = ${this.workerId};
-        `;
-      } catch (releaseErr) {
-        console.error(`[DeploymentWorker ${this.workerId}] Error releasing reconciler lock:`, releaseErr);
+      if (lockAcquired) {
+        try {
+          await prisma.$executeRaw`
+            UPDATE "SystemLock"
+            SET "expiresAt" = '1970-01-01T00:00:00Z'::timestamptz
+            WHERE "key" = 'havn_reconciler' AND "holder" = ${this.workerId};
+          `;
+        } catch (releaseErr) {
+          console.error(`[DeploymentWorker ${this.workerId}] Error releasing reconciler lock:`, releaseErr);
+        }
       }
     }
 
@@ -793,19 +898,47 @@ export class DeploymentWorker {
 
     const timer = setInterval(async () => {
       try {
-        await prisma.$executeRaw`
-          UPDATE "Deployment"
-          SET "heartbeatAt" = NOW()
-          WHERE "id" = ${deploymentId}
-            AND "workerId" = ${this.workerId}
-            AND "status" IN ('INITIALIZING'::"DeploymentStatus", 'BUILDING'::"DeploymentStatus", 'STARTING'::"DeploymentStatus");
-        `;
+        await this.pulseHeartbeat(deploymentId);
       } catch (err) {
         console.error(`[DeploymentWorker ${this.workerId}] Heartbeat update failed for ${deploymentId}:`, err);
       }
     }, HEARTBEAT_INTERVAL_MS);
 
     this.heartbeatTimers.set(deploymentId, timer);
+  }
+
+  /**
+   * Emits a single lease heartbeat and aborts active local execution if a remote API process cancelled or removed the job.
+   */
+  public async pulseHeartbeat(deploymentId: string): Promise<boolean> {
+    if (this.isExecutionDisabled()) {
+      this.activeAborts.get(deploymentId)?.abort();
+      this.stopHeartbeat(deploymentId);
+      return false;
+    }
+
+    const rowsUpdated = await prisma.$executeRaw`
+      UPDATE "Deployment"
+      SET "heartbeatAt" = NOW()
+      WHERE "id" = ${deploymentId}
+        AND "workerId" = ${this.workerId}
+        AND "status" IN ('INITIALIZING'::"DeploymentStatus", 'BUILDING'::"DeploymentStatus", 'STARTING'::"DeploymentStatus");
+    `;
+
+    if (rowsUpdated === 0) {
+      const current = await prisma.deployment.findUnique({
+        where: { id: deploymentId },
+        select: { status: true },
+      });
+
+      if (!current || current.status === "CANCELLED") {
+        this.activeAborts.get(deploymentId)?.abort();
+        this.stopHeartbeat(deploymentId);
+        return false;
+      }
+    }
+
+    return rowsUpdated > 0;
   }
 
   private stopHeartbeat(deploymentId: string): void {
@@ -816,22 +949,33 @@ export class DeploymentWorker {
     }
   }
 
-  private async appendSystemLog(deploymentId: string, line: string): Promise<void> {
+  public async appendSystemLog(deploymentId: string, line: string): Promise<void> {
     try {
-      const maxSeqResult = await prisma.buildLog.aggregate({
-        where: { deploymentId },
-        _max: { sequence: true },
-      });
-      const nextSequence = (maxSeqResult._max.sequence ?? 0) + 1;
+      const maxAttempts = 8;
+      for (let attempt = 1; attempt <= maxAttempts; attempt++) {
+        try {
+          const maxSeqResult = await prisma.buildLog.aggregate({
+            where: { deploymentId },
+            _max: { sequence: true },
+          });
+          const nextSequence = (maxSeqResult._max.sequence ?? 0) + 1;
 
-      await prisma.buildLog.create({
-        data: {
-          deploymentId,
-          line,
-          stream: LogStream.SYSTEM,
-          sequence: nextSequence,
-        },
-      });
+          await prisma.buildLog.create({
+            data: {
+              deploymentId,
+              line,
+              stream: LogStream.SYSTEM,
+              sequence: nextSequence,
+            },
+          });
+          return;
+        } catch (err: any) {
+          if (err?.code === "P2002" && attempt < maxAttempts) {
+            continue;
+          }
+          throw err;
+        }
+      }
     } catch {
       // Logging should never crash pipeline execution
     }
@@ -881,7 +1025,7 @@ export class DeploymentWorker {
       `;
 
       if (!projects || projects.length === 0) {
-        return { promoted: false, reason: "Project record missing", retiredIds: [] };
+        return { promoted: false, reason: "Project record missing", alreadyTerminal: false, retiredIds: [] };
       }
 
       const project = projects[0];
@@ -897,9 +1041,30 @@ export class DeploymentWorker {
           return {
             promoted: false,
             reason: `Superseded by newer live deployment ${liveDep.id.substring(0, 8)} created at ${liveDep.createdAt.toISOString()}`,
+            alreadyTerminal: false,
             retiredIds: [],
           };
         }
+      }
+
+      // Guard against remote cancellation or terminal transitions racing with readiness completion
+      const candidate = await tx.deployment.findUnique({
+        where: { id: deploymentId },
+        select: { status: true },
+      });
+      if (
+        !candidate ||
+        candidate.status === "CANCELLED" ||
+        candidate.status === "STOPPED" ||
+        candidate.status === "FAILED" ||
+        candidate.status === "CRASHED"
+      ) {
+        return {
+          promoted: false,
+          reason: `Deployment is already in terminal state (${candidate?.status ?? "MISSING"})`,
+          alreadyTerminal: true,
+          retiredIds: [],
+        };
       }
 
       // 3. Atomically update Project liveDeploymentId and status to ready
@@ -945,23 +1110,28 @@ export class DeploymentWorker {
         retiredIds.push(oldDep.id);
       }
 
-      return { promoted: true, retiredIds };
+      return { promoted: true, alreadyTerminal: false, retiredIds };
     });
 
     if (!promotion.promoted) {
       // Clean up candidate container without disturbing active live deployment
       await stopDockerContainer(candidateContainerName).catch(() => {});
-      await prisma.deployment.update({
-        where: { id: deploymentId },
-        data: {
-          status: "STOPPED",
-          errorMessage: promotion.reason,
-        },
-      });
-      await this.appendSystemLog(
-        deploymentId,
-        `[SYSTEM] Promotion rejected: ${promotion.reason}. Candidate container stopped safely.`
-      );
+      if (!promotion.alreadyTerminal) {
+        await prisma.deployment.updateMany({
+          where: {
+            id: deploymentId,
+            status: { notIn: ["CANCELLED", "STOPPED", "FAILED", "CRASHED", "RUNNING"] },
+          },
+          data: {
+            status: "STOPPED",
+            errorMessage: promotion.reason,
+          },
+        });
+        await this.appendSystemLog(
+          deploymentId,
+          `[SYSTEM] Promotion rejected: ${promotion.reason}. Candidate container stopped safely.`
+        );
+      }
       return { promoted: false, reason: promotion.reason };
     }
 
@@ -1000,13 +1170,24 @@ export class DeploymentWorker {
     try {
       this.startHeartbeat(deploymentId);
 
-      await prisma.deployment.update({
-        where: { id: deploymentId },
+      if (abortSignal?.aborted) {
+        throw new Error("Deployment cancelled by user.");
+      }
+
+      const startingUpdate = await prisma.deployment.updateMany({
+        where: {
+          id: deploymentId,
+          status: { not: "CANCELLED" },
+        },
         data: {
           status: "STARTING",
           internalPort,
         },
       });
+
+      if (startingUpdate.count === 0) {
+        throw new Error("Deployment cancelled by user.");
+      }
 
       await this.appendSystemLog(
         deploymentId,
@@ -1046,6 +1227,11 @@ export class DeploymentWorker {
       });
 
       if (probeResult.ready) {
+        if (abortSignal?.aborted) {
+          await stopDockerContainer(containerResult.containerName).catch(() => {});
+          throw new Error("Deployment cancelled by user.");
+        }
+
         await this.appendSystemLog(
           deploymentId,
           `[SYSTEM] Application passed readiness probe (HTTP ${probeResult.statusCode}). Attempting promotion...`
@@ -1079,8 +1265,11 @@ export class DeploymentWorker {
 
         await stopDockerContainer(containerResult.containerName).catch(() => {});
 
-        await prisma.deployment.update({
-          where: { id: deploymentId },
+        const failedUpdate = await prisma.deployment.updateMany({
+          where: {
+            id: deploymentId,
+            status: { notIn: ["CANCELLED", "STOPPED", "FAILED", "CRASHED", "RUNNING"] },
+          },
           data: {
             status: "FAILED",
             completedAt: new Date(),
@@ -1089,17 +1278,19 @@ export class DeploymentWorker {
           },
         });
 
-        // If no other running deployment exists for the project, update project status to failed
-        const otherRunning = await prisma.deployment.findFirst({
-          where: {
-            projectId,
-            id: { not: deploymentId },
-            status: "RUNNING",
-          },
-        });
+        if (failedUpdate.count > 0) {
+          // If no other running deployment exists for the project, update project status to failed
+          const otherRunning = await prisma.deployment.findFirst({
+            where: {
+              projectId,
+              id: { not: deploymentId },
+              status: "RUNNING",
+            },
+          });
 
-        if (!otherRunning) {
-          await syncProjectStatus(projectId, createdAt, "failed");
+          if (!otherRunning) {
+            await syncProjectStatus(projectId, createdAt, "failed");
+          }
         }
 
         return { success: false, promoted: false, error: probeResult.error };
@@ -1108,8 +1299,11 @@ export class DeploymentWorker {
       const errMsg = err?.message || String(err);
       console.error(`[DeploymentWorker ${this.workerId}] Error starting container for ${deploymentId}:`, errMsg);
       await stopDockerContainer(`cloudforge-app-${deploymentId}`).catch(() => {});
-      await prisma.deployment.update({
-        where: { id: deploymentId },
+      await prisma.deployment.updateMany({
+        where: {
+          id: deploymentId,
+          status: { notIn: ["CANCELLED", "STOPPED", "FAILED", "CRASHED", "RUNNING"] },
+        },
         data: {
           status: "FAILED",
           completedAt: new Date(),
